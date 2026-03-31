@@ -4,21 +4,20 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Organization {
-  id            String          @id @default(cuid())
-  name          String
-  whatsappNumber String         @unique
-  evolutionInstance String?
-  planTier      String          @default("FREE")
-  paymentValidationsCount Int   @default(0)
-  paymentModuleLocked Boolean   @default(false)
-  onboardingStep Int            @default(0)
-  protocolActive Boolean        @default(false)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id                      String          @id @default(cuid())
+  name                    String
+  whatsappNumber          String          @unique
+  evolutionInstance       String?
+  planTier                String          @default("FREE")
+  paymentValidationsCount Int             @default(0)
+  paymentModuleLocked     Boolean         @default(false)
+  onboardingStep          Int             @default(0)
+  protocolActive          Boolean         @default(false)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
 
   businessConfig BusinessConfig?
   paymentLogs    PaymentLog[]
@@ -30,35 +29,31 @@ model BusinessConfig {
   organizationId String       @unique
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   niche          String       @default("GASTRONOMY")
-  // GASTRONOMY | RETAIL | SERVICES
   config         Json         @default("{}")
-  // JSONB libre por nicho
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
 
 model PaymentLog {
-  id                    String       @id @default(cuid())
-  organizationId        String
-  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  orderId               String?
-  voucherImageUrl       String?
-  ocrRawText            String?
-  ocrAmount             Float?
-  ocrBankName           String?
-  ocrTransactionRef     String?
-  ocrDatetime           DateTime?
-  ocrConfidence         Float?
-  isDuplicate           Boolean      @default(false)
-  duplicateOfId         String?
-  emailVerificationStatus String     @default("PENDING")
-  // PENDING | CONFIRMED | FAILED | TIMEOUT
-  emailVerifiedAt       DateTime?
-  validationStatus      String       @default("PROCESSING")
-  // PROCESSING | VALIDATED | REJECTED | DUPLICATE | MANUAL_REVIEW
-  validatedAt           DateTime?
-  rejectionReason       String?
-  createdAt             DateTime     @default(now())
+  id                      String       @id @default(cuid())
+  organizationId          String
+  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orderId                 String?
+  voucherImageUrl         String?
+  ocrRawText              String?
+  ocrAmount               Float?
+  ocrBankName             String?
+  ocrTransactionRef       String?
+  ocrDatetime             DateTime?
+  ocrConfidence           Float?
+  isDuplicate             Boolean      @default(false)
+  duplicateOfId           String?
+  emailVerificationStatus String       @default("PENDING")
+  emailVerifiedAt         DateTime?
+  validationStatus        String       @default("PROCESSING")
+  validatedAt             DateTime?
+  rejectionReason         String?
+  createdAt               DateTime     @default(now())
 
   @@unique([organizationId, ocrTransactionRef])
   @@index([organizationId, validationStatus])
@@ -70,10 +65,8 @@ model ChatHistory {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   customerPhone  String
   role           String
-  // user | assistant
   content        String
   embedding      Json?
-  // pgvector via raw query
   createdAt      DateTime     @default(now())
 
   @@index([organizationId, customerPhone])
