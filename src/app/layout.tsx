@@ -1,20 +1,5 @@
 import type { Metadata } from "next"
-import { Fira_Code, Inter } from "next/font/google"
 import "./globals.css"
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-  preload: false,
-})
-
-const firaCode = Fira_Code({
-  subsets: ["latin"],
-  variable: "--font-fira-code",
-  display: "swap",
-  preload: false,
-})
 
 export const metadata: Metadata = {
   title: "Quantum OS",
@@ -28,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={`${inter.variable} ${firaCode.variable} antialiased`}>
+      <body className="antialiased">
         {children}
       </body>
     </html>
