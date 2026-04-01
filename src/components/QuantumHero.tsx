@@ -203,7 +203,7 @@ export default function QuantumHero() {
         >
           <span>SIN_TARJETA_REQUERIDA</span>
           <span className="w-1 h-1 rounded-full bg-[#2A2A2A]" />
-          <span>SETUP_EN_5_MIN</span>
+          <span>SETUP_EN_3_MIN</span>
           <span className="w-1 h-1 rounded-full bg-[#2A2A2A]" />
           <span>PROTOCOLO_CIFRADO</span>
         </motion.div>
