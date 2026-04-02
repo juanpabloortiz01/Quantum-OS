@@ -4,23 +4,25 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export async function finalizeOnboarding(data: {
-  name: string;
   niche: string;
-  context: string;
+  needs: string[];
+  masterPrompt: string;
+  testPhone: string;
 }) {
   try {
     const organization = await prisma.organization.create({
       data: {
-        name: data.name,
+        name: `Nodo_Operativo_${data.testPhone.slice(-4)}`, // Nombre técnico autogenerado
+        whatsappNumber: data.testPhone, // <- AQUÍ ESTÁ EL DATO FALTANTE
         onboardingStep: 3,
         protocolActive: true,
         businessConfig: {
           create: {
             niche: data.niche.toUpperCase(),
-            // Guardamos el contexto y los nodos activos dentro de tu campo Json
+            // Guardamos el masterPrompt y el array de nodos elegidos
             config: {
-              context: data.context,
-              enabled_nodes: ["ocr", "voice", "orders"] 
+              context: data.masterPrompt,
+              enabled_nodes: data.needs 
             }
           }
         }
