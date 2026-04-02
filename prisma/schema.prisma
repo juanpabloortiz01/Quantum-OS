@@ -71,4 +71,3 @@ model ChatHistory {
 
   @@index([organizationId, customerPhone])
 }
-}
