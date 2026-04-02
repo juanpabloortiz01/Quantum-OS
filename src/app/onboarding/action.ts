@@ -9,28 +9,29 @@ export async function finalizeOnboarding(data: {
   context: string;
 }) {
   try {
-    // Creamos la organización y su configuración inicial
-    // Nota: El ownerEmail podrías sacarlo de la sesión de Google Auth luego
     const organization = await prisma.organization.create({
       data: {
         name: data.name,
-        niche: data.niche,
-        ownerEmail: "admin@quantum-os.com", // Temporal para el MVP
-        config: {
+        onboardingStep: 3,
+        protocolActive: true,
+        businessConfig: {
           create: {
-            systemPrompt: `Eres el Agente de IA de ${data.name}. Especialidad: ${data.niche}. Contexto operativo: ${data.context}`,
-            enabled_nodes: ["ocr", "voice", "orders"], // Activamos el arsenal base
-          },
-        },
-      },
+            niche: data.niche.toUpperCase(),
+            // Guardamos el contexto y los nodos activos dentro de tu campo Json
+            config: {
+              context: data.context,
+              enabled_nodes: ["ocr", "voice", "orders"] 
+            }
+          }
+        }
+      }
     });
 
-    console.log(`[KERNEL_SUCCESS]: Nodo ${organization.id} sincronizado.`);
+    console.log(`[KERNEL_SUCCESS]: Nodo ${organization.name} creado.`);
   } catch (error) {
-    console.error("[KERNEL_CRITICAL_ERROR]:", error);
-    return { error: "Fallo en la secuencia de guardado." };
+    console.error("[KERNEL_ERROR]:", error);
+    return { error: "Fallo al compilar la Organización en la base de datos." };
   }
 
-  // Si todo sale bien, al búnker
   redirect("/dashboard");
 }
