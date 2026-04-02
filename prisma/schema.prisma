@@ -4,13 +4,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // <-- Añadido para que conecte con Easypanel
 }
 
 model Organization {
   id                      String          @id @default(cuid())
   name                    String
-  whatsappNumber          String?         @unique // <-- Opcional (?) para no romper el Onboarding
+  whatsappNumber          String          @unique
   evolutionInstance       String?
   planTier                String          @default("FREE")
   paymentValidationsCount Int             @default(0)
@@ -30,7 +29,7 @@ model BusinessConfig {
   organizationId String       @unique
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   niche          String       @default("GASTRONOMY")
-  config         Json         @default("{}") // Aquí guardaremos los enabled_nodes
+  config         Json         @default("{}")
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
@@ -71,4 +70,5 @@ model ChatHistory {
   createdAt      DateTime     @default(now())
 
   @@index([organizationId, customerPhone])
+}
 }
