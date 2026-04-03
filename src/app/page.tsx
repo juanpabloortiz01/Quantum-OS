@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import QuantumHero from "@/components/QuantumHero";
-import QuantumProcess from "@/components/QuantumProcess";
 import QuantumAbout from "@/components/QuantumAbout";
 import QuantumPricing from "@/components/QuantumPricing";
 import Footer from "@/components/Footer";
