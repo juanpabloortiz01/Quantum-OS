@@ -9,7 +9,7 @@ import { BorderTrail } from "./ui/border-trail";
 
 export default function QuantumPricing() {
   return (
-    <section id="pricing" className="relative min-h-screen overflow-hidden py-24 bg-[#0a0a0a] border-t border-[#1a1a1a]">
+    <section id="planes" className="relative min-h-screen overflow-hidden py-24 bg-[#0a0a0a] border-t border-[#1a1a1a]">
       <div className="mx-auto w-full max-w-6xl space-y-10 px-4">
         
         {/* Encabezado */}

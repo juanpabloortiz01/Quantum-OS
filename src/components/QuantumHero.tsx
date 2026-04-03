@@ -2,6 +2,7 @@
 
 import { LayoutGroup, motion } from "motion/react"
 import { TextRotate } from "@/components/ui/text-rotate"
+import Link from "next/link" // <--- Importación vital añadida
 
 export default function QuantumHero() {
   return (
@@ -59,16 +60,6 @@ export default function QuantumHero() {
           QUANTUM_OS &nbsp;·&nbsp; v2.4.1 &nbsp;·&nbsp; KERNEL_ONLINE
         </motion.div>
 
-        {/* NÚMERO DE BUILD — detalle técnico decorativo */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6 font-mono text-[10px] text-[#333] tracking-widest uppercase"
-        >
-          BUILD_ID: QGE-20240830-001 &nbsp;|&nbsp; NODE: ALPHA-3 &nbsp;|&nbsp; STATUS: READY
-        </motion.div>
-
         {/* HEADLINE PRINCIPAL */}
         <div className="w-full flex flex-col items-center justify-center text-center">
           <LayoutGroup>
@@ -76,25 +67,21 @@ export default function QuantumHero() {
               className="flex flex-col items-center gap-3 sm:gap-4"
               layout
             >
-              {/* LÍNEA 1 */}
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, type: "spring", damping: 30 }}
-                className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white leading-none"
-                style={{ fontFamily: "var(--font-fira-code), monospace" }}
+                className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white leading-none font-mono italic"
                 layout
               >
                 Menos fricción.
               </motion.h1>
 
-              {/* LÍNEA 2 — con texto rotatorio */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, type: "spring", damping: 30 }}
-                className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-none"
-                style={{ fontFamily: "var(--font-fira-code), monospace" }}
+                className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-none font-mono"
                 layout
               >
                 <span className="text-[#444444]">Más</span>
@@ -143,53 +130,26 @@ export default function QuantumHero() {
           transition={{ delay: 0.6 }}
           className="max-w-2xl text-center text-sm sm:text-base md:text-lg text-[#666] font-light leading-relaxed"
         >
-          Convierte tu WhatsApp en una terminal de{" "}
-          <span className="text-[#999]">ventas autónoma.</span>{" "}
-          Deja de perder tiempo respondiendo dudas repetitivas y dinero por comprobantes falsos.
-          <br className="hidden sm:block" />
-          <span className="text-white font-normal"> Quantum OS</span> es el motor de IA que atiende, vende y valida transferencias en milisegundos — sin intervención humana.
+          Configura en minutos un Agente de IA <span className="text-[#999]">100% personalizable.</span><br className="hidden sm:block" />
+          <span className="text-white font-normal"> Simple y rápido:</span> vende productos, agenda citas y valida pagos en tu WhatsApp las 24 horas.
         </motion.p>
-
-        {/* MÉTRICAS RAW — detalle industrial */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="mt-12 grid grid-cols-3 gap-0 border border-[#1F1F1F] divide-x divide-[#1F1F1F] w-full max-w-xl"
-        >
-          {[
-            { value: "<200ms", label: "VALIDACIÓN_PAGO" },
-            { value: "99.9%", label: "UPTIME_AGENTE" },
-            { value: "0 SPAM", label: "COMPROBANTES_FALSOS" },
-          ].map((stat, i) => (
-            <div key={i} className="flex flex-col items-center justify-center py-4 px-3 bg-[#0D0D0D]">
-              <span
-                className="text-lg sm:text-2xl font-bold text-white font-mono tracking-tight"
-                style={{ fontFamily: "var(--font-fira-code), monospace" }}
-              >
-                {stat.value}
-              </span>
-              <span className="mt-1 font-mono text-[9px] sm:text-[10px] text-[#444] tracking-widest uppercase text-center">
-                {stat.label}
-              </span>
-            </div>
-          ))}
-        </motion.div>
 
         {/* CTA BUTTONS */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="mt-10 flex flex-col sm:flex-row items-center gap-4"
+          className="mt-10 flex flex-col sm:flex-row items-center gap-4 relative z-20"
         >
-          {/* CTA PRIMARIO */}
-          <button className="group relative px-8 py-4 bg-white text-black font-mono text-xs sm:text-sm uppercase font-bold tracking-widest hover:bg-[#00FFFF] transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#00FFFF] focus:ring-offset-2 focus:ring-offset-[#0D0D0D]">
-            <span className="relative z-10">[ ACTIVAR_PROTOCOLO_GRATIS ]</span>
-          </button>
+          {/* CTA PRIMARIO - CONECTADO AL ONBOARDING */}
+          <Link href="/onboarding" className="w-full sm:w-auto">
+            <button className="w-full group relative px-8 py-4 bg-white text-black font-mono text-xs sm:text-sm uppercase font-bold tracking-widest hover:bg-[#00FFFF] transition-colors duration-300 focus:outline-none">
+              <span className="relative z-10">[ ACTIVAR_AGENTE_GRATIS ]</span>
+            </button>
+          </Link>
 
           {/* CTA SECUNDARIO */}
-          <button className="px-8 py-4 border border-[#2A2A2A] text-[#666] font-mono text-xs sm:text-sm uppercase tracking-widest hover:border-[#00FFFF]/40 hover:text-[#00FFFF] transition-all duration-300">
+          <button className="w-full sm:w-auto px-8 py-4 border border-[#2A2A2A] text-[#666] font-mono text-xs sm:text-sm uppercase tracking-widest hover:border-[#00FFFF]/40 hover:text-[#00FFFF] transition-all duration-300">
             VER_DEMO →
           </button>
         </motion.div>

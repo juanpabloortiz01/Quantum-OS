@@ -18,7 +18,6 @@ export default function Home() {
       <div className="relative z-10">
         <Header />
         <QuantumHero />
-        <QuantumProcess />
         <QuantumAbout />
         <QuantumPricing />
         <Footer />
