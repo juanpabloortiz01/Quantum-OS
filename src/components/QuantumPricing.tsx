@@ -30,7 +30,6 @@ export default function QuantumPricing() {
             <span className="text-gray-500">Quédate con el 100% de la venta.</span>
           </h2>
           <p className="text-gray-400 mt-5 text-center text-sm md:text-base font-light">
-            No somos una agencia, ni una app de delivery con comisiones abusivas. Somos la capa de ingeniería que blinda tu caja registradora.
             Elige tu nivel de acceso al Quantum OS y recupera el mando de tu negocio.
           </p>
         </motion.div>
@@ -65,10 +64,10 @@ export default function QuantumPricing() {
               <div className="w-full px-8 pt-10 pb-10 border-b md:border-b-0 md:border-r border-[#333333]">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="leading-none font-mono font-bold text-white text-xl uppercase tracking-wider">Iniciado</h3>
+                    <h3 className="leading-none font-mono font-bold text-white text-xl uppercase tracking-wider">Iniciación</h3>
                     <Badge variant="secondary">Limitado</Badge>
                   </div>
-                  <p className="text-gray-500 text-sm h-10">El hook de seguridad. Digitaliza tu catálogo, automatiza la atención inicial y experimenta el blindaje de pagos sin riesgo.</p>
+                  <p className="text-gray-500 text-sm h-10">Digitaliza tu catálogo, automatiza la atención inicial y experimenta el blindaje de pagos sin riesgo.</p>
                 </div>
                 <div className="mt-8 space-y-6">
                   <div className="text-gray-400 flex items-end gap-1 text-xl font-mono">
@@ -100,10 +99,10 @@ export default function QuantumPricing() {
                 />
                 <div className="space-y-2 relative z-10">
                   <div className="flex items-center justify-between">
-                    <h3 className="leading-none font-mono font-bold text-white text-xl uppercase tracking-wider">Arquitecto</h3>
+                    <h3 className="leading-none font-mono font-bold text-white text-xl uppercase tracking-wider">Ilimitado</h3>
                     <Badge variant="default">Full-Auto</Badge>
                   </div>
-                  <p className="text-gray-400 text-sm h-10">Superioridad Operativa de grado industrial. Un sistema diseñado para dueños de negocios que exigen resultados, no notificaciones.</p>
+                  <p className="text-gray-400 text-sm h-10">Superioridad Operativa de grado industrial.</p>
                 </div>
                 <div className="mt-8 space-y-6 relative z-10">
                   <div className="text-gray-400 flex items-end gap-1 text-xl font-mono">
