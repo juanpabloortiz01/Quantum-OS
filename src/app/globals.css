@@ -140,3 +140,28 @@
   background: var(--accent-cyan);
   color: #000000;
 }
+
+/* CUSTOM RAW TECH SCROLLBAR */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2A2A2A;
+  border-radius: 0;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00FFFF;
+}
+
+/* TIME INPUT CUSTOMIZATION */
+.style-time-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+  cursor: pointer;
+}
+.style-time-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

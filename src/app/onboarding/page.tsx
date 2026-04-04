@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { Globe, Instagram, Facebook, Mail, Phone } from "lucide-react"
 import { finalizeOnboarding, registerQuantumUser, sendTestPing } from "./action"
 
 const NICHES = [
@@ -40,9 +41,44 @@ function OnboardingContent() {
   const [formData, setFormData] = useState({
     niche: "",
     needs: [] as string[],
-    masterPrompt: "",
+    contextData: {
+      companyName: "",
+      service: "",
+      scheduleDays: [] as string[],
+      openTime: "09:00",
+      closeTime: "18:00",
+      description: "",
+      address: "",
+      website: "",
+      instagram: "",
+      facebook: "",
+      contactEmail: "",
+      contactPhone: "",
+    },
     testPhone: "",
   })
+
+  const updateContext = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      contextData: { ...prev.contextData, [field]: value },
+    }))
+  }
+
+  const toggleDay = (day: string) => {
+    setFormData((prev) => {
+      const days = prev.contextData.scheduleDays
+      return {
+        ...prev,
+        contextData: {
+          ...prev.contextData,
+          scheduleDays: days.includes(day)
+            ? days.filter((d) => d !== day)
+            : [...days, day],
+        },
+      }
+    })
+  }
 
   // Leer errores de NextAuth en la URL (ej. OAuthAccountNotLinked o Configuration)
   useEffect(() => {
@@ -137,7 +173,7 @@ function OnboardingContent() {
       userId: session.user.id,
       niche: formData.niche,
       needs: formData.needs,
-      masterPrompt: formData.masterPrompt,
+      contextData: formData.contextData,
       testPhone: formData.testPhone,
     })
     setIsLoading(false)
@@ -474,7 +510,7 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 2: MASTER PROMPT ── */}
+              {/* ── PASO 2: MEMORIA BASE ── */}
               {step === 2 && (
                 <motion.div
                   key="step2"
@@ -483,44 +519,161 @@ function OnboardingContent() {
                   exit={{ opacity: 0, x: -20 }}
                   className="flex flex-col gap-6"
                 >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span
-                        className="font-mono text-[10px] text-[#555] uppercase tracking-[0.2em]"
-                        style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                      >
-                        03_CONTEXTO_DEL_NEGOCIO
-                      </span>
-                      <span
-                        className="font-mono text-[9px] text-[#00FFFF] border border-[#00FFFF]/30 px-2 py-0.5"
-                        style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                      >
-                        RAG_READY
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#444] mb-4 leading-relaxed">
-                      Define las reglas base de tu IA. Horarios, tono, restricciones.
-                    </p>
-                    <textarea
-                      value={formData.masterPrompt}
-                      onChange={(e) =>
-                        setFormData({ ...formData, masterPrompt: e.target.value })
-                      }
-                      placeholder={`Ej: Somos "TechStore". Atendemos de 9am a 6pm. Solo aceptamos transferencias bancarias. Habla de forma directa y profesional...`}
-                      className="w-full h-40 bg-[#111] border border-[#1A1A1A] p-4 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none resize-none transition-colors leading-relaxed"
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className="font-mono text-[10px] text-[#555] uppercase tracking-[0.2em]"
                       style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    />
-                    <div className="flex justify-between mt-1">
-                      <span className="font-mono text-[9px] text-[#333]">
-                        {formData.masterPrompt.length} chars
-                      </span>
-                      <span className="font-mono text-[9px] text-[#333]">
-                        MIN: 10
-                      </span>
+                    >
+                      03_MEMORIA_BASE
+                    </span>
+                    <span
+                      className="font-mono text-[9px] text-[#00FFFF] border border-[#00FFFF]/30 px-2 py-0.5"
+                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
+                    >
+                      RAG_READY
+                    </span>
+                  </div>
+
+                  <div className="border-l-2 border-[#00FFFF] bg-[#00FFFF]/5 p-3 mb-2">
+                    <p className="font-mono text-[9px] text-[#00FFFF] uppercase tracking-widest leading-relaxed">
+                      // ALERTA_DE_COMPILACIÓN<br/>
+                      <span className="text-[#888]">La inteligencia de tu Agente depende 100% de esta data. Campos vacíos o imprecisos causarán alucinaciones.</span>
+                    </p>
+                  </div>
+
+                  {/* SCROLL CONTAINER */}
+                  <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
+                    
+                    {/* Campos Principales */}
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">NOMBRE_DEL_NEGOCIO *</label>
+                        <input
+                          type="text"
+                          value={formData.contextData.companyName}
+                          onChange={(e) => updateContext("companyName", e.target.value)}
+                          className="w-full bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">SERVICIO_O_PRODUCTO_PRINCIPAL *</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: Ropa deportiva para mujer"
+                          value={formData.contextData.service}
+                          onChange={(e) => updateContext("service", e.target.value)}
+                          className="w-full bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Horarios */}
+                    <div className="border border-[#1A1A1A] p-4 bg-[#111]/50">
+                      <label className="block font-mono text-[9px] text-[#555] uppercase mb-3 tracking-widest">HORARIOS_DE_ATENCIÓN</label>
+                      <div className="flex gap-1 mb-4">
+                        {["LU", "MA", "MI", "JU", "VI", "SA", "DO"].map(day => (
+                          <button
+                            key={day}
+                            onClick={() => toggleDay(day)}
+                            className="flex-1 py-2 font-mono text-[9px] transition-colors border"
+                            style={{
+                              borderColor: formData.contextData.scheduleDays.includes(day) ? "#00FFFF" : "#222",
+                              color: formData.contextData.scheduleDays.includes(day) ? "#00FFFF" : "#555",
+                              backgroundColor: formData.contextData.scheduleDays.includes(day) ? "rgba(0,255,255,0.05)" : "#111"
+                            }}
+                          >
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <label className="block font-mono text-[8px] text-[#444] uppercase mb-1 tracking-widest">APERTURA</label>
+                          <input
+                            type="time"
+                            value={formData.contextData.openTime}
+                            onChange={(e) => updateContext("openTime", e.target.value)}
+                            className="w-full bg-[#0D0D0D] border border-[#222] p-2 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none style-time-input"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block font-mono text-[8px] text-[#444] uppercase mb-1 tracking-widest">CIERRE</label>
+                          <input
+                            type="time"
+                            value={formData.contextData.closeTime}
+                            onChange={(e) => updateContext("closeTime", e.target.value)}
+                            className="w-full bg-[#0D0D0D] border border-[#222] p-2 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none style-time-input"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Descripción y Dirección */}
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">DESCRIPCIÓN_DEL_NEGOCIO *</label>
+                        <textarea
+                          value={formData.contextData.description}
+                          onChange={(e) => updateContext("description", e.target.value)}
+                          placeholder="Tu tono de voz, restricciones, ventajas..."
+                          className="w-full h-24 bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none resize-none transition-colors leading-relaxed"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">DIRECCIÓN_FÍSICA (Opcional)</label>
+                        <textarea
+                          value={formData.contextData.address}
+                          onChange={(e) => updateContext("address", e.target.value)}
+                          className="w-full h-12 bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none resize-none transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Enlaces y Contacto */}
+                    <div className="flex flex-col gap-3">
+                      <label className="block font-mono text-[9px] text-[#555] uppercase tracking-widest">ENLACES_Y_CONTACTO</label>
+                      
+                      <div className="flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
+                        <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
+                          <Globe size={12} className="text-[#555]" />
+                        </div>
+                        <input type="text" placeholder="Página web" value={formData.contextData.website} onChange={e => updateContext("website", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
+                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
+                            <Instagram size={12} className="text-[#555]" />
+                          </div>
+                          <input type="text" placeholder="@usuario" value={formData.contextData.instagram} onChange={e => updateContext("instagram", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                        </div>
+                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
+                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
+                            <Facebook size={12} className="text-[#555]" />
+                          </div>
+                          <input type="text" placeholder="/pagina" value={formData.contextData.facebook} onChange={e => updateContext("facebook", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
+                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
+                            <Mail size={12} className="text-[#555]" />
+                          </div>
+                          <input type="email" placeholder="Correo" value={formData.contextData.contactEmail} onChange={e => updateContext("contactEmail", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                        </div>
+                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
+                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
+                            <Phone size={12} className="text-[#555]" />
+                          </div>
+                          <input type="tel" placeholder="Teléfono" value={formData.contextData.contactPhone} onChange={e => updateContext("contactPhone", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                        </div>
+                      </div>
+
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 pt-4 border-t border-[#1A1A1A] mt-2">
                     <button
                       onClick={() => setStep(1)}
                       className="px-6 py-4 border border-[#1A1A1A] text-[#444] font-mono text-[10px] tracking-widest hover:text-white transition-colors uppercase"
@@ -530,18 +683,13 @@ function OnboardingContent() {
                     </button>
                     <button
                       onClick={() => setStep(3)}
-                      disabled={formData.masterPrompt.length < 10}
+                      disabled={!formData.contextData.companyName || !formData.contextData.description}
                       className="flex-1 py-4 font-mono text-[11px] tracking-[0.2em] uppercase transition-all disabled:opacity-30"
                       style={{
                         fontFamily: "var(--font-fira-code, monospace)",
-                        background:
-                          formData.masterPrompt.length >= 10 ? "white" : "transparent",
-                        color:
-                          formData.masterPrompt.length >= 10 ? "black" : "#555",
-                        border:
-                          formData.masterPrompt.length >= 10
-                            ? "none"
-                            : "1px solid #2A2A2A",
+                        background: (formData.contextData.companyName && formData.contextData.description) ? "white" : "transparent",
+                        color: (formData.contextData.companyName && formData.contextData.description) ? "black" : "#555",
+                        border: (formData.contextData.companyName && formData.contextData.description) ? "none" : "1px solid #2A2A2A",
                       }}
                     >
                       [ COMPILAR_CEREBRO ]

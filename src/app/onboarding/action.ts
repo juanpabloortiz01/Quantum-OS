@@ -59,16 +59,13 @@ export async function finalizeOnboarding(data: {
   userId: string
   niche: string
   needs: string[]
-  masterPrompt: string
+  contextData: any
   testPhone: string
 }) {
   // Validar que el userId existe
   if (!data.userId) return { error: "AUTH_ERROR: Usuario no identificado." }
 
-  const nameMatch = data.masterPrompt.match(/['"]([^'"]+)['"]/)
-  const businessName = nameMatch
-    ? nameMatch[1]
-    : `NODO_${data.testPhone.slice(-4).toUpperCase()}`
+  const businessName = data.contextData.companyName?.trim() || `NODO_${data.testPhone.slice(-4).toUpperCase()}`
 
   try {
     await prisma.organization.create({
@@ -82,7 +79,7 @@ export async function finalizeOnboarding(data: {
           create: {
             niche: data.niche.toUpperCase(),
             config: {
-              context: data.masterPrompt,
+              context: data.contextData,
               enabled_nodes: data.needs,
             },
           },
