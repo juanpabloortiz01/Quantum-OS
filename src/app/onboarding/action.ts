@@ -1,39 +1,31 @@
 "use server";
-
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 
-export async function finalizeOnboarding(data: {
-  niche: string;
-  needs: string[];
-  masterPrompt: string;
-  testPhone: string;
-}) {
+export async function registerQuantumUser(data: { email: string; password?: string }) {
   try {
-    const organization = await prisma.organization.create({
+    // 1. Verificar si el usuario ya existe
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email }
+    });
+
+    if (existingUser) return { success: true, userId: existingUser.id };
+
+    // 2. Si no existe y tiene contraseña, lo creamos
+    let hashedPassword = undefined;
+    if (data.password) {
+      hashedPassword = await bcrypt.hash(data.password, 10);
+    }
+
+    const newUser = await prisma.user.create({
       data: {
-        name: `Nodo_Operativo_${data.testPhone.slice(-4)}`, // Nombre técnico autogenerado
-        whatsappNumber: data.testPhone, // <- AQUÍ ESTÁ EL DATO FALTANTE
-        onboardingStep: 3,
-        protocolActive: true,
-        businessConfig: {
-          create: {
-            niche: data.niche.toUpperCase(),
-            // Guardamos el masterPrompt y el array de nodos elegidos
-            config: {
-              context: data.masterPrompt,
-              enabled_nodes: data.needs 
-            }
-          }
-        }
+        email: data.email,
+        password: hashedPassword,
       }
     });
 
-    console.log(`[KERNEL_SUCCESS]: Nodo ${organization.name} creado.`);
+    return { success: true, userId: newUser.id };
   } catch (error) {
-    console.error("[KERNEL_ERROR]:", error);
-    return { error: "Fallo al compilar la Organización en la base de datos." };
+    return { error: "FALLO_CRÍTICO_EN_REGISTRO" };
   }
-
-  redirect("/dashboard");
 }
