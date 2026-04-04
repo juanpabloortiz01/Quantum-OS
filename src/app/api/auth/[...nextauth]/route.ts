@@ -1,2 +1,4 @@
-import { handlers } from "@/auth" // Importa lo que configuramos en src/auth.ts
+import { handlers } from "@/auth"
+
+export const dynamic = "force-dynamic"
 export const { GET, POST } = handlers
