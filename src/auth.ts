@@ -24,19 +24,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
-
         const email = String(credentials.email).toLowerCase().trim()
         const password = String(credentials.password)
-
         if (!isValidEmail(email)) return null
         if (password.length < 8) return null
-
         const user = await prisma.user.findUnique({ where: { email } })
         if (!user || !user.password) return null
-
         const isValid = await bcrypt.compare(password, user.password)
         if (!isValid) return null
-
         return user
       },
     }),
@@ -55,6 +50,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session
     },
     async redirect({ url, baseUrl }) {
+      // Después de Google OAuth ir al paso 1
+      if (url.includes("/api/auth/callback/google")) {
+        return `${baseUrl}/onboarding?step=1`
+      }
       if (url.startsWith(baseUrl)) return url
       if (url.startsWith("/")) return `${baseUrl}${url}`
       return `${baseUrl}/onboarding`
