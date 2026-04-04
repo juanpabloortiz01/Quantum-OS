@@ -44,24 +44,36 @@ function OnboardingContent() {
     testPhone: "",
   })
 
-  // Detectar si viene de Google con step=1
+  // Leer errores de NextAuth en la URL (ej. OAuthAccountNotLinked o Configuration)
   useEffect(() => {
-    const stepParam = searchParams.get("step")
-    if (stepParam === "1" && status === "authenticated") {
-      setStep(1)
+    const errorParam = searchParams.get("error")
+    if (errorParam) {
+      setError(`Auth_Error: ${errorParam}`)
     }
-  }, [status, searchParams])
+  }, [searchParams])
 
-  // Si ya tiene organización completa, redirigir al dashboard
+  // Si está autenticado, redirigir al dashboard o avanzar a paso 1
   useEffect(() => {
     if (status === "authenticated") {
+      // Optimistic update para evitar parpadeos
+      if (step === 0 && searchParams.get("step") === "1") {
+        setStep(1)
+      }
+      
       fetch("/api/check-onboarding")
         .then((r) => r.json())
         .then((data) => {
-          if (data.completed) router.push("/dashboard")
+          if (data.completed) {
+            router.push("/dashboard")
+          } else if (step === 0) {
+            setStep(1)
+          }
+        })
+        .catch(() => {
+          if (step === 0) setStep(1) // Fallback
         })
     }
-  }, [status])
+  }, [status, step, searchParams, router])
 
   const toggleNeed = (id: string) => {
     setFormData((prev) => ({
