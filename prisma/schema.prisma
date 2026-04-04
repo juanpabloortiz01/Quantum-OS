@@ -4,66 +4,63 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// --- MODELOS DE AUTENTICACIÓN (Auth.js) ---
-
+// ── AUTH.JS REQUIRED MODELS ──────────────────────────────────────
 model User {
   id            String    @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String    @unique
   emailVerified DateTime?
   image         String?
-  password      String?   // Para login con contraseña (encriptada)
-  
-  // Relación con Quantum
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  password      String?   // Solo para login con credenciales
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   accounts      Account[]
   sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  organization  Organization?
 }
 
 model Account {
-  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@id([provider, providerAccountId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
   identifier String
-  token      String   @unique
+  token      String
   expires    DateTime
 
-  @@unique([identifier, token])
+  @@id([identifier, token])
 }
 
-// --- MODELOS DE NEGOCIO (Quantum) ---
-
+// ── QUANTUM MODELS ───────────────────────────────────────────────
 model Organization {
   id                      String   @id @default(cuid())
   name                    String
@@ -77,8 +74,10 @@ model Organization {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
-  // Relaciones
-  users          User[]
+  // Relación con el usuario dueño
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   businessConfig BusinessConfig?
   paymentLogs    PaymentLog[]
   chatHistory    ChatHistory[]
@@ -95,7 +94,7 @@ model BusinessConfig {
 }
 
 model PaymentLog {
-  id                      String       @id @default(cuid())
+  id                      String    @id @default(cuid())
   organizationId          String
   organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   orderId                 String?
@@ -106,14 +105,14 @@ model PaymentLog {
   ocrTransactionRef       String?
   ocrDatetime             DateTime?
   ocrConfidence           Float?
-  isDuplicate             Boolean      @default(false)
+  isDuplicate             Boolean   @default(false)
   duplicateOfId           String?
-  emailVerificationStatus String       @default("PENDING")
+  emailVerificationStatus String    @default("PENDING")
   emailVerifiedAt         DateTime?
-  validationStatus        String       @default("PROCESSING")
+  validationStatus        String    @default("PROCESSING")
   validatedAt             DateTime?
   rejectionReason         String?
-  createdAt               DateTime     @default(now())
+  createdAt               DateTime  @default(now())
 
   @@unique([organizationId, ocrTransactionRef])
   @@index([organizationId, validationStatus])
