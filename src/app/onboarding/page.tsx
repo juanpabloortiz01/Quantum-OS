@@ -23,7 +23,9 @@ const AVAILABLE_NEEDS = [
 ]
 
 export default function OnboardingQuantum() {
-  const { data: session, status } = useSession()
+  const sessionResult = useSession()
+  const session = sessionResult?.data
+  const status = sessionResult?.status ?? "loading"
   const searchParams = useSearchParams()
   const router = useRouter()
 
