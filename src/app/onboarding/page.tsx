@@ -1,7 +1,7 @@
 "use client"
 
 import { signIn, useSession } from "next-auth/react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -22,7 +22,7 @@ const AVAILABLE_NEEDS = [
   { id: "shipping", label: "LOGÍSTICA_ENVÍOS" },
 ]
 
-export default function OnboardingQuantum() {
+function OnboardingContent() {
   const sessionResult = useSession()
   const session = sessionResult?.data
   const status = sessionResult?.status ?? "loading"
@@ -651,6 +651,20 @@ export default function OnboardingQuantum() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center">
+        <span className="font-mono text-[#00FFFF] text-xs tracking-widest animate-pulse" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+          CARGANDO_SISTEMA...
+        </span>
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   )
 }
 
