@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan } from "lucide-react"
-import { finalizeOnboarding, registerQuantumUser, sendTestPing } from "./action"
+import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig } from "./action"
 
 const NICHES = [
   { id: "gastro", label: "GASTRONOMÍA", desc: "Pedidos · Menú · Delivery" },
@@ -78,12 +78,14 @@ function OnboardingContent() {
     setAnalyzingStep("CARGANDO_CLOUDINARY")
 
     try {
+      const config = await getCloudinaryConfig()
+      
       const formDataUpload = new FormData()
       formDataUpload.append("file", file)
-      formDataUpload.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "quos_preset")
+      formDataUpload.append("upload_preset", config.uploadPreset || "ml_default")
 
       const cloudinaryRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
         { method: "POST", body: formDataUpload }
       )
 
