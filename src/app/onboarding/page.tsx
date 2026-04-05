@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone } from "lucide-react"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan } from "lucide-react"
 import { finalizeOnboarding, registerQuantumUser, sendTestPing } from "./action"
 
 const NICHES = [
@@ -55,8 +55,84 @@ function OnboardingContent() {
       contactEmail: "",
       contactPhone: "",
     },
+    products: [] as any[],
     testPhone: "",
   })
+
+  const [analyzingStep, setAnalyzingStep] = useState<"IDLE" | "CARGANDO_CLOUDINARY" | "ESCANEO_QUANTUM_INICIADO" | "COMPLETADO" | "ERROR">("IDLE")
+  const [currentProduct, setCurrentProduct] = useState<any>({
+    url_foto: "",
+    categoria: "",
+    color_principal: "",
+    color_secundario: "",
+    marca: "",
+    caracteristicas: "",
+    estilo: "",
+  })
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsLoading(true)
+    setAnalyzingStep("CARGANDO_CLOUDINARY")
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append("file", file)
+      formDataUpload.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "quos_preset")
+
+      const cloudinaryRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: formDataUpload }
+      )
+
+      if (!cloudinaryRes.ok) throw new Error("Fallo en Cloudinary")
+      
+      const cloudinaryData = await cloudinaryRes.json()
+      const imageUrl = cloudinaryData.secure_url
+
+      setCurrentProduct((prev: any) => ({ ...prev, url_foto: imageUrl }))
+      setAnalyzingStep("ESCANEO_QUANTUM_INICIADO")
+
+      const aiRes = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl })
+      })
+      const result = await aiRes.json()
+
+      if (result.success) {
+        setCurrentProduct((prev: any) => ({
+          ...prev,
+          categoria:        result.data.categoria        || prev.categoria,
+          color_principal:  result.data.color_principal  || prev.color_principal,
+          color_secundario: result.data.color_secundario || prev.color_secundario,
+          marca:            result.data.marca            || prev.marca,
+          caracteristicas:  result.data.caracteristicas  || prev.caracteristicas,
+          estilo:           result.data.estilo           || prev.estilo,
+        }))
+        setAnalyzingStep("COMPLETADO")
+      } else {
+        throw new Error("Fallo en Análisis de Ia")
+      }
+    } catch(err) {
+      console.error(err)
+      setAnalyzingStep("ERROR")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAddProduct = () => {
+    if (formData.products.length >= 10) return
+    setFormData((prev) => ({
+      ...prev,
+      products: [...prev.products, currentProduct]
+    }))
+    setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
+    setAnalyzingStep("IDLE")
+  }
 
   const updateContext = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -95,7 +171,7 @@ function OnboardingContent() {
       if (step === 0 && searchParams.get("step") === "1") {
         setStep(1)
       }
-      
+
       fetch("/api/check-onboarding")
         .then((r) => r.json())
         .then((data) => {
@@ -174,6 +250,7 @@ function OnboardingContent() {
       niche: formData.niche,
       needs: formData.needs,
       contextData: formData.contextData,
+      products: formData.products,
       testPhone: formData.testPhone,
     })
     setIsLoading(false)
@@ -263,7 +340,8 @@ function OnboardingContent() {
                 {step === 0 && "ACCESO_AL_SISTEMA"}
                 {step === 1 && "CONFIGURAR_AGENTE"}
                 {step === 2 && "MEMORIA_BASE"}
-                {step === 3 && "SINCRONIZAR_INSTANCIA"}
+                {step === 3 && "CATÁLOGO_IA"}
+                {step === 4 && "SINCRONIZAR_INSTANCIA"}
               </h1>
             </div>
 
@@ -536,14 +614,14 @@ function OnboardingContent() {
 
                   <div className="border-l-2 border-[#00FFFF] bg-[#00FFFF]/5 p-3 mb-2">
                     <p className="font-mono text-[9px] text-[#00FFFF] uppercase tracking-widest leading-relaxed">
-                      // ALERTA_DE_COMPILACIÓN<br/>
-                      <span className="text-[#888]">La inteligencia de tu Agente depende 100% de esta data. Campos vacíos o imprecisos causarán alucinaciones.</span>
+                      // AVISO_DE_COMPILACIÓN<br/>
+                      <span className="text-[#888]">El contexto de tu Agente depende 100% de estos datos. Campos vacíos o imprecisos harán que tu agente no responda correctamente.</span>
                     </p>
                   </div>
 
                   {/* SCROLL CONTAINER */}
                   <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
-                    
+
                     {/* Campos Principales */}
                     <div className="flex flex-col gap-3">
                       <div>
@@ -632,14 +710,14 @@ function OnboardingContent() {
                     {/* Enlaces y Contacto */}
                     <div className="flex flex-col gap-3">
                       <label className="block font-mono text-[9px] text-[#555] uppercase tracking-widest">ENLACES_Y_CONTACTO</label>
-                      
+
                       <div className="flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
                         <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
                           <Globe size={12} className="text-[#555]" />
                         </div>
                         <input type="text" placeholder="Página web" value={formData.contextData.website} onChange={e => updateContext("website", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
                       </div>
-                      
+
                       <div className="flex gap-3">
                         <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
                           <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
@@ -692,14 +770,148 @@ function OnboardingContent() {
                         border: (formData.contextData.companyName && formData.contextData.description) ? "none" : "1px solid #2A2A2A",
                       }}
                     >
-                      [ COMPILAR_CEREBRO ]
+                      [ CONTINUAR ]
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* ── PASO 3: QR + TEST ── */}
+              {/* ── PASO 3: CATÁLOGO IA ── */}
               {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex flex-col gap-6"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-[10px] text-[#555] uppercase tracking-[0.2em]" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+                      04_CATÁLOGO_IA
+                    </span>
+                    <span className="font-mono text-[9px] text-[#00FFFF] border border-[#00FFFF]/30 px-2 py-0.5" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+                      VISIÓN_ACTIVA
+                    </span>
+                  </div>
+
+                  <p className="font-mono text-[10px] text-[#888] mb-2 leading-relaxed" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+                    Sube fotos de tus productos principales (hasta 10 en plan Free). El sistema los escaneará y pre-rellenará los datos para el Agente.
+                  </p>
+
+                  <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
+                    
+                    {formData.products.length < 10 ? (
+                      <div className="border border-dashed border-[#333] hover:border-[#00FFFF] bg-[#0D0D0D] p-6 flex flex-col items-center justify-center relative transition-colors group cursor-pointer h-32">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleImageUpload} 
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          disabled={isLoading}
+                        />
+                        {analyzingStep === "IDLE" || analyzingStep === "COMPLETADO" || analyzingStep === "ERROR" ? (
+                          <div className="flex flex-col items-center gap-2 text-[#555] group-hover:text-[#00FFFF]">
+                            <Upload size={18} />
+                            <span className="font-mono text-[9px] tracking-widest uppercase" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+                              [ SOLTAR O HACER CLIC PARA DETECTAR PRODUCTO ]
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-[#00FFFF]">
+                            <Scan size={18} className="animate-pulse" />
+                            <span className="font-mono text-[9px] tracking-widest uppercase animate-pulse" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+                              {analyzingStep === "CARGANDO_CLOUDINARY" ? "SUBIENDO A CLOUDINARY..." : "ESCANEO QUANTUM INICIADO..."}
+                            </span>
+                          </div>
+                        )}
+                        {analyzingStep === "ERROR" && <span className="font-mono text-[9px] text-red-500 mt-2">Error procesando imagen. Intenta otra vez.</span>}
+                      </div>
+                    ) : (
+                      <div className="text-center font-mono text-[9px] text-[#00FF88] border border-[#00FF88]/30 p-2" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+                        [ LÍMITE DE 10 PRODUCTOS ALCANZADO ]
+                      </div>
+                    )}
+
+                    {currentProduct.url_foto && analyzingStep === "COMPLETADO" && (
+                      <div className="border border-[#1A1A1A] bg-[#111] p-4 flex flex-col gap-3">
+                        <div className="border-l-2 border-[#00FFFF] pl-2 mb-2">
+                          <span className="font-mono text-[9px] text-[#00FFFF] uppercase tracking-widest" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>DETECCIÓN FINALIZADA</span>
+                        </div>
+                        <div className="flex gap-4 mb-2">
+                          <img src={currentProduct.url_foto} alt="Preview" className="w-24 h-24 object-cover border border-[#222]" />
+                          <div className="flex-1 grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-1">
+                              <label className="font-mono text-[8px] text-[#555] uppercase">Categoría</label>
+                              <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({...currentProduct, categoria: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="font-mono text-[8px] text-[#555] uppercase">Marca</label>
+                              <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({...currentProduct, marca: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="font-mono text-[8px] text-[#555] uppercase">Color</label>
+                              <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({...currentProduct, color_principal: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }}/>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="font-mono text-[8px] text-[#555] uppercase">Estilo</label>
+                              <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({...currentProduct, estilo: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }}/>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="font-mono text-[8px] text-[#555] uppercase">Características a resaltar (15 Palabras)</label>
+                          <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({...currentProduct, caracteristicas: e.target.value})} className="w-full bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }}/>
+                        </div>
+                        <button onClick={handleAddProduct} className="bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] font-bold font-mono text-[9px] py-3 mt-2 uppercase tracking-widest hover:bg-[#00FFFF] hover:text-black transition-colors" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
+                          + CONFIRMAR Y AÑADIR A LA BASE DE DATOS ({formData.products.length}/10)
+                        </button>
+                      </div>
+                    )}
+
+                    {formData.products.length > 0 && (
+                      <div className="flex flex-col gap-2 mt-4">
+                        <span className="font-mono text-[9px] text-[#555] uppercase tracking-widest" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>PRODUCTOS INDEXADOS ({formData.products.length}):</span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {formData.products.map((prod: any, idx: number) => (
+                            <div key={idx} className="flex border border-[#1A1A1A] bg-[#111] p-2 gap-3 items-center group">
+                              <img src={prod.url_foto} className="w-10 h-10 object-cover border border-[#222]" />
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="font-mono text-[9px] text-[#00FFFF] truncate" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>{prod.categoria || "N/A"}</span>
+                                <span className="font-mono text-[8px] text-[#888] truncate" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>{prod.marca || "Generic"} • {prod.color_principal}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-[#1A1A1A] mt-2">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="px-6 py-4 border border-[#1A1A1A] text-[#444] font-mono text-[10px] tracking-widest hover:text-white transition-colors uppercase"
+                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
+                    >
+                      [ ← ]
+                    </button>
+                    <button
+                      onClick={() => setStep(4)}
+                      className="flex-1 py-4 font-mono text-[11px] tracking-[0.2em] uppercase transition-all"
+                      style={{
+                        fontFamily: "var(--font-fira-code, monospace)",
+                        background: "white",
+                        color: "black",
+                        border: "none",
+                      }}
+                    >
+                      {formData.products.length === 0 ? "[ OMITIR_POR_AHORA ]" : "[ CONTINUAR ]"}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── PASO 4: QR + TEST ── */}
+              {step === 4 && (
                 <motion.div
                   key="step3"
                   initial={{ opacity: 0, x: 20 }}

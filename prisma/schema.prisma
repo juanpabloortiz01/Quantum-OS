@@ -81,6 +81,7 @@ model Organization {
   businessConfig BusinessConfig?
   paymentLogs    PaymentLog[]
   chatHistory    ChatHistory[]
+  products       Product[]
 }
 
 model BusinessConfig {
@@ -129,4 +130,21 @@ model ChatHistory {
   createdAt      DateTime     @default(now())
 
   @@index([organizationId, customerPhone])
+}
+
+model Product {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  imageUrl        String
+  category        String?
+  primaryColor    String?
+  secondaryColor  String?
+  brand           String?
+  characteristics String?
+  style           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId])
 }

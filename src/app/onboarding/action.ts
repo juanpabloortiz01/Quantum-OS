@@ -60,6 +60,7 @@ export async function finalizeOnboarding(data: {
   niche: string
   needs: string[]
   contextData: any
+  products: any[]
   testPhone: string
 }) {
   // Validar que el userId existe
@@ -84,6 +85,17 @@ export async function finalizeOnboarding(data: {
             },
           },
         },
+        products: {
+          create: data.products.map((p: any) => ({
+            imageUrl: p.url_foto,
+            category: p.categoria,
+            primaryColor: p.color_principal,
+            secondaryColor: p.color_secundario,
+            brand: p.marca,
+            characteristics: p.caracteristicas,
+            style: p.estilo
+          }))
+        }
       },
     })
 
