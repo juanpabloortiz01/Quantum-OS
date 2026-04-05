@@ -991,7 +991,7 @@ function OnboardingContent() {
                         )}
                         <span className="font-mono text-[11px] text-[#AAA] text-center mt-3 leading-relaxed">
                           Abre WhatsApp en tu teléfono → Dispositivos Vinculados → Vincular dispositivo<br />
-                          <strong className="text-[#00FFFF] text-[11px] mt-2 block">Se redireccionará al Búnker automáticamente.</strong>
+                          <strong className="text-[#00FFFF] text-[11px] mt-2 block">Se redireccionará al panel automáticamente.</strong>
                         </span>
 
                         <button onClick={() => handleEvoConnect("qr")} className="mt-2 text-[#00FFFF] font-mono text-[10px] flex items-center gap-2 hover:bg-[#00FFFF] hover:text-black transition-colors px-3 py-1">
@@ -1025,7 +1025,7 @@ function OnboardingContent() {
                             </span>
                             <span className="font-mono text-[11px] text-[#AAA] text-center max-w-sm leading-relaxed mt-2">
                               Abre WhatsApp → Dispositivos Vinculados → <strong>Vincular con el número de teléfono en su lugar.</strong><br />
-                              <strong className="text-[#00FFFF] text-[11px] mt-3 block bg-[#00FFFF]/10 py-2">Se redireccionará al Búnker una vez vinculado.</strong>
+                              <strong className="text-[#00FFFF] text-[11px] mt-3 block bg-[#00FFFF]/10 py-2">Se redireccionará al panel una vez vinculado.</strong>
                             </span>
                           </div>
                         )}
