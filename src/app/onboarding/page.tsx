@@ -133,7 +133,7 @@ function OnboardingContent() {
       const imageUrl = cloudinaryData.secure_url
 
       setCurrentProduct((prev: any) => ({ ...prev, url_foto: imageUrl }))
-      setAnalyzingStep("ESCANEO_QUANTUM_INICIADO")
+      setAnalyzingStep("ESCANEO_INICIADO")
 
       const aiRes = await fetch("/api/analyze-image", {
         method: "POST",
