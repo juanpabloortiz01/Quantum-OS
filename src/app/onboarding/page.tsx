@@ -78,14 +78,15 @@ function OnboardingContent() {
     setAnalyzingStep("CARGANDO_CLOUDINARY")
 
     try {
-      const config = await getCloudinaryConfig()
-      
+      const rawPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"
+      const cleanPreset = rawPreset.trim()
+
       const formDataUpload = new FormData()
-      formDataUpload.append("upload_preset", config.uploadPreset || "ml_default")
+      formDataUpload.append("upload_preset", cleanPreset)
       formDataUpload.append("file", file)
 
       const cloudinaryRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
         { method: "POST", body: formDataUpload }
       )
 
