@@ -144,7 +144,8 @@ export async function sendTestPing(phone: string) {
 
 export async function getCloudinaryConfig() {
   return {
-    cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME,
-    uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || process.env.VITE_CLOUDINARY_UPLOAD_PRESET || "ml_default"
+    // Lectura dinámica robusta de variables, ignorando la caché estática de Next.js
+    cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME || "dorpspwig",
+    uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || process.env.NEXT_CLOUDINARY_UPLOAD_PRESET || "quantum_os"
   }
 }

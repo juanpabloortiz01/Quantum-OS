@@ -78,9 +78,8 @@ function OnboardingContent() {
     setAnalyzingStep("CARGANDO_CLOUDINARY")
 
     try {
-      // FIX: The user defined NEXT_CLOUDINARY_UPLOAD_PRESET instead of NEXT_PUBLIC_...
-      // Next.js strips any variable without NEXT_PUBLIC_, so we safely fallback to their exact preset 'quantum_os'
-      const rawPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "quantum_os"
+      const config = await getCloudinaryConfig()
+      const rawPreset = config.uploadPreset
       const cleanPreset = rawPreset.trim()
 
       const formDataUpload = new FormData()
@@ -88,7 +87,7 @@ function OnboardingContent() {
       formDataUpload.append("file", file)
 
       const cloudinaryRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
         { method: "POST", body: formDataUpload }
       )
 
