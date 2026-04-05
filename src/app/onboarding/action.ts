@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 
+import { auth } from "@/auth"
+
 // Validadores de servidor
 const isValidEmail = (email: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -147,5 +149,102 @@ export async function getCloudinaryConfig() {
     // Lectura dinámica robusta de variables, ignorando la caché estática de Next.js
     cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME || "dorpspwig",
     uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || process.env.NEXT_CLOUDINARY_UPLOAD_PRESET || "quantum_os"
+  }
+}
+
+export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?: string) {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) throw new Error("No autenticado")
+
+    const org = await prisma.organization.findFirst({
+      where: { user: { email: session.user.email } },
+    })
+
+    if (!org) throw new Error("Organización no encontrada")
+
+    const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
+    const EVO_API_KEY = process.env.EVOLUTION_API_KEY
+
+    if (!EVO_URL || !EVO_API_KEY) {
+      throw new Error("Credenciales maestras de Evolution no configuradas en el servidor VPS.")
+    }
+
+    const instanceName = org.evolutionInstance || `quos_org_${org.id}`
+    let instanceToken = org.evolutionToken
+
+    if (!instanceToken) {
+      // Creamos la instancia al vuelo usando la Admin Key global. Evolution la generará dinámicamente.
+      await fetch(`${EVO_URL}/instance/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": EVO_API_KEY },
+        body: JSON.stringify({
+          instanceName: instanceName,
+          token: instanceName, // Forzamos un token seguro y predecible basado en la organización
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS"
+        })
+      })
+      
+      instanceToken = instanceName
+
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: { evolutionInstance: instanceName, evolutionToken: instanceToken }
+      })
+    }
+
+    let url = `${EVO_URL}/instance/connect/${instanceName}`
+    if (method === "code" && phoneNumber) {
+      url += `?number=${phoneNumber}`
+    }
+
+    const connectRes = await fetch(url, {
+      method: "GET",
+      headers: { "apikey": EVO_API_KEY } // La Global Key siempre funge como admin
+    })
+
+    const data = await connectRes.json()
+
+    if (method === "code" && data.pairingCode) {
+      return { success: true, pairingCode: data.pairingCode }
+    } else if (method === "qr" && data.base64) {
+      return { success: true, base64: data.base64 }
+    }
+
+    return { success: false, error: "No se encontró QR o Código en Evolution API." }
+  } catch (error: any) {
+    console.error("[EVO_SETUP_ERROR]", error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function checkEvolutionConnectionState() {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) return { connected: false }
+
+    const org = await prisma.organization.findFirst({
+      where: { user: { email: session.user.email } },
+    })
+
+    if (!org || !org.evolutionInstance) return { connected: false }
+
+    const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
+    const EVO_API_KEY = process.env.EVOLUTION_API_KEY
+
+    // Poll a Evolution API usando la Admin Key
+    const res = await fetch(`${EVO_URL}/instance/connectionState/${org.evolutionInstance}`, {
+      headers: { "apikey": EVO_API_KEY as string },
+      cache: "no-store"
+    })
+    
+    if (!res.ok) return { connected: false }
+    
+    const data = await res.json()
+    // En evolution, state "open" indica que ya emparejó el número de WhatsApp exitosamente
+    return { connected: data?.instance?.state === "open" }
+  } catch (err) {
+    return { connected: false }
   }
 }

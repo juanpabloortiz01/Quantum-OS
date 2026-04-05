@@ -66,6 +66,7 @@ model Organization {
   name                    String
   whatsappNumber          String   @unique
   evolutionInstance       String?
+  evolutionToken          String?
   planTier                String   @default("FREE")
   paymentValidationsCount Int      @default(0)
   paymentModuleLocked     Boolean  @default(false)

@@ -5,8 +5,8 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan } from "lucide-react"
-import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig } from "./action"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy } from "lucide-react"
+import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState } from "./action"
 
 const NICHES = [
   { id: "gastro", label: "GASTRONOMÍA", desc: "Pedidos · Menú · Delivery" },
@@ -37,6 +37,13 @@ function OnboardingContent() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [pingStatus, setPingStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+  
+  // States for EVO QR/Code Sync
+  const [connectionMethod, setConnectionMethod] = useState<"qr" | "code" | null>(null)
+  const [qrBase64, setQrBase64] = useState<string | null>(null)
+  const [pairingCode, setPairingCode] = useState<string | null>(null)
+  const [evoLoading, setEvoLoading] = useState(false)
+  const [evoConnected, setEvoConnected] = useState(false)
 
   const [formData, setFormData] = useState({
     niche: "",
@@ -59,7 +66,7 @@ function OnboardingContent() {
     testPhone: "",
   })
 
-  const [analyzingStep, setAnalyzingStep] = useState<"IDLE" | "CARGANDO_CLOUDINARY" | "ESCANEO_QUANTUM_INICIADO" | "COMPLETADO" | "ERROR">("IDLE")
+  const [analyzingStep, setAnalyzingStep] = useState<"IDLE" | "CARGANDO_CLOUDINARY" | "ESCANEO_INICIADO" | "COMPLETADO" | "ERROR">("IDLE")
   const [currentProduct, setCurrentProduct] = useState<any>({
     url_foto: "",
     categoria: "",
@@ -69,6 +76,35 @@ function OnboardingContent() {
     caracteristicas: "",
     estilo: "",
   })
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (step === 4 && connectionMethod && !evoConnected) {
+      interval = setInterval(async () => {
+        const res = await checkEvolutionConnectionState()
+        if (res.connected) {
+          setEvoConnected(true)
+          clearInterval(interval)
+          // Automático a dashboard tras 1s
+          setTimeout(() => {
+             handleFinalize()
+          }, 1500)
+        }
+      }, 3000)
+    }
+    return () => clearInterval(interval)
+  }, [step, connectionMethod, evoConnected])
+
+  const handleEvoConnect = async (method: "qr" | "code") => {
+    setEvoLoading(true)
+    setConnectionMethod(method)
+    const res = await setupEvolutionInstance(method, formData.testPhone)
+    if (res.success) {
+      if (method === "qr") setQrBase64(res.base64!)
+      if (method === "code") setPairingCode(res.pairingCode!)
+    }
+    setEvoLoading(false)
+  }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -92,7 +128,7 @@ function OnboardingContent() {
       )
 
       if (!cloudinaryRes.ok) throw new Error("Fallo en Cloudinary")
-      
+
       const cloudinaryData = await cloudinaryRes.json()
       const imageUrl = cloudinaryData.secure_url
 
@@ -109,18 +145,18 @@ function OnboardingContent() {
       if (result.success) {
         setCurrentProduct((prev: any) => ({
           ...prev,
-          categoria:        result.data.categoria        || prev.categoria,
-          color_principal:  result.data.color_principal  || prev.color_principal,
+          categoria: result.data.categoria || prev.categoria,
+          color_principal: result.data.color_principal || prev.color_principal,
           color_secundario: result.data.color_secundario || prev.color_secundario,
-          marca:            result.data.marca            || prev.marca,
-          caracteristicas:  result.data.caracteristicas  || prev.caracteristicas,
-          estilo:           result.data.estilo           || prev.estilo,
+          marca: result.data.marca || prev.marca,
+          caracteristicas: result.data.caracteristicas || prev.caracteristicas,
+          estilo: result.data.estilo || prev.estilo,
         }))
         setAnalyzingStep("COMPLETADO")
       } else {
         throw new Error("Fallo en Análisis de Ia")
       }
-    } catch(err) {
+    } catch (err) {
       console.error(err)
       setAnalyzingStep("ERROR")
     } finally {
@@ -618,7 +654,7 @@ function OnboardingContent() {
 
                   <div className="border-l-2 border-[#00FFFF] bg-[#00FFFF]/5 p-3 mb-2">
                     <p className="font-mono text-[9px] text-[#00FFFF] uppercase tracking-widest leading-relaxed">
-                      // AVISO_DE_COMPILACIÓN<br/>
+                      // AVISO_DE_COMPILACIÓN<br />
                       <span className="text-[#888]">El contexto de tu Agente depende 100% de estos datos. Campos vacíos o imprecisos harán que tu agente no responda correctamente.</span>
                     </p>
                   </div>
@@ -803,13 +839,13 @@ function OnboardingContent() {
                   </p>
 
                   <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
-                    
+
                     {formData.products.length < 10 ? (
                       <div className="border border-dashed border-[#333] hover:border-[#00FFFF] bg-[#0D0D0D] p-6 flex flex-col items-center justify-center relative transition-colors group cursor-pointer h-32">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={handleImageUpload} 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
                           title=""
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           disabled={isLoading}
@@ -847,25 +883,25 @@ function OnboardingContent() {
                           <div className="flex-1 grid grid-cols-2 gap-2">
                             <div className="flex flex-col gap-1">
                               <label className="font-mono text-[8px] text-[#555] uppercase">Categoría</label>
-                              <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({...currentProduct, categoria: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                              <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({ ...currentProduct, categoria: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
                             </div>
                             <div className="flex flex-col gap-1">
                               <label className="font-mono text-[8px] text-[#555] uppercase">Marca</label>
-                              <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({...currentProduct, marca: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                              <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({ ...currentProduct, marca: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
                             </div>
                             <div className="flex flex-col gap-1">
                               <label className="font-mono text-[8px] text-[#555] uppercase">Color</label>
-                              <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({...currentProduct, color_principal: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }}/>
+                              <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
                             </div>
                             <div className="flex flex-col gap-1">
                               <label className="font-mono text-[8px] text-[#555] uppercase">Estilo</label>
-                              <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({...currentProduct, estilo: e.target.value})} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }}/>
+                              <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
                             </div>
                           </div>
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="font-mono text-[8px] text-[#555] uppercase">Características a resaltar (15 Palabras)</label>
-                          <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({...currentProduct, caracteristicas: e.target.value})} className="w-full bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }}/>
+                          <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
                         </div>
                         <button onClick={handleAddProduct} className="bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] font-bold font-mono text-[9px] py-3 mt-2 uppercase tracking-widest hover:bg-[#00FFFF] hover:text-black transition-colors" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
                           + CONFIRMAR Y AÑADIR A LA BASE DE DATOS ({formData.products.length}/10)
@@ -918,99 +954,107 @@ function OnboardingContent() {
               {/* ── PASO 4: QR + TEST ── */}
               {step === 4 && (
                 <motion.div
-                  key="step3"
+                  key="step4"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="flex flex-col gap-6"
                 >
-                  {/* QR placeholder */}
-                  <div className="border border-[#1A1A1A] bg-[#111] p-6 flex flex-col items-center gap-4 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#00FFFF]/30 to-transparent" />
-                    <span
-                      className="font-mono text-[9px] text-[#00FFFF] tracking-widest animate-pulse"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      ESPERANDO_QR_EVO_API
-                    </span>
-                    <div className="w-32 h-32 border border-[#2A2A2A] grid grid-cols-8 gap-[1px] p-1">
-                      {Array.from({ length: 64 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="aspect-square"
-                          style={{
-                            background: Math.random() > 0.5 ? "#fff" : "transparent",
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <span className="font-mono text-[8px] text-[#333] text-center tracking-wider">
-                      Dispositivos vinculados → Vincular dispositivo
-                    </span>
-                  </div>
-
-                  {/* Test ping */}
                   <div className="flex flex-col gap-3">
-                    <span
-                      className="font-mono text-[10px] text-[#555] uppercase tracking-widest"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      TESTEAR_CONEXIÓN
+                    <span className="font-mono text-[10px] text-[#555] uppercase tracking-widest text-center">
+                      SELECCIONA_MÉTODO_DE_SINCRONIZACIÓN
                     </span>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="+593 99 999 9999"
-                        value={formData.testPhone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, testPhone: e.target.value })
-                        }
-                        className="flex-1 bg-[#111] border border-[#1A1A1A] px-3 py-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none transition-colors"
-                        style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                      />
-                      <button
-                        onClick={handlePing}
-                        disabled={
-                          pingStatus === "sending" ||
-                          formData.testPhone.length < 8
-                        }
-                        className="px-4 border border-[#00FFFF] bg-[#00FFFF] text-black font-mono text-[10px] font-bold tracking-widest hover:bg-white transition-colors disabled:opacity-40"
-                        style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                      >
-                        {pingStatus === "sending" ? "..." : "PING"}
-                      </button>
-                    </div>
-                    {pingStatus === "error" && (
-                      <span className="font-mono text-[9px] text-red-500 tracking-widest">
-                        ERROR: Verifica la instancia de EvolutionAPI
-                      </span>
+                    
+                    {!connectionMethod && !evoConnected && (
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <button onClick={() => handleEvoConnect("qr")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
+                          <Scan className="w-8 h-8 text-[#00FFFF]" />
+                          <span className="font-mono text-[9px] tracking-widest text-white">ESCÁNER QR</span>
+                        </button>
+                        <button onClick={() => setConnectionMethod("code")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
+                          <Phone className="w-8 h-8 text-[#00FFFF]" />
+                          <span className="font-mono text-[9px] tracking-widest text-white">CÓDIGO NUMÉRICO</span>
+                        </button>
+                      </div>
                     )}
-                    {pingStatus === "sent" && (
-                      <span className="font-mono text-[9px] text-[#00FF88] tracking-widest">
-                        ✓ PING_ENVIADO — Revisa tu WhatsApp
-                      </span>
+
+                    {connectionMethod === "qr" && !evoConnected && (
+                      <div className="border border-[#1A1A1A] bg-[#111] p-6 flex flex-col items-center gap-4">
+                        <div className="flex items-center gap-4 w-full">
+                           <button onClick={() => {setConnectionMethod(null); setQrBase64(null)}} className="text-[#555] hover:text-white px-2 py-1 border border-[#333] hover:border-white transition-colors bg-black">← REGRESAR</button>
+                           <span className="font-mono text-[9px] text-[#00FFFF] tracking-widest animate-pulse ml-auto">ESPERANDO_SINC_EVO_API</span>
+                        </div>
+                        {evoLoading || !qrBase64 ? (
+                          <div className="w-48 h-48 border border-[#2A2A2A] flex flex-col items-center justify-center gap-2">
+                             <Loader2 className="w-6 h-6 text-[#00FFFF] animate-spin" />
+                             <span className="text-[9px] text-[#555] font-mono animate-pulse">GENERANDO_QR...</span>
+                          </div>
+                        ) : (
+                          <div className="bg-white p-2 w-48 h-48 relative">
+                            <img src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR" className="w-full h-full object-contain" />
+                          </div>
+                        )}
+                        <span className="font-mono text-[8px] text-[#555] text-center mt-2">
+                          Abre WhatsApp en tu teléfono → Dispositivos Vinculados → Vincular dispositivo<br/>
+                          <strong className="text-[#00FFFF] text-[10px] mt-2 block">Se redireccionará al Búnker automáticamente.</strong>
+                        </span>
+                        
+                        <button onClick={() => handleEvoConnect("qr")} className="mt-2 text-[#00FFFF] font-mono text-[9px] hover:underline flex items-center gap-1">
+                           <RefreshCw className="w-3 h-3" /> RECARGAR QR
+                        </button>
+                      </div>
+                    )}
+
+                    {connectionMethod === "code" && !evoConnected && (
+                      <div className="border border-[#1A1A1A] bg-[#111] p-6 flex flex-col gap-4">
+                         <div className="flex items-center gap-4 w-full">
+                           <button onClick={() => {setConnectionMethod(null); setPairingCode(null)}} className="text-[#555] hover:text-white px-2 py-1 border border-[#333] hover:border-white transition-colors bg-black">← REGRESAR</button>
+                           <span className="font-mono text-[9px] text-[#00FFFF] tracking-widest ml-auto">VINCULACIÓN_POR_CÓDIGO</span>
+                         </div>
+                         
+                         {!pairingCode ? (
+                           <div className="flex flex-col gap-3 mt-2">
+                             <span className="font-mono text-[8px] text-[#777] uppercase">Número con código de país (Ej: 593999999999)</span>
+                             <input type="text" placeholder="Ej: 59399999999" value={formData.testPhone} onChange={e => setFormData({...formData, testPhone: e.target.value})} className="bg-black border border-[#222] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none" />
+                             <button onClick={() => handleEvoConnect("code")} disabled={evoLoading || formData.testPhone.length < 8} className="py-3 mt-2 border border-[#00FFFF]/30 bg-[#00FFFF]/10 text-[#00FFFF] font-mono text-[10px] hover:bg-[#00FFFF] hover:text-black transition-colors disabled:opacity-50 tracking-widest uppercase">
+                               {evoLoading ? "GENERANDO..." : "OBTENER_CÓDIGO"}
+                             </button>
+                           </div>
+                         ) : (
+                           <div className="flex flex-col items-center gap-4 mt-4">
+                             <span className="text-3xl font-mono font-bold tracking-[0.3em] text-[#00FFFF] bg-black border border-[#2A2A2A] px-6 py-4 flex items-center gap-4">
+                               {pairingCode}
+                               <button onClick={() => navigator.clipboard.writeText(pairingCode)} className="text-[#555] hover:text-white p-2 bg-[#1A1A1A] border border-[#333] rounded-md transition-colors" title="Copiar">
+                                 <Copy className="w-4 h-4" />
+                               </button>
+                             </span>
+                             <span className="font-mono text-[8px] text-[#555] text-center max-w-xs leading-relaxed">
+                               Abre WhatsApp → Dispositivos Vinculados → Vincular con el número de teléfono en su lugar.<br/>
+                               <strong className="text-[#00FFFF] text-[10px] mt-2 block">Se redireccionará al Búnker automáticamente.</strong>
+                             </span>
+                           </div>
+                         )}
+                      </div>
+                    )}
+
+                    {evoConnected && (
+                      <div className="border border-[#00FF88]/30 bg-[#00FF88]/5 p-8 flex flex-col items-center justify-center gap-4">
+                        <CheckCircle className="w-12 h-12 text-[#00FF88]" />
+                        <span className="font-mono text-[11px] text-[#00FF88] tracking-widest uppercase text-center block leading-relaxed">
+                          CONEXIÓN_ESTABLECIDA<br/>
+                          BIENVENIDO, CAPITÁN.
+                        </span>
+                        <p className="font-mono text-[9px] text-[#888] text-center">El Agente Quantum ahora tiene control sobre esta línea de WhatsApp.</p>
+                      </div>
                     )}
                   </div>
 
-                  {/* Finalizar */}
-                  <button
-                    onClick={handleFinalize}
-                    disabled={isLoading || pingStatus !== "sent"}
-                    className="w-full py-4 font-mono text-[11px] tracking-[0.2em] uppercase transition-all disabled:opacity-30"
-                    style={{
-                      fontFamily: "var(--font-fira-code, monospace)",
-                      background: pingStatus === "sent" ? "white" : "transparent",
-                      color: pingStatus === "sent" ? "black" : "#555",
-                      border: pingStatus === "sent" ? "none" : "1px solid #2A2A2A",
-                    }}
-                  >
-                    {isLoading
-                      ? "[ COMPILANDO... ]"
-                      : "[ INGRESAR_AL_BÚNKER → ]"}
-                  </button>
-
-                  <p className="font-mono text-[9px] text-[#2A2A2A] text-center tracking-widest">
-                    Botón activo tras confirmar PING exitoso
+                  <p className="font-mono text-[9px] text-[#2A2A2A] text-center tracking-widest mt-4">
+                    ¿Prefieres omitir esto por ahora?
                   </p>
+                  
+                  <button onClick={handleFinalize} disabled={isLoading} className="mt-[-10px] mb-4 font-mono text-[9px] text-[#555] hover:text-[#00FFFF] uppercase text-center block w-full tracking-widest border-none bg-transparent transition-colors">
+                    [ Omitir y entrar al dashboard ]
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
