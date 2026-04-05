@@ -78,7 +78,9 @@ function OnboardingContent() {
     setAnalyzingStep("CARGANDO_CLOUDINARY")
 
     try {
-      const rawPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"
+      // FIX: The user defined NEXT_CLOUDINARY_UPLOAD_PRESET instead of NEXT_PUBLIC_...
+      // Next.js strips any variable without NEXT_PUBLIC_, so we safely fallback to their exact preset 'quantum_os'
+      const rawPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "quantum_os"
       const cleanPreset = rawPreset.trim()
 
       const formDataUpload = new FormData()
