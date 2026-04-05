@@ -960,19 +960,19 @@ function OnboardingContent() {
                   className="flex flex-col gap-6"
                 >
                   <div className="flex flex-col gap-3">
-                    <span className="font-mono text-[10px] text-[#555] uppercase tracking-widest text-center">
-                      SELECCIONA_MÉTODO_DE_SINCRONIZACIÓN
+                    <span className="font-mono text-sm text-[#00FFFF] uppercase tracking-widest text-center">
+                      SINCRONIZAR_WHATSAPP
                     </span>
                     
                     {!connectionMethod && !evoConnected && (
                       <div className="grid grid-cols-2 gap-3 mt-4">
                         <button onClick={() => handleEvoConnect("qr")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
                           <Scan className="w-8 h-8 text-[#00FFFF]" />
-                          <span className="font-mono text-[9px] tracking-widest text-white">ESCÁNER QR</span>
+                          <span className="font-mono text-[11px] tracking-widest text-white mt-1">ESCÁNER QR</span>
                         </button>
                         <button onClick={() => setConnectionMethod("code")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
                           <Phone className="w-8 h-8 text-[#00FFFF]" />
-                          <span className="font-mono text-[9px] tracking-widest text-white">CÓDIGO NUMÉRICO</span>
+                          <span className="font-mono text-[11px] tracking-widest text-white mt-1">CÓDIGO NUMÉRICO</span>
                         </button>
                       </div>
                     )}
@@ -981,7 +981,7 @@ function OnboardingContent() {
                       <div className="border border-[#1A1A1A] bg-[#111] p-6 flex flex-col items-center gap-4">
                         <div className="flex items-center gap-4 w-full">
                            <button onClick={() => {setConnectionMethod(null); setQrBase64(null)}} className="text-[#555] hover:text-white px-2 py-1 border border-[#333] hover:border-white transition-colors bg-black">← REGRESAR</button>
-                           <span className="font-mono text-[9px] text-[#00FFFF] tracking-widest animate-pulse ml-auto">ESPERANDO_SINC_EVO_API</span>
+                           <span className="font-mono text-[10px] text-[#00FFFF] tracking-widest animate-pulse ml-auto">ESPERANDO_CONEXIÓN...</span>
                         </div>
                         {evoLoading || !qrBase64 ? (
                           <div className="w-48 h-48 border border-[#2A2A2A] flex flex-col items-center justify-center gap-2">
@@ -993,12 +993,12 @@ function OnboardingContent() {
                             <img src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR" className="w-full h-full object-contain" />
                           </div>
                         )}
-                        <span className="font-mono text-[8px] text-[#555] text-center mt-2">
+                        <span className="font-mono text-[11px] text-[#AAA] text-center mt-3 leading-relaxed">
                           Abre WhatsApp en tu teléfono → Dispositivos Vinculados → Vincular dispositivo<br/>
-                          <strong className="text-[#00FFFF] text-[10px] mt-2 block">Se redireccionará al Búnker automáticamente.</strong>
+                          <strong className="text-[#00FFFF] text-[11px] mt-2 block">Se redireccionará al Búnker automáticamente.</strong>
                         </span>
                         
-                        <button onClick={() => handleEvoConnect("qr")} className="mt-2 text-[#00FFFF] font-mono text-[9px] hover:underline flex items-center gap-1">
+                        <button onClick={() => handleEvoConnect("qr")} className="mt-2 text-[#00FFFF] font-mono text-[10px] flex items-center gap-2 hover:bg-[#00FFFF] hover:text-black transition-colors px-3 py-1">
                            <RefreshCw className="w-3 h-3" /> RECARGAR QR
                         </button>
                       </div>
@@ -1008,12 +1008,12 @@ function OnboardingContent() {
                       <div className="border border-[#1A1A1A] bg-[#111] p-6 flex flex-col gap-4">
                          <div className="flex items-center gap-4 w-full">
                            <button onClick={() => {setConnectionMethod(null); setPairingCode(null)}} className="text-[#555] hover:text-white px-2 py-1 border border-[#333] hover:border-white transition-colors bg-black">← REGRESAR</button>
-                           <span className="font-mono text-[9px] text-[#00FFFF] tracking-widest ml-auto">VINCULACIÓN_POR_CÓDIGO</span>
+                           <span className="font-mono text-[10px] text-[#00FFFF] tracking-widest ml-auto">VINCULACIÓN_POR_CÓDIGO</span>
                          </div>
                          
                          {!pairingCode ? (
                            <div className="flex flex-col gap-3 mt-2">
-                             <span className="font-mono text-[8px] text-[#777] uppercase">Número con código de país (Ej: 593999999999)</span>
+                             <span className="font-mono text-[10px] text-[#AAA] uppercase">Número con código de país (Ej: 593999999999)</span>
                              <input type="text" placeholder="Ej: 59399999999" value={formData.testPhone} onChange={e => setFormData({...formData, testPhone: e.target.value})} className="bg-black border border-[#222] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none" />
                              <button onClick={() => handleEvoConnect("code")} disabled={evoLoading || formData.testPhone.length < 8} className="py-3 mt-2 border border-[#00FFFF]/30 bg-[#00FFFF]/10 text-[#00FFFF] font-mono text-[10px] hover:bg-[#00FFFF] hover:text-black transition-colors disabled:opacity-50 tracking-widest uppercase">
                                {evoLoading ? "GENERANDO..." : "OBTENER_CÓDIGO"}
@@ -1027,9 +1027,9 @@ function OnboardingContent() {
                                  <Copy className="w-4 h-4" />
                                </button>
                              </span>
-                             <span className="font-mono text-[8px] text-[#555] text-center max-w-xs leading-relaxed">
-                               Abre WhatsApp → Dispositivos Vinculados → Vincular con el número de teléfono en su lugar.<br/>
-                               <strong className="text-[#00FFFF] text-[10px] mt-2 block">Se redireccionará al Búnker automáticamente.</strong>
+                             <span className="font-mono text-[11px] text-[#AAA] text-center max-w-sm leading-relaxed mt-2">
+                               Abre WhatsApp → Dispositivos Vinculados → <strong>Vincular con el número de teléfono en su lugar.</strong><br/>
+                               <strong className="text-[#00FFFF] text-[11px] mt-3 block bg-[#00FFFF]/10 py-2">Se redireccionará al Búnker una vez vinculado.</strong>
                              </span>
                            </div>
                          )}
@@ -1039,22 +1039,14 @@ function OnboardingContent() {
                     {evoConnected && (
                       <div className="border border-[#00FF88]/30 bg-[#00FF88]/5 p-8 flex flex-col items-center justify-center gap-4">
                         <CheckCircle className="w-12 h-12 text-[#00FF88]" />
-                        <span className="font-mono text-[11px] text-[#00FF88] tracking-widest uppercase text-center block leading-relaxed">
+                        <span className="font-mono text-[12px] text-[#00FF88] tracking-widest uppercase text-center block leading-loose">
                           CONEXIÓN_ESTABLECIDA<br/>
                           BIENVENIDO, CAPITÁN.
                         </span>
-                        <p className="font-mono text-[9px] text-[#888] text-center">El Agente Quantum ahora tiene control sobre esta línea de WhatsApp.</p>
+                        <p className="font-mono text-[11px] text-[#AAA] text-center mt-2">El Agente Quantum ahora tiene control sobre esta línea de WhatsApp.</p>
                       </div>
                     )}
                   </div>
-
-                  <p className="font-mono text-[9px] text-[#2A2A2A] text-center tracking-widest mt-4">
-                    ¿Prefieres omitir esto por ahora?
-                  </p>
-                  
-                  <button onClick={handleFinalize} disabled={isLoading} className="mt-[-10px] mb-4 font-mono text-[9px] text-[#555] hover:text-[#00FFFF] uppercase text-center block w-full tracking-widest border-none bg-transparent transition-colors">
-                    [ Omitir y entrar al dashboard ]
-                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
