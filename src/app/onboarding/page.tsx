@@ -165,7 +165,7 @@ function OnboardingContent() {
   }
 
   const handleAddProduct = () => {
-    if (formData.products.length >= 10) return
+    if (formData.products.length >= 5) return
     setFormData((prev) => ({
       ...prev,
       products: [...prev.products, currentProduct]
@@ -835,12 +835,12 @@ function OnboardingContent() {
                   </div>
 
                   <p className="font-mono text-[10px] text-[#888] mb-2 leading-relaxed" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                    Sube fotos de tus productos principales (hasta 10 en plan Free). El sistema los escaneará y pre-rellenará los datos para el Agente.
+                    Sube fotos de tus productos principales (hasta 5 en plan Free). El sistema los escaneará y pre-rellenará los datos para el Agente.
                   </p>
 
                   <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
 
-                    {formData.products.length < 10 ? (
+                    {formData.products.length < 5 ? (
                       <div className="border border-dashed border-[#333] hover:border-[#00FFFF] bg-[#0D0D0D] p-6 flex flex-col items-center justify-center relative transition-colors group cursor-pointer h-32">
                         <input
                           type="file"
@@ -869,7 +869,7 @@ function OnboardingContent() {
                       </div>
                     ) : (
                       <div className="text-center font-mono text-[9px] text-[#00FF88] border border-[#00FF88]/30 p-2" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                        [ LÍMITE DE 10 PRODUCTOS ALCANZADO ]
+                        [ LÍMITE DE 5 PRODUCTOS ALCANZADO ]
                       </div>
                     )}
 
@@ -904,7 +904,7 @@ function OnboardingContent() {
                           <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
                         </div>
                         <button onClick={handleAddProduct} className="bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] font-bold font-mono text-[9px] py-3 mt-2 uppercase tracking-widest hover:bg-[#00FFFF] hover:text-black transition-colors" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                          + CONFIRMAR Y AÑADIR A LA BASE DE DATOS ({formData.products.length}/10)
+                          + CONFIRMAR Y AÑADIR A LA BASE DE DATOS ({formData.products.length}/5)
                         </button>
                       </div>
                     )}
