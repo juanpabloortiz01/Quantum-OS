@@ -81,8 +81,8 @@ function OnboardingContent() {
       const config = await getCloudinaryConfig()
       
       const formDataUpload = new FormData()
-      formDataUpload.append("file", file)
       formDataUpload.append("upload_preset", config.uploadPreset || "ml_default")
+      formDataUpload.append("file", file)
 
       const cloudinaryRes = await fetch(
         `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
@@ -808,6 +808,7 @@ function OnboardingContent() {
                           type="file" 
                           accept="image/*" 
                           onChange={handleImageUpload} 
+                          title=""
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           disabled={isLoading}
                         />
