@@ -44,6 +44,7 @@ function OnboardingContent() {
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [evoLoading, setEvoLoading] = useState(false)
   const [evoConnected, setEvoConnected] = useState(false)
+  const [evoError, setEvoError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     niche: "",
@@ -97,11 +98,15 @@ function OnboardingContent() {
 
   const handleEvoConnect = async (method: "qr" | "code") => {
     setEvoLoading(true)
+    setEvoError(null)
     setConnectionMethod(method)
     const res = await setupEvolutionInstance(method, formData.testPhone)
     if (res.success) {
       if (method === "qr") setQrBase64(res.base64!)
       if (method === "code") setPairingCode(res.pairingCode!)
+    } else {
+      setEvoError(res.error || "Fallo desconocido al conectar con EvolutionAPI")
+      setConnectionMethod(null)
     }
     setEvoLoading(false)
   }
@@ -961,15 +966,22 @@ function OnboardingContent() {
                 >
                   <div className="flex flex-col gap-3">
                     {!connectionMethod && !evoConnected && (
-                      <div className="grid grid-cols-2 gap-3 mt-4">
-                        <button onClick={() => handleEvoConnect("qr")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
-                          <Scan className="w-8 h-8 text-[#00FFFF]" />
-                          <span className="font-mono text-[11px] tracking-widest text-white mt-1">ESCÁNER QR</span>
-                        </button>
-                        <button onClick={() => setConnectionMethod("code")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
-                          <Phone className="w-8 h-8 text-[#00FFFF]" />
-                          <span className="font-mono text-[11px] tracking-widest text-white mt-1">CÓDIGO NUMÉRICO</span>
-                        </button>
+                      <div className="flex flex-col gap-3 mt-4">
+                        {evoError && (
+                          <div className="p-3 border border-red-500/30 bg-red-500/10 text-red-500 font-mono text-[10px] uppercase tracking-widest text-center">
+                            ERROR: {evoError}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <button onClick={() => handleEvoConnect("qr")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
+                            <Scan className="w-8 h-8 text-[#00FFFF]" />
+                            <span className="font-mono text-[11px] tracking-widest text-white mt-1">ESCÁNER QR</span>
+                          </button>
+                          <button onClick={() => setConnectionMethod("code")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
+                            <Phone className="w-8 h-8 text-[#00FFFF]" />
+                            <span className="font-mono text-[11px] tracking-widest text-white mt-1">CÓDIGO NUMÉRICO</span>
+                          </button>
+                        </div>
                       </div>
                     )}
 
