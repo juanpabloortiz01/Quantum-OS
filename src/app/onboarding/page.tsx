@@ -293,6 +293,7 @@ function OnboardingContent() {
       testPhone: formData.testPhone,
     })
     setIsLoading(false)
+    router.push("/dashboard")
   }
 
   return (

@@ -2,8 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export default function Header() {
+  const { status } = useSession();
+  
   return (
     <motion.header 
       initial={{ y: -100 }}
@@ -34,10 +37,10 @@ export default function Header() {
 
           {/* BOTÓN DE DESPLIEGUE */}
           <Link 
-            href="/onboarding" 
-            className="text-white bg-[#1A1A1A] px-5 py-2 hover:bg-[#333] rounded-lg transition-all shadow-sm"
+            href={status === "authenticated" ? "/dashboard" : "/onboarding"} 
+            className="text-white bg-[#1A1A1A] px-5 py-2 hover:bg-[#333] rounded-lg transition-all shadow-sm flex items-center justify-center min-w-[140px]"
           >
-            Comenzar Gratis
+            {status === "loading" ? "..." : status === "authenticated" ? "Ir al Panel" : "Comenzar Gratis"}
           </Link>
           
         </nav>

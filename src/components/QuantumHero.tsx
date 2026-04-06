@@ -3,8 +3,10 @@
 import { LayoutGroup, motion } from "motion/react"
 import { TextRotate } from "@/components/ui/text-rotate"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 
 export default function QuantumHero() {
+  const { status } = useSession()
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-center bg-[#FBFBFA] text-[#1A1A1A] overflow-hidden relative selection:bg-slate-200 selection:text-black font-sans">
 
@@ -104,9 +106,9 @@ export default function QuantumHero() {
           transition={{ delay: 0.8 }}
           className="mt-10 flex flex-col sm:flex-row items-center gap-4 relative z-20"
         >
-          <Link href="/onboarding" className="w-full sm:w-auto">
+          <Link href={status === "authenticated" ? "/dashboard" : "/onboarding"} className="w-full sm:w-auto">
             <button className="w-full group relative px-8 py-4 bg-[#1A1A1A] text-white text-sm font-medium hover:bg-[#333333] transition-colors duration-300 rounded-lg shadow-md border border-transparent">
-              Crear tu Agente Gratis
+              {status === "loading" ? "..." : status === "authenticated" ? "Ir al Panel Principal" : "Crear tu Agente Gratis"}
             </button>
           </Link>
 
