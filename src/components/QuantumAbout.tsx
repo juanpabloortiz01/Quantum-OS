@@ -48,7 +48,7 @@ export default function AboutSection() {
         </motion.h1>
 
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl text-[#666] text-base sm:text-lg font-light leading-relaxed">
-          Quantum OS no es un chatbot. Es un <span className="text-white">sistema operativo de ventas</span> que vive en el WhatsApp de tu negocio. Lo configuras una vez, le asignas habilidades, y trabaja solo — 24/7.
+          Quantum OS no es un chatbot. Es un <span className="text-white">agente de ventas con IA</span> que vive en el WhatsApp de tu negocio. Lo configuras una vez, le asignas habilidades, y trabaja solo — 24/7.
         </motion.p>
       </section>
 
