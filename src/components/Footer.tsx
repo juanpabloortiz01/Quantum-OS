@@ -1,27 +1,27 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-[#2E2E2E] bg-transparent py-8 px-6 mt-20 relative z-10">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <footer className="border-t border-[#E2E8F0] bg-white py-10 px-6 relative z-10 w-full transition-colors mt-auto">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         
         {/* IDENTIFICADOR DE SISTEMA */}
-        <div className="font-['Fira_Code'] text-[10px] text-[#555555] tracking-widest uppercase">
-          QUANTUM_OS · SYS_CORE_v2.4.1 · CONFIDENTIAL
+        <div className="text-xs font-medium text-[#6B7280]">
+          © {new Date().getFullYear()} Quantum OS. Todos los derechos reservados.
         </div>
 
         {/* MÉTRICAS Y ESTADO */}
         <div className="flex items-center gap-6">
           <div className="hidden sm:flex items-center gap-4">
-            <span className="font-['Fira_Code'] text-[10px] text-[#888888] tracking-widest uppercase">
-              Nodes: Online
+            <span className="text-xs font-medium text-[#94A3B8]">
+              Plataforma 2.0
             </span>
-            <span className="font-['Fira_Code'] text-[10px] text-[#888888] tracking-widest uppercase">
-              Evo_API: ✓
+            <span className="text-xs font-medium text-[#94A3B8]">
+              API: Operativa
             </span>
           </div>
           
-          <div className="flex items-center gap-2 font-['Fira_Code'] text-[10px] text-[#00FFFF] tracking-widest uppercase">
-            <div className="w-1.5 h-1.5 bg-[#00FFFF] rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,255,0.8)]" />
-            KERNEL_ACTIVE
+          <div className="flex items-center gap-2 text-xs font-medium text-[#10B981]">
+            <div className="w-1.5 h-1.5 bg-[#10B981] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+            Sistemas Activos
           </div>
         </div>
 
