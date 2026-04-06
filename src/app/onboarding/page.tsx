@@ -9,18 +9,18 @@ import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, Arr
 import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState } from "./action"
 
 const NICHES = [
-  { id: "gastro", label: "GASTRONOMÍA", desc: "Pedidos · Menú · Delivery" },
-  { id: "retail", label: "REVENTA / E-COMMERCE", desc: "Catálogo · Stock · Envíos" },
-  { id: "clinic", label: "CLÍNICA / SERVICIOS", desc: "Citas · Pacientes · Agenda" },
+  { id: "gastro", label: "Gastronomía", desc: "Pedidos · Menú · Delivery" },
+  { id: "retail", label: "Reventa / E-commerce", desc: "Catálogo · Stock · Envíos" },
+  { id: "clinic", label: "Clínica / Servicios", desc: "Citas · Pacientes · Agenda" },
 ]
 
 const AVAILABLE_NEEDS = [
-  { id: "calendar", label: "AGENDAR_CITAS" },
-  { id: "ocr", label: "VALIDAR_PAGOS" },
-  { id: "crm", label: "GESTIÓN_CLIENTES" },
-  { id: "orders", label: "TOMAR_PEDIDOS" },
-  { id: "catalog", label: "CATÁLOGO_DIGITAL" },
-  { id: "shipping", label: "LOGÍSTICA_ENVÍOS" },
+  { id: "calendar", label: "Agendar citas" },
+  { id: "ocr", label: "Validar pagos" },
+  { id: "crm", label: "Gestión de clientes" },
+  { id: "orders", label: "Tomar pedidos" },
+  { id: "catalog", label: "Catálogo digital" },
+  { id: "shipping", label: "Logística y envíos" },
 ]
 
 function OnboardingContent() {
@@ -86,7 +86,7 @@ function OnboardingContent() {
         if (res.connected) {
           setEvoConnected(true)
           clearInterval(interval)
-          // Automático a dashboard tras 1s
+          // Automático a dashboard tras 1.5s
           setTimeout(() => {
             handleFinalize()
           }, 1500)
@@ -105,7 +105,7 @@ function OnboardingContent() {
       if (method === "qr") setQrBase64(res.base64!)
       if (method === "code") setPairingCode(res.pairingCode!)
     } else {
-      setEvoError(res.error || "Fallo desconocido al conectar con EvolutionAPI")
+      setEvoError(res.error || "Fallo desconocido al conectar con servidor web.")
       setConnectionMethod(null)
     }
     setEvoLoading(false)
@@ -159,7 +159,7 @@ function OnboardingContent() {
         }))
         setAnalyzingStep("COMPLETADO")
       } else {
-        throw new Error("Fallo en Análisis de Ia")
+        throw new Error("Fallo en Análisis con IA")
       }
     } catch (err) {
       console.error(err)
@@ -205,7 +205,7 @@ function OnboardingContent() {
   useEffect(() => {
     const errorParam = searchParams.get("error")
     if (errorParam) {
-      setError(`Auth_Error: ${errorParam}`)
+      setError(`Error de acceso: ${errorParam}`)
     }
   }, [searchParams])
 
@@ -245,15 +245,15 @@ function OnboardingContent() {
     setError("")
 
     if (!isValidEmail(email)) {
-      setError("CORREO_INVÁLIDO")
+      setError("Por favor ingresa un correo válido.")
       return
     }
     if (password.length < 8) {
-      setError("CONTRASEÑA_MÍNIMO_8_CARACTERES")
+      setError("La contraseña debe tener al menos 8 caracteres.")
       return
     }
     if (password !== confirmPassword) {
-      setError("LAS_CONTRASEÑAS_NO_COINCIDEN")
+      setError("Las contraseñas no coinciden.")
       return
     }
 
@@ -274,17 +274,11 @@ function OnboardingContent() {
     })
 
     if (res?.error) {
-      setError("ERROR_DE_AUTENTICACIÓN")
+      setError("Fallo al iniciar sesión automáticamente.")
       return
     }
 
     setStep(1)
-  }
-
-  const handlePing = async () => {
-    setPingStatus("sending")
-    const result = await sendTestPing(formData.testPhone)
-    setPingStatus(result.success ? "sent" : "error")
   }
 
   const handleFinalize = async () => {
@@ -302,91 +296,60 @@ function OnboardingContent() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-[#0D0D0D] text-white flex items-center justify-center p-4 selection:bg-[#00FFFF] selection:text-black"
-      style={{ fontFamily: "var(--font-inter, sans-serif)" }}
-    >
-      {/* SCANLINES */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.025]"
+    <div className="min-h-screen bg-[#FBFBFA] text-[#1A1A1A] flex items-center justify-center p-4 selection:bg-slate-200 selection:text-black font-sans">
+      
+      {/* DOT GRID MINIMALISTA */}
+      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none"
         style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg,#fff,#fff 1px,transparent 1px,transparent 4px)",
-        }}
-      />
-
-      {/* GRID */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right,#00FFFF 1px,transparent 1px),linear-gradient(to bottom,#00FFFF 1px,transparent 1px)",
-          backgroundSize: "80px 80px",
+          backgroundImage: "radial-gradient(#94A3B8 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+          maskImage: "radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 100%)",
         }}
       />
 
       <div className="relative z-10 w-full max-w-md">
-        {/* HEADER */}
+        
+        {/* HEADER MINI */}
         <div className="mb-6 flex items-center justify-between">
-          <div
-            className="font-mono text-xs font-bold tracking-widest text-white"
-            style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-          >
-            &gt; QUANTUM <span className="text-[#00FFFF]">|</span>
+          <div className="text-xs font-semibold tracking-wide text-[#1A1A1A]">
+            Quantum OS
           </div>
           {step > 0 && (
-            <div
-              className="flex items-center gap-2 font-mono text-[10px] text-[#00FFFF] tracking-widest"
-              style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00FFFF] animate-pulse" />
-              PASO_{step.toString().padStart(2, "0")}/03
+            <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
+              Paso {step}/4
             </div>
           )}
         </div>
 
-        {/* TARJETA */}
-        <div className="border border-[#1A1A1A] bg-[#0D0D0D] relative overflow-hidden">
-          {/* Esquinas cian */}
-          <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#00FFFF]" />
-          <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#00FFFF]" />
-
-          {/* Línea superior */}
-          <div className="h-[1px] bg-gradient-to-r from-transparent via-[#00FFFF]/30 to-transparent" />
-
-          {/* Barra de progreso */}
+        {/* TARJETA PRINCIPAL */}
+        <div className="border border-[#E2E8F0] bg-white rounded-xl shadow-sm relative overflow-hidden">
+          
+          {/* Barra de progreso superior */}
           {step > 0 && (
-            <div className="px-8 pt-6">
-              <div className="flex gap-1">
-                {[1, 2, 3].map((s) => (
-                  <div
-                    key={s}
-                    className="flex-1 h-[2px] transition-all duration-500"
-                    style={{ background: s <= step ? "#00FFFF" : "#1A1A1A" }}
-                  />
-                ))}
-              </div>
+            <div className="h-1 flex">
+              {[1, 2, 3, 4].map((s) => (
+                <div
+                  key={s}
+                  className="flex-1 transition-all duration-500"
+                  style={{ background: s <= step ? "#1A1A1A" : "#F3F4F6" }}
+                />
+              ))}
             </div>
           )}
 
           <div className="p-8">
             {/* Título */}
-            <div className="mb-8 text-center">
-              <div
-                className="font-mono text-[10px] text-[#444] tracking-[0.2em] uppercase mb-2"
-                style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-              >
-                QUANTUM_OS // PROTOCOLO_INIT
-              </div>
-              <h1
-                className="font-mono text-xl font-semibold tracking-tight"
-                style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-              >
-                {step === 0 && "ACCESO_AL_SISTEMA"}
-                {step === 1 && "CONFIGURAR_AGENTE"}
-                {step === 2 && "MEMORIA_BASE"}
-                {step === 3 && "CATÁLOGO_IA"}
-                {step === 4 && "SINCRONIZAR_WHATSAPP"}
+            <div className="mb-8 text-center flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
+                Configuración del Asistente
+              </span>
+              <h1 className="text-2xl font-bold tracking-tight text-[#1A1A1A]">
+                {step === 0 && "Crear una cuenta"}
+                {step === 1 && "Sector del negocio"}
+                {step === 2 && "Describe tu negocio"}
+                {step === 3 && "Sube tu catálogo"}
+                {step === 4 && "Conecta tu WhatsApp"}
               </h1>
             </div>
 
@@ -401,19 +364,15 @@ function OnboardingContent() {
                   className="flex flex-col gap-4"
                 >
                   <div>
-                    <label
-                      className="block font-mono text-[10px] text-[#555] uppercase mb-2 tracking-widest"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      CORREO_ELECTRÓNICO
+                    <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
+                      Correo electrónico
                     </label>
                     <input
                       type="email"
                       placeholder="nombre@empresa.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#111] border border-[#222] p-3 text-sm focus:border-[#00FFFF]/50 outline-none transition-all font-mono text-white"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
+                      className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
                     />
                   </div>
 
@@ -426,31 +385,27 @@ function OnboardingContent() {
                         className="flex flex-col gap-4 overflow-hidden"
                       >
                         <div>
-                          <label
-                            className="block font-mono text-[10px] text-[#555] uppercase mb-2 tracking-widest"
-                            style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                          >
-                            CONTRASEÑA
+                          <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
+                            Contraseña
                           </label>
                           <input
                             type="password"
+                            placeholder="Mínimo 8 caracteres"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-[#111] border border-[#222] p-3 text-sm focus:border-[#00FFFF]/50 outline-none transition-all font-mono text-white"
+                            className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
                           />
                         </div>
                         <div>
-                          <label
-                            className="block font-mono text-[10px] text-[#555] uppercase mb-2 tracking-widest"
-                            style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                          >
-                            CONFIRMAR_CONTRASEÑA
+                          <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
+                            Confirmar Contraseña
                           </label>
                           <input
                             type="password"
+                            placeholder="Repite tu contraseña"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full bg-[#111] border border-[#222] p-3 text-sm focus:border-[#00FFFF]/50 outline-none transition-all font-mono text-white"
+                            className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
                           />
                         </div>
                       </motion.div>
@@ -458,66 +413,47 @@ function OnboardingContent() {
                   </AnimatePresence>
 
                   {error && (
-                    <p
-                      className="font-mono text-[9px] text-red-500 uppercase tracking-widest"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      ERROR: {error}
+                    <p className="text-xs text-red-600 font-medium bg-red-50 p-2 rounded-md">
+                      {error}
                     </p>
                   )}
 
                   <button
                     onClick={handleContinue}
                     disabled={isLoading}
-                    className="w-full bg-white text-black font-mono font-bold py-3 text-xs uppercase tracking-widest hover:bg-[#00FFFF] transition-colors disabled:opacity-50"
-                    style={{ fontFamily: "var(--font-fira-code, monospace)" }}
+                    className="w-full bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors disabled:opacity-50 mt-2 shadow-sm"
                   >
-                    {isLoading ? "PROCESANDO..." : "[ CONTINUAR ]"}
+                    {isLoading ? "Procesando..." : "Crear cuenta y continuar"}
                   </button>
 
-                  {/* Divisor */}
-                  <div className="relative my-2">
+                  <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-[#1A1A1A]" />
+                      <span className="w-full border-t border-[#E2E8F0]" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span
-                        className="bg-[#0D0D0D] px-4 font-mono text-[10px] text-[#444] uppercase tracking-widest"
-                        style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                      >
-                        o continuar con
+                      <span className="bg-white px-4 text-xs font-medium text-[#94A3B8]">
+                        Continuar con
                       </span>
                     </div>
                   </div>
 
-                  {/* Google */}
                   <button
-                    onClick={() =>
-                      signIn("google", {
-                        callbackUrl: "/onboarding?step=1",
-                      })
-                    }
-                    className="w-full border border-[#222] bg-[#111] py-3 flex items-center justify-center gap-3 hover:border-[#00FFFF]/30 hover:bg-[#151515] transition-all group"
+                    onClick={() => signIn("google", { callbackUrl: "/onboarding?step=1" })}
+                    className="w-full border border-[#E2E8F0] bg-white rounded-lg py-3 flex items-center justify-center gap-3 hover:bg-[#F9FAFB] transition-colors group shadow-sm"
                   >
-                    <svg className="w-4 h-4 text-[#666] group-hover:text-[#00FFFF] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-5 h-5 text-[#4B5563]" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
-                    <span
-                      className="font-mono text-[10px] tracking-widest text-[#666] group-hover:text-white transition-colors uppercase"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      INICIAR_CON_GMAIL
+                    <span className="text-sm font-medium text-[#4B5563] group-hover:text-[#1A1A1A]">
+                      Google
                     </span>
                   </button>
 
-                  <p className="text-center font-mono text-[10px] text-[#333] tracking-widest">
-                    ¿Ya tienes cuenta?{" "}
-                    <Link href="/login" className="text-[#00FFFF] hover:underline">
-                      INICIAR_SESIÓN
-                    </Link>
+                  <p className="text-center text-xs text-[#6B7280] mt-2">
+                    ¿Ya tienes cuenta? <Link href="/login" className="text-[#1A1A1A] font-semibold hover:underline">Iniciar sesión</Link>
                   </p>
                 </motion.div>
               )}
@@ -532,83 +468,53 @@ function OnboardingContent() {
                   className="flex flex-col gap-6"
                 >
                   <div>
-                    <span
-                      className="font-mono text-[10px] text-[#555] block mb-3 uppercase tracking-[0.2em]"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      01_SECTOR_DEL_NEGOCIO
+                    <span className="text-sm font-semibold text-[#1A1A1A] block mb-3">
+                      Selecciona tu sector principal
                     </span>
-                    <div className="flex flex-col gap-[1px] bg-[#1A1A1A]">
-                      {NICHES.map((niche) => (
-                        <button
-                          key={niche.id}
-                          onClick={() => setFormData({ ...formData, niche: niche.id })}
-                          className="py-3 px-4 text-left transition-all flex items-center justify-between"
-                          style={{
-                            background:
-                              formData.niche === niche.id
-                                ? "rgba(0,255,255,0.06)"
-                                : "#0D0D0D",
-                            borderLeft:
-                              formData.niche === niche.id
-                                ? "2px solid #00FFFF"
-                                : "2px solid transparent",
-                          }}
-                        >
-                          <span
-                            className="font-mono text-[10px] tracking-widest"
-                            style={{
-                              fontFamily: "var(--font-fira-code, monospace)",
-                              color:
-                                formData.niche === niche.id ? "#00FFFF" : "#555",
-                            }}
+                    <div className="flex flex-col gap-2">
+                      {NICHES.map((niche) => {
+                        const active = formData.niche === niche.id;
+                        return (
+                          <button
+                            key={niche.id}
+                            onClick={() => setFormData({ ...formData, niche: niche.id })}
+                            className={`p-4 text-left transition-all border rounded-xl flex items-center justify-between ${
+                              active ? "border-[#1A1A1A] bg-[#F9FAFB] shadow-sm" : "border-[#E2E8F0] bg-white hover:border-[#94A3B8]"
+                            }`}
                           >
-                            {niche.label}
-                          </span>
-                          <span className="font-mono text-[9px] text-[#333]">
-                            {niche.desc}
-                          </span>
-                        </button>
-                      ))}
+                            <span className={`text-sm font-semibold ${active ? "text-[#1A1A1A]" : "text-[#4B5563]"}`}>
+                              {niche.label}
+                            </span>
+                            <span className="text-xs font-medium text-[#94A3B8]">
+                              {niche.desc}
+                            </span>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
 
                   <div>
-                    <span
-                      className="font-mono text-[10px] text-[#555] block mb-3 uppercase tracking-[0.2em]"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      02_HABILIDADES_DEL_AGENTE
+                    <span className="text-sm font-semibold text-[#1A1A1A] block mb-3">
+                      ¿Qué quieres que el agente haga?
                     </span>
-                    <div className="grid grid-cols-2 gap-[1px] bg-[#1A1A1A]">
+                    <div className="grid grid-cols-2 gap-2">
                       {AVAILABLE_NEEDS.map((need) => {
                         const active = formData.needs.includes(need.id)
                         return (
                           <button
                             key={need.id}
                             onClick={() => toggleNeed(need.id)}
-                            className="flex items-center gap-3 p-3 text-left transition-all"
-                            style={{
-                              background: active
-                                ? "rgba(0,255,255,0.04)"
-                                : "#0D0D0D",
-                            }}
+                            className={`flex items-center gap-3 p-3 text-left transition-all border rounded-lg ${
+                              active ? "border-[#1A1A1A] bg-[#F9FAFB]" : "border-[#E2E8F0] bg-white hover:border-[#94A3B8]"
+                            }`}
                           >
-                            <div
-                              className="w-3 h-3 border flex items-center justify-center flex-shrink-0"
-                              style={{ borderColor: active ? "#00FFFF" : "#333" }}
-                            >
-                              {active && (
-                                <div className="w-1.5 h-1.5 bg-[#00FFFF]" />
-                              )}
+                            <div className={`w-4 h-4 border rounded-sm flex items-center justify-center flex-shrink-0 transition-colors ${
+                              active ? "border-[#1A1A1A] bg-[#1A1A1A]" : "border-[#D1D5DB]"
+                            }`}>
+                              {active && <CheckCircle className="w-3 h-3 text-white" strokeWidth={3} />}
                             </div>
-                            <span
-                              className="font-mono text-[9px] tracking-widest"
-                              style={{
-                                fontFamily: "var(--font-fira-code, monospace)",
-                                color: active ? "#fff" : "#555",
-                              }}
-                            >
+                            <span className={`text-xs font-medium ${active ? "text-[#1A1A1A]" : "text-[#4B5563]"}`}>
                               {need.label}
                             </span>
                           </button>
@@ -620,15 +526,9 @@ function OnboardingContent() {
                   <button
                     onClick={() => setStep(2)}
                     disabled={!formData.niche}
-                    className="w-full py-4 font-mono text-[11px] tracking-[0.2em] uppercase transition-all disabled:opacity-30"
-                    style={{
-                      fontFamily: "var(--font-fira-code, monospace)",
-                      background: formData.niche ? "white" : "transparent",
-                      color: formData.niche ? "black" : "#555",
-                      border: formData.niche ? "none" : "1px solid #2A2A2A",
-                    }}
+                    className="w-full py-3 text-sm font-medium transition-all rounded-lg mt-2 disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
                   >
-                    [ SIGUIENTE_PASO ]
+                    Siguiente paso
                   </button>
                 </motion.div>
               )}
@@ -642,68 +542,50 @@ function OnboardingContent() {
                   exit={{ opacity: 0, x: -20 }}
                   className="flex flex-col gap-6"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="font-mono text-[10px] text-[#555] uppercase tracking-[0.2em]"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      03_MEMORIA_BASE
-                    </span>
-                    <span
-                      className="font-mono text-[9px] text-[#00FFFF] border border-[#00FFFF]/30 px-2 py-0.5"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
-                    >
-                      RAG_READY
-                    </span>
+                  <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800 leading-relaxed">
+                    <strong>Agrega información clave a tu agente.</strong><br />
+                    Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
                   </div>
 
-                  <div className="border-l-2 border-[#00FFFF] bg-[#00FFFF]/5 p-3 mb-2">
-                    <p className="font-mono text-[9px] text-[#00FFFF] uppercase tracking-widest leading-relaxed">
-                      // AVISO_DE_COMPILACIÓN<br />
-                      <span className="text-[#888]">El contexto de tu Agente depende 100% de estos datos. Campos vacíos o imprecisos harán que tu agente no responda correctamente.</span>
-                    </p>
-                  </div>
-
-                  {/* SCROLL CONTAINER */}
                   <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
 
                     {/* Campos Principales */}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-4">
                       <div>
-                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">NOMBRE_DEL_NEGOCIO *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre comercial *</label>
                         <input
                           type="text"
+                          placeholder="Ej: Tienda de ropa ABC"
                           value={formData.contextData.companyName}
                           onChange={(e) => updateContext("companyName", e.target.value)}
-                          className="w-full bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none transition-colors"
+                          className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
                         />
                       </div>
                       <div>
-                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">SERVICIO_O_PRODUCTO_PRINCIPAL *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Servicio o producto principal *</label>
                         <input
                           type="text"
                           placeholder="Ej: Ropa deportiva para mujer"
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
-                          className="w-full bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none transition-colors"
+                          className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
                         />
                       </div>
                     </div>
 
                     {/* Horarios */}
-                    <div className="border border-[#1A1A1A] p-4 bg-[#111]/50">
-                      <label className="block font-mono text-[9px] text-[#555] uppercase mb-3 tracking-widest">HORARIOS_DE_ATENCIÓN</label>
-                      <div className="flex gap-1 mb-4">
+                    <div className="border border-[#E2E8F0] p-4 bg-[#FBFBFA] rounded-xl flex flex-col gap-4">
+                      <label className="block text-xs font-semibold text-[#4B5563]">Horarios de atención</label>
+                      <div className="flex gap-1.5">
                         {["LU", "MA", "MI", "JU", "VI", "SA", "DO"].map(day => (
                           <button
                             key={day}
                             onClick={() => toggleDay(day)}
-                            className="flex-1 py-2 font-mono text-[9px] transition-colors border"
-                            style={{
-                              borderColor: formData.contextData.scheduleDays.includes(day) ? "#00FFFF" : "#222",
-                              color: formData.contextData.scheduleDays.includes(day) ? "#00FFFF" : "#555",
-                              backgroundColor: formData.contextData.scheduleDays.includes(day) ? "rgba(0,255,255,0.05)" : "#111"
-                            }}
+                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all border ${
+                              formData.contextData.scheduleDays.includes(day)
+                                ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+                                : "border-[#E2E8F0] bg-white text-[#4B5563] hover:border-[#94A3B8]"
+                            }`}
                           >
                             {day}
                           </button>
@@ -711,111 +593,104 @@ function OnboardingContent() {
                       </div>
                       <div className="flex gap-3">
                         <div className="flex-1">
-                          <label className="block font-mono text-[8px] text-[#444] uppercase mb-1 tracking-widest">APERTURA</label>
+                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora apertura</label>
                           <input
                             type="time"
                             value={formData.contextData.openTime}
                             onChange={(e) => updateContext("openTime", e.target.value)}
-                            className="w-full bg-[#0D0D0D] border border-[#222] p-2 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none style-time-input"
+                            className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-sm text-[#1A1A1A] focus:border-[#94A3B8] outline-none"
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block font-mono text-[8px] text-[#444] uppercase mb-1 tracking-widest">CIERRE</label>
+                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora cierre</label>
                           <input
                             type="time"
                             value={formData.contextData.closeTime}
                             onChange={(e) => updateContext("closeTime", e.target.value)}
-                            className="w-full bg-[#0D0D0D] border border-[#222] p-2 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none style-time-input"
+                            className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-sm text-[#1A1A1A] focus:border-[#94A3B8] outline-none"
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* Descripción y Dirección */}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-4">
                       <div>
-                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">DESCRIPCIÓN_DEL_NEGOCIO *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Descripción de perfil o biografía *</label>
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-                          placeholder="Tu tono de voz, restricciones, ventajas..."
-                          className="w-full h-24 bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none resize-none transition-colors leading-relaxed"
+                          placeholder="Ej: Somos revendedores de iPhones Open Box..."
+                          className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
                       <div>
-                        <label className="block font-mono text-[9px] text-[#555] uppercase mb-1 tracking-widest">DIRECCIÓN_FÍSICA (Opcional)</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Dirección física (Opcional)</label>
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-                          className="w-full h-12 bg-[#111] border border-[#1A1A1A] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none resize-none transition-colors"
+                          placeholder="Ej: Av. Principal 123, Local 4"
+                          className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
                     </div>
 
                     {/* Enlaces y Contacto */}
                     <div className="flex flex-col gap-3">
-                      <label className="block font-mono text-[9px] text-[#555] uppercase tracking-widest">ENLACES_Y_CONTACTO</label>
+                      <label className="block text-xs font-semibold text-[#4B5563]">Enlaces y contacto adicionales</label>
 
-                      <div className="flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
-                        <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
-                          <Globe size={12} className="text-[#555]" />
+                      <div className="flex bg-white border border-[#E2E8F0] rounded-lg overflow-hidden focus-within:border-[#94A3B8] focus-within:ring-1 focus-within:ring-[#94A3B8] transition-all">
+                        <div className="px-3 py-2 flex items-center justify-center bg-[#F9FAFB] border-r border-[#E2E8F0]">
+                          <Globe size={14} className="text-[#6B7280]" />
                         </div>
-                        <input type="text" placeholder="Página web" value={formData.contextData.website} onChange={e => updateContext("website", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                        <input type="text" placeholder="Página web" value={formData.contextData.website} onChange={e => updateContext("website", e.target.value)} className="w-full bg-transparent p-2.5 text-sm outline-none" />
                       </div>
 
                       <div className="flex gap-3">
-                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
-                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
-                            <Instagram size={12} className="text-[#555]" />
+                        <div className="flex-1 flex bg-white border border-[#E2E8F0] rounded-lg overflow-hidden focus-within:border-[#94A3B8] focus-within:ring-1 focus-within:ring-[#94A3B8] transition-all">
+                          <div className="px-3 py-2 flex items-center justify-center bg-[#F9FAFB] border-r border-[#E2E8F0]">
+                            <Instagram size={14} className="text-[#6B7280]" />
                           </div>
-                          <input type="text" placeholder="@usuario" value={formData.contextData.instagram} onChange={e => updateContext("instagram", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                          <input type="text" placeholder="@usuario" value={formData.contextData.instagram} onChange={e => updateContext("instagram", e.target.value)} className="w-full bg-transparent p-2.5 text-sm outline-none" />
                         </div>
-                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
-                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
-                            <Facebook size={12} className="text-[#555]" />
+                        <div className="flex-1 flex bg-white border border-[#E2E8F0] rounded-lg overflow-hidden focus-within:border-[#94A3B8] focus-within:ring-1 focus-within:ring-[#94A3B8] transition-all">
+                          <div className="px-3 py-2 flex items-center justify-center bg-[#F9FAFB] border-r border-[#E2E8F0]">
+                            <Facebook size={14} className="text-[#6B7280]" />
                           </div>
-                          <input type="text" placeholder="/pagina" value={formData.contextData.facebook} onChange={e => updateContext("facebook", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                          <input type="text" placeholder="/pagina" value={formData.contextData.facebook} onChange={e => updateContext("facebook", e.target.value)} className="w-full bg-transparent p-2.5 text-sm outline-none" />
                         </div>
                       </div>
 
                       <div className="flex gap-3">
-                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
-                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
-                            <Mail size={12} className="text-[#555]" />
+                        <div className="flex-1 flex bg-white border border-[#E2E8F0] rounded-lg overflow-hidden focus-within:border-[#94A3B8] focus-within:ring-1 focus-within:ring-[#94A3B8] transition-all">
+                          <div className="px-3 py-2 flex items-center justify-center bg-[#F9FAFB] border-r border-[#E2E8F0]">
+                            <Mail size={14} className="text-[#6B7280]" />
                           </div>
-                          <input type="email" placeholder="Correo" value={formData.contextData.contactEmail} onChange={e => updateContext("contactEmail", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                          <input type="email" placeholder="Correo" value={formData.contextData.contactEmail} onChange={e => updateContext("contactEmail", e.target.value)} className="w-full bg-transparent p-2.5 text-sm outline-none" />
                         </div>
-                        <div className="flex-1 flex bg-[#111] border border-[#1A1A1A] focus-within:border-[#00FFFF]/40 transition-colors">
-                          <div className="px-3 flex items-center justify-center border-r border-[#1A1A1A]">
-                            <Phone size={12} className="text-[#555]" />
+                        <div className="flex-1 flex bg-white border border-[#E2E8F0] rounded-lg overflow-hidden focus-within:border-[#94A3B8] focus-within:ring-1 focus-within:ring-[#94A3B8] transition-all">
+                          <div className="px-3 py-2 flex items-center justify-center bg-[#F9FAFB] border-r border-[#E2E8F0]">
+                            <Phone size={14} className="text-[#6B7280]" />
                           </div>
-                          <input type="tel" placeholder="Teléfono" value={formData.contextData.contactPhone} onChange={e => updateContext("contactPhone", e.target.value)} className="w-full bg-transparent p-2 text-xs text-white font-mono outline-none" />
+                          <input type="tel" placeholder="Teléfono" value={formData.contextData.contactPhone} onChange={e => updateContext("contactPhone", e.target.value)} className="w-full bg-transparent p-2.5 text-sm outline-none" />
                         </div>
                       </div>
-
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-[#1A1A1A] mt-2">
+                  <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => setStep(1)}
-                      className="px-6 py-4 border border-[#1A1A1A] text-[#444] font-mono text-[10px] tracking-widest hover:text-white transition-colors uppercase"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
+                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors"
                     >
-                      [ ← ]
+                      ← Atrás
                     </button>
                     <button
                       onClick={() => setStep(3)}
                       disabled={!formData.contextData.companyName || !formData.contextData.description}
-                      className="flex-1 py-4 font-mono text-[11px] tracking-[0.2em] uppercase transition-all disabled:opacity-30"
-                      style={{
-                        fontFamily: "var(--font-fira-code, monospace)",
-                        background: (formData.contextData.companyName && formData.contextData.description) ? "white" : "transparent",
-                        color: (formData.contextData.companyName && formData.contextData.description) ? "black" : "#555",
-                        border: (formData.contextData.companyName && formData.contextData.description) ? "none" : "1px solid #2A2A2A",
-                      }}
+                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
                     >
-                      [ CONTINUAR ]
+                      Guardar y continuar
                     </button>
                   </div>
                 </motion.div>
@@ -830,23 +705,14 @@ function OnboardingContent() {
                   exit={{ opacity: 0, x: -20 }}
                   className="flex flex-col gap-6"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-[10px] text-[#555] uppercase tracking-[0.2em]" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                      04_CATÁLOGO_IA
-                    </span>
-                    <span className="font-mono text-[9px] text-[#00FFFF] border border-[#00FFFF]/30 px-2 py-0.5" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                      VISIÓN_ACTIVA
-                    </span>
-                  </div>
-
-                  <p className="font-mono text-[10px] text-[#888] mb-2 leading-relaxed" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                    Sube fotos de tus productos principales (hasta 5 en plan Free). El sistema los escaneará y pre-rellenará los datos para el Agente.
+                  <p className="text-sm text-[#4B5563] leading-relaxed">
+                    Agrega fotos de tus productos principales. Nuestra IA las analizará y extraerá automáticamente todas sus características para tu agente de ventas.
                   </p>
 
                   <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
 
                     {formData.products.length < 5 ? (
-                      <div className="border border-dashed border-[#333] hover:border-[#00FFFF] bg-[#0D0D0D] p-6 flex flex-col items-center justify-center relative transition-colors group cursor-pointer h-32">
+                      <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-36">
                         <input
                           type="file"
                           accept="image/*"
@@ -856,74 +722,75 @@ function OnboardingContent() {
                           disabled={isLoading}
                         />
                         {analyzingStep === "IDLE" || analyzingStep === "COMPLETADO" || analyzingStep === "ERROR" ? (
-                          <div className="flex flex-col items-center gap-2 text-[#555] group-hover:text-[#00FFFF]">
-                            <Upload size={18} />
-                            <span className="font-mono text-[9px] tracking-widest uppercase" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                              [ SOLTAR O HACER CLIC PARA DETECTAR PRODUCTO ]
-                            </span>
+                          <div className="flex flex-col items-center gap-3 text-[#6B7280] group-hover:text-[#1A1A1A]">
+                            <div className="w-10 h-10 bg-white border border-[#E2E8F0] shadow-sm flex items-center justify-center rounded-full">
+                              <Upload size={18} />
+                            </div>
+                            <span className="text-xs font-medium">Hacer clic o arrastrar imagen aquí</span>
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center gap-2 text-[#00FFFF]">
-                            <Scan size={18} className="animate-pulse" />
-                            <span className="font-mono text-[9px] tracking-widest uppercase animate-pulse" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                              {analyzingStep === "SUBIENDO" ? "PREPARANDO FOTO..." : "DETECTANDO PRODUCTO..."}
+                          <div className="flex flex-col items-center gap-3 text-[#1A1A1A]">
+                            <Loader2 size={24} className="animate-spin text-[#1A1A1A]" />
+                            <span className="text-xs font-medium animate-pulse">
+                              {analyzingStep === "SUBIENDO" ? "Subiendo archivo..." : "Analizando características..."}
                             </span>
                           </div>
                         )}
-                        {analyzingStep === "ERROR" && <span className="font-mono text-[9px] text-red-500 mt-2">Error procesando imagen. Intenta otra vez.</span>}
+                        {analyzingStep === "ERROR" && <span className="text-xs font-semibold text-red-500 mt-3">Error procesando imagen. Intenta otra vez.</span>}
                       </div>
                     ) : (
-                      <div className="text-center font-mono text-[9px] text-[#00FF88] border border-[#00FF88]/30 p-2" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                        [ LÍMITE DE 5 PRODUCTOS ALCANZADO ]
+                      <div className="text-center text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+                        Límite de productos alcanzado (5/5)
                       </div>
                     )}
 
                     {currentProduct.url_foto && analyzingStep === "COMPLETADO" && (
-                      <div className="border border-[#1A1A1A] bg-[#111] p-4 flex flex-col gap-3">
-                        <div className="border-l-2 border-[#00FFFF] pl-2 mb-2">
-                          <span className="font-mono text-[9px] text-[#00FFFF] uppercase tracking-widest" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>DETECCIÓN FINALIZADA</span>
+                      <div className="border border-[#E2E8F0] bg-white rounded-xl p-5 shadow-sm flex flex-col gap-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">Análisis Inteligente Listo</span>
                         </div>
-                        <div className="flex gap-4 mb-2">
-                          <img src={currentProduct.url_foto} alt="Preview" className="w-24 h-24 object-cover border border-[#222]" />
-                          <div className="flex-1 grid grid-cols-2 gap-2">
-                            <div className="flex flex-col gap-1">
-                              <label className="font-mono text-[8px] text-[#555] uppercase">Categoría</label>
-                              <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({ ...currentProduct, categoria: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                        <div className="flex gap-5">
+                          <img src={currentProduct.url_foto} alt="Preview" className="w-24 h-24 object-cover border border-[#E2E8F0] rounded-md shadow-sm" />
+                          <div className="flex-1 grid grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Categoría</label>
+                              <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({ ...currentProduct, categoria: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="font-mono text-[8px] text-[#555] uppercase">Marca</label>
-                              <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({ ...currentProduct, marca: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Marca</label>
+                              <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({ ...currentProduct, marca: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="font-mono text-[8px] text-[#555] uppercase">Color</label>
-                              <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Color</label>
+                              <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="font-mono text-[8px] text-[#555] uppercase">Estilo</label>
-                              <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Estilo</label>
+                              <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="font-mono text-[8px] text-[#555] uppercase">Características a resaltar (15 Palabras)</label>
-                          <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-black border border-[#222] text-[10px] p-2 text-white font-mono focus:border-[#00FFFF]/40 outline-none" style={{ fontFamily: "var(--font-fira-code, monospace)" }} />
+                        <div className="flex flex-col gap-1.5 pt-1">
+                          <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Características a resaltar</label>
+                          <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none leading-relaxed" />
                         </div>
-                        <button onClick={handleAddProduct} className="bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] font-bold font-mono text-[9px] py-3 mt-2 uppercase tracking-widest hover:bg-[#00FFFF] hover:text-black transition-colors" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-                          + CONFIRMAR Y AÑADIR A LA BASE DE DATOS ({formData.products.length}/5)
+                        <button onClick={handleAddProduct} className="bg-[#F3F4F6] border border-[#E2E8F0] text-[#1A1A1A] font-semibold text-xs py-3 mt-1 rounded-lg hover:bg-[#E5E7EB] transition-colors">
+                          Añadir producto a la base de datos
                         </button>
                       </div>
                     )}
 
                     {formData.products.length > 0 && (
-                      <div className="flex flex-col gap-2 mt-4">
-                        <span className="font-mono text-[9px] text-[#555] uppercase tracking-widest" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>PRODUCTOS INDEXADOS ({formData.products.length}):</span>
-                        <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-3 mt-4">
+                        <span className="text-xs font-semibold text-[#4B5563] uppercase tracking-wider">Productos Agregados ({formData.products.length}/5)</span>
+                        <div className="grid grid-cols-2 gap-3">
                           {formData.products.map((prod: any, idx: number) => (
-                            <div key={idx} className="flex border border-[#1A1A1A] bg-[#111] p-2 gap-3 items-center group">
-                              <img src={prod.url_foto} className="w-10 h-10 object-cover border border-[#222]" />
+                            <div key={idx} className="flex border border-[#E2E8F0] bg-white rounded-lg p-2.5 gap-3 items-center shadow-sm">
+                              <img src={prod.url_foto} className="w-10 h-10 object-cover rounded-md border border-[#E2E8F0]" />
                               <div className="flex flex-col overflow-hidden">
-                                <span className="font-mono text-[9px] text-[#00FFFF] truncate" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>{prod.categoria || "N/A"}</span>
-                                <span className="font-mono text-[8px] text-[#888] truncate" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>{prod.marca || "Generic"} • {prod.color_principal}</span>
+                                <span className="text-xs font-semibold text-[#1A1A1A] truncate">{prod.categoria || "Producto"}</span>
+                                <span className="text-[10px] text-[#6B7280] truncate">{prod.marca || "Generic"} • {prod.color_principal}</span>
                               </div>
                             </div>
                           ))}
@@ -932,25 +799,22 @@ function OnboardingContent() {
                     )}
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-[#1A1A1A] mt-2">
+                  <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => setStep(2)}
-                      className="px-6 py-4 border border-[#1A1A1A] text-[#444] font-mono text-[10px] tracking-widest hover:text-white transition-colors uppercase"
-                      style={{ fontFamily: "var(--font-fira-code, monospace)" }}
+                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors"
                     >
-                      [ ← ]
+                      ← Atrás
                     </button>
                     <button
                       onClick={() => setStep(4)}
-                      className="flex-1 py-4 font-mono text-[11px] tracking-[0.2em] uppercase transition-all"
-                      style={{
-                        fontFamily: "var(--font-fira-code, monospace)",
-                        background: "white",
-                        color: "black",
-                        border: "none",
-                      }}
+                      className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all ${
+                        formData.products.length === 0 
+                          ? "bg-white border border-[#E2E8F0] text-[#1A1A1A] hover:bg-[#F9FAFB]" 
+                          : "bg-[#1A1A1A] text-white hover:bg-[#333]"
+                      }`}
                     >
-                      {formData.products.length === 0 ? "[ OMITIR_POR_AHORA ]" : "[ CONTINUAR ]"}
+                      {formData.products.length === 0 ? "Omitir por ahora" : "Continuar"}
                     </button>
                   </div>
                 </motion.div>
@@ -964,80 +828,91 @@ function OnboardingContent() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex flex-col gap-6"
                 >
+                  <p className="text-sm text-[#4B5563] leading-relaxed text-center">
+                    Vincula un número de WhatsApp Business o Normal a tu Agente. Desde este número se atenderá a tus clientes forma automática.
+                  </p>
+
                   <div className="flex flex-col gap-3">
                     {!connectionMethod && !evoConnected && (
-                      <div className="flex flex-col gap-3 mt-4">
+                      <div className="flex flex-col gap-4 mt-2">
                         {evoError && (
-                          <div className="p-3 border border-red-500/30 bg-red-500/10 text-red-500 font-mono text-[10px] uppercase tracking-widest text-center">
-                            ERROR: {evoError}
+                          <div className="p-3 border border-red-200 bg-red-50 text-red-700 text-xs font-medium rounded-lg text-center">
+                            Error: {evoError}
                           </div>
                         )}
                         <div className="grid grid-cols-2 gap-3">
-                          <button onClick={() => handleEvoConnect("qr")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
-                            <Scan className="w-8 h-8 text-[#00FFFF]" />
-                            <span className="font-mono text-[11px] tracking-widest text-white mt-1">ESCÁNER QR</span>
+                          <button onClick={() => handleEvoConnect("qr")} className="p-6 border border-[#E2E8F0] bg-white rounded-xl shadow-sm hover:border-[#94A3B8] hover:bg-[#FBFBFA] transition-all flex flex-col items-center gap-3">
+                            <Scan className="w-8 h-8 text-[#4B5563]" />
+                            <span className="text-sm font-semibold text-[#1A1A1A]">Escanear QR</span>
                           </button>
-                          <button onClick={() => setConnectionMethod("code")} className="p-6 border border-[#1A1A1A] bg-[#111] hover:border-[#00FFFF] transition-all flex flex-col items-center gap-3">
-                            <Phone className="w-8 h-8 text-[#00FFFF]" />
-                            <span className="font-mono text-[11px] tracking-widest text-white mt-1">CÓDIGO NUMÉRICO</span>
+                          <button onClick={() => setConnectionMethod("code")} className="p-6 border border-[#E2E8F0] bg-white rounded-xl shadow-sm hover:border-[#94A3B8] hover:bg-[#FBFBFA] transition-all flex flex-col items-center gap-3">
+                            <Phone className="w-8 h-8 text-[#4B5563]" />
+                            <span className="text-sm font-semibold text-[#1A1A1A]">Código Numérico</span>
                           </button>
                         </div>
                       </div>
                     )}
 
                     {connectionMethod === "qr" && !evoConnected && (
-                      <div className="border border-[#1A1A1A] bg-[#111] p-6 flex flex-col items-center gap-4">
-                        <div className="flex items-center gap-4 w-full">
-                          <button onClick={() => { setConnectionMethod(null); setQrBase64(null) }} className="text-[#555] hover:text-white px-2 py-1 border border-[#333] hover:border-white transition-colors bg-black">← REGRESAR</button>
-                          <span className="font-mono text-[10px] text-[#00FFFF] tracking-widest animate-pulse ml-auto">ESPERANDO_CONEXIÓN...</span>
+                      <div className="border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl p-6 flex flex-col items-center gap-4 shadow-sm">
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <button onClick={() => { setConnectionMethod(null); setQrBase64(null) }} className="text-xs font-semibold text-[#6B7280] hover:text-[#1A1A1A] transition-colors rounded-md py-1">
+                            ← Regresar
+                          </button>
+                          <span className="text-xs font-medium text-[#94A3B8] animate-pulse">Esperando conexión...</span>
                         </div>
+                        
                         {evoLoading || !qrBase64 ? (
-                          <div className="w-48 h-48 border border-[#2A2A2A] flex flex-col items-center justify-center gap-2">
-                            <Loader2 className="w-6 h-6 text-[#00FFFF] animate-spin" />
-                            <span className="text-[9px] text-[#555] font-mono animate-pulse">GENERANDO_QR...</span>
+                          <div className="w-48 h-48 bg-white border border-[#E2E8F0] rounded-lg shadow-sm flex flex-col items-center justify-center gap-3">
+                            <Loader2 className="w-6 h-6 text-[#1A1A1A] animate-spin" />
+                            <span className="text-xs text-[#6B7280] font-medium">Generando QR...</span>
                           </div>
                         ) : (
-                          <div className="bg-white p-2 w-48 h-48 relative">
+                          <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-sm w-48 h-48">
                             <img src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR" className="w-full h-full object-contain" />
                           </div>
                         )}
-                        <span className="font-mono text-[11px] text-[#AAA] text-center mt-3 leading-relaxed">
+                        <span className="text-xs text-[#4B5563] text-center mt-3 leading-relaxed">
                           Abre WhatsApp en tu teléfono → Dispositivos Vinculados → Vincular dispositivo<br />
-                          <strong className="text-[#00FFFF] text-[11px] mt-2 block">Se redireccionará al panel automáticamente.</strong>
+                          <strong className="text-[#1A1A1A] mt-2 block">Se redireccionará al panel automáticamente de forma exitosa.</strong>
                         </span>
 
-                        <button onClick={() => handleEvoConnect("qr")} className="mt-2 text-[#00FFFF] font-mono text-[10px] flex items-center gap-2 hover:bg-[#00FFFF] hover:text-black transition-colors px-3 py-1">
-                          <RefreshCw className="w-3 h-3" /> RECARGAR QR
+                        <button onClick={() => handleEvoConnect("qr")} className="mt-2 text-[#4B5563] text-xs font-medium flex items-center gap-2 hover:bg-[#F3F4F6] transition-colors px-4 py-2 border border-[#E2E8F0] bg-white rounded-lg shadow-sm">
+                          <RefreshCw className="w-3 h-3" /> Recargar código
                         </button>
                       </div>
                     )}
 
                     {connectionMethod === "code" && !evoConnected && (
-                      <div className="border border-[#1A1A1A] bg-[#111] p-6 flex flex-col gap-4">
-                        <div className="flex items-center gap-4 w-full">
-                          <button onClick={() => { setConnectionMethod(null); setPairingCode(null) }} className="text-[#555] hover:text-white px-2 py-1 border border-[#333] hover:border-white transition-colors bg-black">← REGRESAR</button>
-                          <span className="font-mono text-[10px] text-[#00FFFF] tracking-widest ml-auto">VINCULACIÓN_POR_CÓDIGO</span>
+                      <div className="border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl p-6 flex flex-col gap-4 shadow-sm">
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <button onClick={() => { setConnectionMethod(null); setPairingCode(null) }} className="text-xs font-semibold text-[#6B7280] hover:text-[#1A1A1A] transition-colors py-1">
+                            ← Regresar
+                          </button>
+                          <span className="text-xs font-medium text-[#94A3B8] animate-pulse">Esperando vinculación</span>
                         </div>
 
                         {!pairingCode ? (
-                          <div className="flex flex-col gap-3 mt-2">
-                            <span className="font-mono text-[10px] text-[#AAA] uppercase">Número con código de país (Ej: 593999999999)</span>
-                            <input type="text" placeholder="Ej: 59399999999" value={formData.testPhone} onChange={e => setFormData({ ...formData, testPhone: e.target.value })} className="bg-black border border-[#222] p-3 text-xs text-white font-mono focus:border-[#00FFFF]/40 outline-none" />
-                            <button onClick={() => handleEvoConnect("code")} disabled={evoLoading || formData.testPhone.length < 8} className="py-3 mt-2 border border-[#00FFFF]/30 bg-[#00FFFF]/10 text-[#00FFFF] font-mono text-[10px] hover:bg-[#00FFFF] hover:text-black transition-colors disabled:opacity-50 tracking-widest uppercase">
-                              {evoLoading ? "GENERANDO..." : "OBTENER_CÓDIGO"}
+                          <div className="flex flex-col gap-3">
+                            <span className="text-xs font-semibold text-[#4B5563]">Número completo (con código de país)</span>
+                            <input type="text" placeholder="Ej: 593999999999" value={formData.testPhone} onChange={e => setFormData({ ...formData, testPhone: e.target.value })} className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                            <button onClick={() => handleEvoConnect("code")} disabled={evoLoading || formData.testPhone.length < 8} className="w-full py-3 mt-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#333] transition-colors disabled:opacity-50">
+                              {evoLoading ? "Generando..." : "Obtener código de vinculación"}
                             </button>
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center gap-4 mt-4">
-                            <span className="text-3xl font-mono font-bold tracking-[0.3em] text-[#00FFFF] bg-black border border-[#2A2A2A] px-6 py-4 flex items-center gap-4">
-                              {pairingCode}
-                              <button onClick={() => navigator.clipboard.writeText(pairingCode)} className="text-[#555] hover:text-white p-2 bg-[#1A1A1A] border border-[#333] rounded-md transition-colors" title="Copiar">
+                          <div className="flex flex-col items-center gap-4 mt-2">
+                            <div className="flex items-center gap-4 bg-white border border-[#E2E8F0] rounded-xl shadow-sm px-6 py-4 mt-2">
+                              <span className="text-3xl font-bold tracking-[0.2em] text-[#1A1A1A]">
+                                {pairingCode}
+                              </span>
+                              <button onClick={() => navigator.clipboard.writeText(pairingCode)} className="text-[#6B7280] hover:text-[#1A1A1A] p-2 bg-[#F3F4F6] rounded-md transition-colors border border-[#E2E8F0]" title="Copiar">
                                 <Copy className="w-4 h-4" />
                               </button>
-                            </span>
-                            <span className="font-mono text-[11px] text-[#AAA] text-center max-w-sm leading-relaxed mt-2">
-                              Abre WhatsApp → Dispositivos Vinculados → <strong>Vincular con el número de teléfono en su lugar.</strong><br />
-                              <strong className="text-[#00FFFF] text-[11px] mt-3 block bg-[#00FFFF]/10 py-2">Se redireccionará al panel una vez vinculado.</strong>
+                            </div>
+                            <span className="text-xs text-[#4B5563] text-center max-w-sm leading-relaxed mt-2">
+                              Abre WhatsApp → Dispositivos Vinculados → <strong>Vincular con tu número de teléfono.</strong><br />
+                              <strong className="text-[#1A1A1A] mt-3 block py-2 px-3 bg-[#F3F4F6] rounded-md">Al conectar serás redirigido a tu panel de control.</strong>
                             </span>
                           </div>
                         )}
@@ -1045,13 +920,14 @@ function OnboardingContent() {
                     )}
 
                     {evoConnected && (
-                      <div className="border border-[#00FF88]/30 bg-[#00FF88]/5 p-8 flex flex-col items-center justify-center gap-4">
-                        <CheckCircle className="w-12 h-12 text-[#00FF88]" />
-                        <span className="font-mono text-[12px] text-[#00FF88] tracking-widest uppercase text-center block leading-loose">
-                          CONEXIÓN_ESTABLECIDA<br />
-                          BIENVENIDO, CAPITÁN.
+                      <div className="border border-green-200 bg-green-50 rounded-xl p-8 flex flex-col items-center justify-center gap-4 shadow-sm mt-4">
+                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
+                          <CheckCircle className="w-8 h-8 text-green-500" />
+                        </div>
+                        <span className="text-sm font-bold text-green-800 text-center block mt-2">
+                          ¡Conexión Existosa! <br/> Todo está listo.
                         </span>
-                        <p className="font-mono text-[11px] text-[#AAA] text-center mt-2">El Agente Quantum ahora tiene control sobre esta línea de WhatsApp.</p>
+                        <p className="text-xs text-green-700 text-center font-medium mt-1">El agente ya tiene acceso y control de tu WhatsApp.</p>
                       </div>
                     )}
                   </div>
@@ -1060,13 +936,13 @@ function OnboardingContent() {
             </AnimatePresence>
           </div>
 
-          <div className="h-[1px] bg-gradient-to-r from-transparent via-[#1A1A1A] to-transparent" />
-          <div className="px-8 py-3 flex items-center justify-between">
-            <span className="font-mono text-[9px] text-[#2A2A2A] tracking-widest">
-              QUANTUM_OS · INIT
+          <div className="h-[1px] bg-[#E2E8F0]" />
+          <div className="px-8 py-4 flex items-center justify-between bg-[#FBFBFA]">
+            <span className="text-[10px] font-semibold text-[#94A3B8]">
+              Quantum Platform
             </span>
-            <span className="font-mono text-[9px] text-[#2A2A2A] tracking-widest">
-              AES256 · GDPR_OK
+            <span className="text-[10px] font-semibold text-[#94A3B8]">
+              Setup 2.0
             </span>
           </div>
         </div>
@@ -1078,9 +954,9 @@ function OnboardingContent() {
 export default function OnboardingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center">
-        <span className="font-mono text-[#00FFFF] text-xs tracking-widest animate-pulse" style={{ fontFamily: "var(--font-fira-code, monospace)" }}>
-          CARGANDO_SISTEMA...
+      <div className="min-h-screen bg-[#FBFBFA] flex items-center justify-center">
+        <span className="text-[#1A1A1A] text-sm font-semibold animate-pulse">
+          Cargando entorno seguro...
         </span>
       </div>
     }>
