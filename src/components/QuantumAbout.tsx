@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 
 const SKILLS = [
   { id: "01", name: "Validador OCR", desc: "Lee comprobantes de pago y detecta fraudes en milisegundos.", status: "ACTIVO" },
