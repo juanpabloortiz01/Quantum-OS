@@ -106,10 +106,11 @@ export default function QuantumHero() {
           transition={{ delay: 0.8 }}
           className="mt-10 flex flex-col sm:flex-row items-center gap-4 relative z-20"
         >
-          <Link href={status === "authenticated" ? "/dashboard" : "/onboarding"} className="w-full sm:w-auto">
-            <button className="w-full group relative px-8 py-4 bg-[#1A1A1A] text-white text-sm font-medium hover:bg-[#333333] transition-colors duration-300 rounded-lg shadow-md border border-transparent">
-              {status === "loading" ? "..." : status === "authenticated" ? "Ir al Panel Principal" : "Crear tu Agente Gratis"}
-            </button>
+          <Link 
+            href={status === "authenticated" ? "/dashboard" : "/onboarding"} 
+            className="w-full sm:w-auto group relative px-8 py-4 bg-[#1A1A1A] text-white text-sm font-medium hover:bg-[#333333] transition-colors duration-300 rounded-lg shadow-md border border-transparent text-center flex justify-center items-center"
+          >
+            {status === "loading" ? "..." : status === "authenticated" ? "Ir al Panel Principal" : "Crear tu Agente Gratis"}
           </Link>
 
           <button className="w-full sm:w-auto px-8 py-4 border border-[#E2E8F0] text-[#1A1A1A] bg-white text-sm font-medium hover:bg-[#F3F4F6] transition-all duration-300 rounded-lg shadow-sm">

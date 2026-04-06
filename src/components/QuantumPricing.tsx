@@ -6,8 +6,11 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { BorderTrail } from "./ui/border-trail";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 export default function QuantumPricing() {
+  const { status } = useSession();
   return (
     <section id="planes" className="relative min-h-screen py-24 bg-[#FBFBFA] border-t border-[#E2E8F0] font-sans">
       <div className="mx-auto w-full max-w-6xl space-y-10 px-4">
@@ -69,7 +72,9 @@ export default function QuantumPricing() {
                   </ul>
 
                   <Button className="w-full bg-[#F3F4F6] text-[#1A1A1A] hover:bg-[#E5E7EB] hover:text-black border border-[#E2E8F0] shadow-sm font-medium" asChild>
-                    <a href="/onboarding">Comenzar Gratis</a>
+                    <Link href={status === "authenticated" ? "/dashboard" : "/onboarding"}>
+                      {status === "loading" ? "Cargando..." : status === "authenticated" ? "Ir al Panel" : "Comenzar Gratis"}
+                    </Link>
                   </Button>
                 </div>
               </div>
@@ -105,7 +110,9 @@ export default function QuantumPricing() {
                   </ul>
 
                   <Button className="w-full bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors shadow-md font-medium" asChild>
-                    <a href="/onboarding">Activar plan PRO</a>
+                    <Link href={status === "authenticated" ? "/dashboard" : "/onboarding"}>
+                      {status === "loading" ? "Cargando..." : status === "authenticated" ? "Ir al Panel" : "Activar plan PRO"}
+                    </Link>
                   </Button>
                 </div>
               </div>
