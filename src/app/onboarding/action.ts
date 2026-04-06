@@ -178,18 +178,33 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
     const instanceName = org?.evolutionInstance || `quos_${user.id}`
     let instanceToken = org?.evolutionToken || instanceName
 
-    // Creamos la instancia al vuelo usando la Admin Key global. Evolution la generará dinámicamente si no existe.
-    // Ignoramos errores si ya existe.
+    // Forzamos borrado previo si existe pero no está conectada, 
+    // para poder recrearla incluyendo el `number` en caso de requerir código de emparejamiento.
+    await fetch(`${EVO_URL}/instance/delete/${instanceName}`, {
+      method: "DELETE",
+      headers: { "apikey": EVO_API_KEY }
+    }).catch(() => {});
+
+    // Pausar 1 segundo para asegurar la purga en Evolution API antes de recrear
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const createPayload: any = {
+      instanceName: instanceName,
+      token: instanceToken, // Forzamos un token seguro y predecible basado en la organización
+      qrcode: true,
+      integration: "WHATSAPP-BAILEYS"
+    };
+
+    // Agregar el número desde la creación de la instancia si existe
+    if (phoneNumber) {
+      createPayload.number = phoneNumber;
+    }
+
     await fetch(`${EVO_URL}/instance/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": EVO_API_KEY },
-      body: JSON.stringify({
-        instanceName: instanceName,
-        token: instanceToken, // Forzamos un token seguro y predecible basado en la organización
-        qrcode: true,
-        integration: "WHATSAPP-BAILEYS"
-      })
-    })
+      body: JSON.stringify(createPayload)
+    });
 
     if (org && !org.evolutionInstance) {
       await prisma.organization.update({
@@ -198,6 +213,9 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
       })
     }
 
+    // Retrasar medio segundo más para que Evolution levante Baileys
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     let url = `${EVO_URL}/instance/connect/${instanceName}`
     if (method === "code" && phoneNumber) {
       url += `?number=${phoneNumber}`
@@ -205,7 +223,7 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
 
     const connectRes = await fetch(url, {
       method: "GET",
-      headers: { "apikey": EVO_API_KEY } // La Global Key siempre funge como admin
+      headers: { "apikey": EVO_API_KEY }
     })
 
     const data = await connectRes.json()
