@@ -49,13 +49,30 @@ export interface FilterResult {
 /**
  * Filtra y normaliza el payload crudo de EvolutionAPI.
  * Retorna { valid: false } si el mensaje debe ser ignorado.
+ *
+ * EvolutionAPI v2 payload structure:
+ * {
+ *   event: "messages.upsert",
+ *   instance: "quos_xxxxx",          ← NIVEL RAÍZ
+ *   data: {
+ *     key: { remoteJid, fromMe, id },
+ *     pushName: "...",
+ *     message: { conversation: "..." },
+ *     messageTimestamp: 1234567890,
+ *   }
+ * }
  */
 export function applyLogicFilter(raw: any): FilterResult {
+  // ── Extraer campos de nivel raíz (estructura EVO v2) ─────────────
+  const instanceName: string =
+    raw?.instance ??             // nivel raíz (v2)
+    raw?.data?.instance ??       // anidado (v1)
+    ""
+
   const data = raw?.data ?? raw
 
   const remoteJid: string = data?.key?.remoteJid ?? ""
   const fromMe: boolean = data?.key?.fromMe ?? false
-  const instanceName: string = raw?.instance ?? data?.instance ?? ""
   const msgObj = data?.message ?? {}
   const pushName: string | null = data?.pushName ?? null
   const timestamp: number = data?.messageTimestamp ?? Date.now()
