@@ -213,6 +213,31 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
       })
     }
 
+    // ── AUTO-REGISTRO DEL WEBHOOK DE QUANTUM ─────────────────────────────
+    // Vinculamos el pipeline de IA al canal de WhatsApp del cliente.
+    // Solo recibimos MESSAGES_UPSERT para no procesar eventos innecesarios.
+    const QUANTUM_URL = process.env.NEXTAUTH_URL ?? "https://quantum.novaautomat.site"
+    const webhookPayload = {
+      webhook: {
+        enabled: true,
+        url: `${QUANTUM_URL}/api/agent/webhook`,
+        webhookByEvents: false,
+        webhookBase64: true,    // Base64 necesario para procesar imágenes
+        events: ["MESSAGES_UPSERT"],
+      },
+    }
+
+    await fetch(`${EVO_URL}/webhook/set/${instanceName}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": EVO_API_KEY },
+      body: JSON.stringify(webhookPayload),
+    }).catch((err) => {
+      // No bloquear el onboarding si falla el registro del webhook
+      console.warn("[WEBHOOK_REGISTER_WARN]:", err?.message ?? err)
+    })
+
+    console.log(`[WEBHOOK_REGISTERED]: ${QUANTUM_URL}/api/agent/webhook → instancia: ${instanceName}`)
+
     // Retrasar medio segundo más para que Evolution levante Baileys
     await new Promise(resolve => setTimeout(resolve, 500));
 
