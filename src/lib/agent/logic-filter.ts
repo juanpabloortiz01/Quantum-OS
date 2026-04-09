@@ -73,7 +73,14 @@ export function applyLogicFilter(raw: any): FilterResult {
 
   console.log(`[LOGIC_FILTER]: Verificando mensaje para instancia: "${instanceName}"`)
 
-  const data = raw?.data ?? raw
+  let data = raw?.data ?? raw
+
+  // ── SOPORTE PARA ARRAYS (EVOLUTION v2) ─────────────────────────────
+  // Evolution v2 suele mandar los mensajes dentro de un array en 'data'.
+  if (Array.isArray(data)) {
+    console.log(`[LOGIC_FILTER]: Detectado array de mensajes (v2). Extrayendo el primero.`)
+    data = data[0]
+  }
 
   const remoteJid: string = data?.key?.remoteJid ?? ""
   const fromMe: boolean = data?.key?.fromMe ?? false
