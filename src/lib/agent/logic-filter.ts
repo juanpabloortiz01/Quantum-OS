@@ -64,10 +64,14 @@ export interface FilterResult {
  */
 export function applyLogicFilter(raw: any): FilterResult {
   // ── Extraer campos de nivel raíz (estructura EVO v2) ─────────────
+  // Evolution v2 manda 'instance' en la raíz. v1 lo mandaba en 'data.instance'.
   const instanceName: string =
     raw?.instance ??             // nivel raíz (v2)
     raw?.data?.instance ??       // anidado (v1)
+    raw?.instanceName ??         // fallback
     ""
+
+  console.log(`[LOGIC_FILTER]: Verificando mensaje para instancia: "${instanceName}"`)
 
   const data = raw?.data ?? raw
 

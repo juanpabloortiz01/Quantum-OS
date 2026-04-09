@@ -37,10 +37,11 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   // ─────────────────────────────────────────────
   //  NODO 2 — Logic Filter: El Centinela
   // ─────────────────────────────────────────────
+  console.log("[PIPELINE]: Inicia NODO 2 (Logic Filter)")
   const filterResult = applyLogicFilter(rawPayload)
 
   if (!filterResult.valid) {
-    console.log(`[PIPELINE]: FILTERED → ${filterResult.reason}`)
+    console.log(`[PIPELINE]: >>> FILTERED <<< Razón: ${filterResult.reason}`)
     return { status: "FILTERED", reason: filterResult.reason ?? "Mensaje inválido." }
   }
 
@@ -52,6 +53,7 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   // ─────────────────────────────────────────────
   //  NODO 3 — The Sentry: El Clasificador
   // ─────────────────────────────────────────────
+  console.log("[PIPELINE]: Inicia NODO 3 (Sentry)")
   const sentryResult = await runSentry(msg.text ?? "", undefined)
   console.log(
     `[SENTRY]: intent=${sentryResult.intent} | needs_inventory=${sentryResult.needs_inventory} | conf=${sentryResult.confidence}`
@@ -60,13 +62,14 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   // ─────────────────────────────────────────────
   //  NODO 4 — Context Loader: El Bibliotecario
   // ─────────────────────────────────────────────
+  console.log("[PIPELINE]: Inicia NODO 4 (Context Loader)")
   const ctx = await loadContext(msg.instanceName, sentryResult)
 
   if (!ctx) {
-    console.error(`[PIPELINE]: NO_CONTEXT para instancia: ${msg.instanceName}`)
+    console.error(`[PIPELINE]: >>> NO_CONTEXT <<< para instancia: ${msg.instanceName}`)
     return {
       status: "NO_CONTEXT",
-      reason: `Instancia ${msg.instanceName} no vinculada a ninguna organización.`,
+      reason: `Instancia ${msg.instanceName} no vinculada a ninguna organización en la DB.`,
     }
   }
 
@@ -77,6 +80,7 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   // ─────────────────────────────────────────────
   //  NODO 5 — The Core: El Cerebro Multimodal
   // ─────────────────────────────────────────────
+  console.log("[PIPELINE]: Inicia NODO 5 (Core)")
   let coreResult
   try {
     coreResult = await runCore(msg, ctx, sentryResult)
@@ -84,7 +88,7 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
       `[CORE]: tokens=${coreResult.tokensUsed} | hasImage=${coreResult.hasImage} | pedido=${coreResult.isPedidoConfirmado}`
     )
   } catch (err: any) {
-    console.error("[CORE_ERROR]:", err?.message ?? err)
+    console.error("[PIPELINE]: >>> CORE_ERROR <<<:", err?.message ?? err)
     return {
       status: "CORE_ERROR",
       reason: err?.message ?? "Fallo crítico en el Core.",
@@ -94,14 +98,16 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   // ─────────────────────────────────────────────
   //  NODO 6 — Response Dispatcher: El Despachador
   // ─────────────────────────────────────────────
+  console.log("[PIPELINE]: Inicia NODO 6 (Dispatcher)")
   const dispatchResult = await runDispatcher(msg.remoteJid, coreResult, ctx)
 
   const elapsed = Date.now() - t0
   console.log(
-    `[PIPELINE]: METHOD=${dispatchResult.method} | elapsed=${elapsed}ms | success=${dispatchResult.success}`
+    `[PIPELINE]: FINALIZADO | METHOD=${dispatchResult.method} | elapsed=${elapsed}ms | success=${dispatchResult.success}`
   )
 
   if (!dispatchResult.success) {
+    console.error(`[PIPELINE]: >>> DISPATCH_ERROR <<<: ${dispatchResult.error}`)
     return {
       status: "DISPATCH_ERROR",
       method: dispatchResult.method,

@@ -32,11 +32,9 @@ export async function POST(req: Request) {
   const event = rawPayload?.event ?? rawPayload?.type ?? "unknown"
   const instance = rawPayload?.instance ?? rawPayload?.data?.instance ?? "?"
   
-  console.log("[WEBHOOK_INGESTOR]: ─────────────────────────────────")
-  console.log(`[WEBHOOK_INGESTOR]: event="${event}" | instance="${instance}"`)
-  console.log("[WEBHOOK_INGESTOR]: payload_keys=", Object.keys(rawPayload ?? {}))
-  console.log("[WEBHOOK_INGESTOR]: data_keys=", Object.keys(rawPayload?.data ?? {}))
-  console.log("[WEBHOOK_INGESTOR]: message_keys=", Object.keys(rawPayload?.data?.message ?? {}))
+  console.log(`[WEBHOOK_INGESTOR]: >>> NUEVO EVENTO RECIBIDO: "${event}" <<<`)
+  console.log(`[WEBHOOK_INGESTOR]: Instancia Source: "${instance}"`)
+  console.log("[WEBHOOK_INGESTOR]: Payload Completo:", JSON.stringify(rawPayload, null, 2))
 
   // Aceptar todos los formatos de evento que manda EvolutionAPI v2
   const isMessageEvent = [
@@ -47,21 +45,22 @@ export async function POST(req: Request) {
   ].includes(event)
 
   if (!isMessageEvent) {
-    console.log(`[WEBHOOK_INGESTOR]: IGNORED event="${event}"`)
+    console.log(`[WEBHOOK_INGESTOR]: IGNORED event="${event}" (No es un upsert de mensaje)`)
     return NextResponse.json({ status: "IGNORED", event }, { status: 200 })
   }
 
-  // ── CRÍTICO: En Next.js standalone, el proceso no debe terminar antes  
-  // que el pipeline complete. Usamos await con catch para contener errores.
-  // La respuesta 200 ya fue enviada — EvolutionAPI no espera más.
+  // ── CRÍTICO: Ejecución del Pipeline ────────────────────────────────
+  console.log(`[WEBHOOK_INGESTOR]: Disparando Pipeline para instancia "${instance}"...`)
+  
   try {
     const result = await runPipeline(rawPayload)
-    console.log("[WEBHOOK_INGESTOR]: pipeline_result=", JSON.stringify(result))
+    console.log(`[WEBHOOK_INGESTOR]: Pipeline Finalizado [${result.status}] result=`, JSON.stringify(result))
   } catch (err: any) {
-    console.error("[WEBHOOK_UNHANDLED_ERROR]:", err?.message ?? err)
+    console.error("[WEBHOOK_CRITICAL_ERROR]: Fallo fatal en runPipeline:", err?.message ?? err)
+    if (err.stack) console.error(err.stack)
   }
 
-  return NextResponse.json({ status: "RECEIVED" }, { status: 200 })
+  return NextResponse.json({ status: "RECEIVED", instance }, { status: 200 })
 }
 
 // GET para health check y verificación de la URL del webhook

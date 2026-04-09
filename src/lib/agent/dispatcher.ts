@@ -103,41 +103,46 @@ export async function runDispatcher(
     }
   }
 
-  // Normalizar número de teléfono (quitar el sufijo @s.whatsapp.net)
-  const cleanNumber = to.replace("@s.whatsapp.net", "")
+  // ── EVOLUTION v2 COMPATIBILITY ────────────────────────────────────
+  // En v2, a veces es mejor enviar el remoteJid completo (con @s.whatsapp.net)
+  // en el campo 'number'. Algunas versiones fallan si solo mandas el número.
+  const targetNumber = to // mantenemos el JID completo
+  console.log(`[DISPATCHER]: Preparando envío a ${targetNumber} | Instancia: ${instanceName} | URL: ${EVO_URL}`)
 
   try {
     if (coreResult.hasImage && coreResult.imageUrl) {
       // ── Ruta: Imagen + Caption ───────────────────────────────────
+      console.log(`[DISPATCHER]: Intentando sendMedia...`)
       await sendMedia(
         EVO_URL,
         instanceName,
         token,
-        cleanNumber,
+        targetNumber,
         coreResult.imageUrl,
         coreResult.cleanText
       )
 
       console.log(
-        `[DISPATCHER]: sendMedia → ${cleanNumber} | instancia: ${instanceName}`
+        `[DISPATCHER]: SUCCESS sendMedia → ${targetNumber}`
       )
       return { success: true, method: "sendMedia" }
     } else {
       // ── Ruta: Solo texto ─────────────────────────────────────────
       if (!coreResult.cleanText) {
-        console.warn("[DISPATCHER_WARN]: Texto vacío, no se envía nada.")
+        console.warn("[DISPATCHER_WARN]: Texto vacío del Core, abortando envío.")
         return { success: false, method: "none", error: "Respuesta vacía del Core." }
       }
 
-      await sendText(EVO_URL, instanceName, token, cleanNumber, coreResult.cleanText)
+      console.log(`[DISPATCHER]: Intentando sendText...`)
+      await sendText(EVO_URL, instanceName, token, targetNumber, coreResult.cleanText)
 
       console.log(
-        `[DISPATCHER]: sendText → ${cleanNumber} | instancia: ${instanceName}`
+        `[DISPATCHER]: SUCCESS sendText → ${targetNumber}`
       )
       return { success: true, method: "sendText" }
     }
   } catch (err: any) {
-    console.error("[DISPATCHER_ERROR]:", err?.message ?? err)
+    console.error("[DISPATCHER_ERROR]: Fallo al conectar con Evolution API:", err?.message ?? err)
     return { success: false, method: "none", error: err?.message ?? "Error desconocido en el Dispatcher." }
   }
 }
