@@ -94,55 +94,55 @@ export async function runDispatcher(
 
   const instanceName = ctx.evolutionInstance
   const token = ctx.evolutionToken
+  const masterApiKey = process.env.EVOLUTION_API_KEY
 
-  if (!instanceName || !token) {
+  if (!instanceName) {
     return {
       success: false,
       method: "none",
-      error: "Instancia o token de Evolution no disponibles en el contexto.",
+      error: "Nombre de instancia no disponible.",
     }
   }
 
+  // ── AUTH STRATEGY ──────────────────────────────────────────────────
+  // Usamos el token de la instancia, pero si no existe, usamos la Master API Key.
+  const authKey = token || masterApiKey || ""
+
+  if (!authKey) {
+    return { success: false, method: "none", error: "Sin credenciales de autenticación para Evolution API." }
+  }
+
   // ── EVOLUTION v2 COMPATIBILITY ────────────────────────────────────
-  // En v2, a veces es mejor enviar el remoteJid completo (con @s.whatsapp.net)
-  // en el campo 'number'. Algunas versiones fallan si solo mandas el número.
-  const targetNumber = to // mantenemos el JID completo
-  console.log(`[DISPATCHER]: Preparando envío a ${targetNumber} | Instancia: ${instanceName} | URL: ${EVO_URL}`)
+  const targetNumber = to // JID completo (number@s.whatsapp.net)
+  console.log(`[DISPATCHER]: >>> ENVIANDO RESPUESTA <<<`)
+  console.log(`[DISPATCHER]: Target: ${targetNumber} | Instancia: ${instanceName}`)
+  console.log(`[DISPATCHER]: Endpoint: ${EVO_URL}/message/...`)
+  console.log(`[DISPATCHER]: Usando AuthKey (masked): ${authKey.slice(0, 4)}...${authKey.slice(-4)}`)
 
   try {
     if (coreResult.hasImage && coreResult.imageUrl) {
-      // ── Ruta: Imagen + Caption ───────────────────────────────────
-      console.log(`[DISPATCHER]: Intentando sendMedia...`)
+      console.log(`[DISPATCHER]: Payload Media -> IMAGEN + CAPTION (${coreResult.cleanText?.length ?? 0} chars)`)
       await sendMedia(
         EVO_URL,
         instanceName,
-        token,
+        authKey,
         targetNumber,
         coreResult.imageUrl,
         coreResult.cleanText
       )
-
-      console.log(
-        `[DISPATCHER]: SUCCESS sendMedia → ${targetNumber}`
-      )
       return { success: true, method: "sendMedia" }
     } else {
-      // ── Ruta: Solo texto ─────────────────────────────────────────
       if (!coreResult.cleanText) {
-        console.warn("[DISPATCHER_WARN]: Texto vacío del Core, abortando envío.")
+        console.warn("[DISPATCHER_WARN]: No hay texto cargado en coreResult.")
         return { success: false, method: "none", error: "Respuesta vacía del Core." }
       }
 
-      console.log(`[DISPATCHER]: Intentando sendText...`)
-      await sendText(EVO_URL, instanceName, token, targetNumber, coreResult.cleanText)
-
-      console.log(
-        `[DISPATCHER]: SUCCESS sendText → ${targetNumber}`
-      )
+      console.log(`[DISPATCHER]: Payload Text -> "${coreResult.cleanText.substring(0, 50)}..."`)
+      await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
       return { success: true, method: "sendText" }
     }
   } catch (err: any) {
-    console.error("[DISPATCHER_ERROR]: Fallo al conectar con Evolution API:", err?.message ?? err)
-    return { success: false, method: "none", error: err?.message ?? "Error desconocido en el Dispatcher." }
+    console.error(`[DISPATCHER_FATAL]: Fallo en la conexión Fetch ->`, err?.message ?? err)
+    return { success: false, method: "none", error: err?.message ?? "Error Fetch en Dispatcher." }
   }
 }

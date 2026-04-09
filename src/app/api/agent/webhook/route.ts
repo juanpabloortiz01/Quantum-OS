@@ -63,13 +63,37 @@ export async function POST(req: Request) {
   return NextResponse.json({ status: "RECEIVED", instance }, { status: 200 })
 }
 
-// GET para health check y verificación de la URL del webhook
+// GET para check de conectividad interna desde el VPS
 export async function GET() {
+  const EVO_URL = process.env.EVOLUTION_URL ?? process.env.EVOLUTION_API_URL ?? ""
+  let evoHealth = "UNKNOWN"
+  let errorDetail = null
+
+  if (EVO_URL) {
+    try {
+      // Intentar un fetch rápido al root de la API interna
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+      
+      const res = await fetch(EVO_URL, { signal: controller.signal as any })
+      clearTimeout(timeout)
+      evoHealth = res.ok ? "REACHABLE" : `ERROR_${res.status}`
+    } catch (err: any) {
+      evoHealth = "UNREACHABLE"
+      errorDetail = err?.message ?? "Connect Timeout / DNS Error"
+    }
+  }
+
   return NextResponse.json({
     status: "ONLINE",
     node: "QUANTUM_WEBHOOK_INGESTOR",
-    protocol: "v1.0",
     timestamp: new Date().toISOString(),
+    diagnostics: {
+      internal_evo_url: EVO_URL,
+      internal_evo_status: evoHealth,
+      error_detail: errorDetail,
+      environment: process.env.NODE_ENV
+    }
   })
 }
 
