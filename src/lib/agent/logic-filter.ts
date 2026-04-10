@@ -114,8 +114,11 @@ export function applyLogicFilter(raw: any): FilterResult {
   }
 
   // 6. Descartar si no hay remoteJid válido
-  if (!remoteJid || !remoteJid.endsWith("@s.whatsapp.net")) {
-    return { valid: false, reason: "INVALID_JID: No es un chat individual válido.", parsed: null }
+  // Aceptamos @s.whatsapp.net (estándar) y @lid (cuentas vinculadas/privacidad)
+  const isValidJid = remoteJid.endsWith("@s.whatsapp.net") || remoteJid.endsWith("@lid")
+  
+  if (!remoteJid || !isValidJid) {
+    return { valid: false, reason: `INVALID_JID: No es un chat individual válido (${remoteJid}).`, parsed: null }
   }
 
   // ── PARSEO ────────────────────────────────────────────────────────
