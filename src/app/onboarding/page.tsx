@@ -61,8 +61,12 @@ function OnboardingContent() {
   // States for EVO QR/Code Sync
   const [connectionMethod, setConnectionMethod] = useState<"qr" | "code" | null>(null)
   const [qrBase64, setQrBase64] = useState<string | null>(null)
+  const [pairingCode, setPairingCode] = useState<string | null>(null)
+  const [evoLoading, setEvoLoading] = useState(false)
+  const [evoConnected, setEvoConnected] = useState(false)
   const [evoError, setEvoError] = useState<string | null>(null)
   const [tempId, setTempId] = useState<string | null>(null)
+
 
   useEffect(() => {
     // Generar un ID temporal para rastrear la sesión de onboarding sin DB
@@ -127,7 +131,9 @@ function OnboardingContent() {
   }, [step, connectionMethod, evoConnected])
 
   const handleEvoConnect = async (method: "qr" | "code") => {
+    setEvoLoading(true)
     setEvoError(null)
+
     setConnectionMethod(method)
     const res = await setupEvolutionInstance(method, formData.testPhone, tempId || undefined)
 
