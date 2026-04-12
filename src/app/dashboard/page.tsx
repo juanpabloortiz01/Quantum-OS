@@ -426,19 +426,37 @@ function DashboardContent() {
                         <span className="text-xs">Arrastra desde la lista de la izquierda</span>
                       </motion.div>
                     ) : (
-                      active.map(cap => (
-                        <CapabilityCard
-                          key={cap.id}
-                          cap={cap}
-                          zone="active"
-                          onDragEnd={onDragEnd}
-                          setDragOver={setDragOver}
-                          setDraggingFrom={setDraggingFrom}
-                          onClick={() => setSelectedCap(cap.id)}
-                          isGoogleConnected={schedConfig.isGoogleConnected}
-                        />
+                      active.map(cap => {
+                        const isInactive = cap.id === "calendar" && !schedConfig.isGoogleConnected;
+                        return (
+                          <div key={cap.id} className="relative">
+                            {isInactive && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="absolute -top-11 left-0 right-0 flex justify-center z-20 pointer-events-none"
+                              >
+                                <div className="flex flex-col items-center">
+                                  <div className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                                    ⚙️ Configura esta habilidad
+                                  </div>
+                                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-amber-500" />
+                                </div>
+                              </motion.div>
+                            )}
+                            <CapabilityCard
+                              cap={cap}
+                              zone="active"
+                              onDragEnd={onDragEnd}
+                              setDragOver={setDragOver}
+                              setDraggingFrom={setDraggingFrom}
+                              onClick={() => setSelectedCap(cap.id)}
+                              isGoogleConnected={schedConfig.isGoogleConnected}
+                            />
+                          </div>
+                        );
+                      })
 
-                      ))
                     )}
                   </AnimatePresence>
                 </div>
