@@ -159,11 +159,13 @@ export async function runDispatcher(
         try {
           console.log(`[DISPATCHER]: >>> AGENDANDO EVENTO EN CALENDAR <<<`)
           await createAppointment(ctx.organizationId, {
-            customerName: "Cliente WhatsApp",
+            customerName: coreResult.agendarCita.customerName || "Cliente WhatsApp",
             customerPhone: to,
+            cedula: coreResult.agendarCita.cedula,
             service,
             startTime: startDate
           })
+
           console.log(`[DISPATCHER]: Evento creado con éxito para ${date} ${time}`)
         } catch (calErr: any) {
           console.error(`[DISPATCHER_CALENDAR_ERROR]:`, calErr.message)

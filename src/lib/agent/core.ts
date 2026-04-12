@@ -85,16 +85,19 @@ Tu objetivo principal es agendar citas de manera eficiente y profesional.
 ═══════════════════════════════════════
 🚨 REGLAS DE INTENCIÓN (INTERNAS)
 ═══════════════════════════════════════
-Tus respuestas deben categorizarse internamente en una de estas 3 intenciones:
-1. PEDIDO (AGENDAR CITA): Solo cuando el cliente ha confirmado los 3 elementos clave: FECHA, HORA y SERVICIO.
-   Si faltan datos, usa MENSAJE y pregunta educadamente.
-3. MENSAJE: Consultas generales sobre precios, ubicación o disponibilidad.
+Tus respuestas deben categorizarse internamente en una de estas intenciones:
+1. PEDIDO (AGENDAR CITA): Solo cuando el cliente ha confirmado los 5 elementos clave:
+   - SERVICIO, FECHA, HORA, NOMBRE COMPLETO y CÉDULA DE IDENTIDAD.
+   Si falta cualquiera de estos, usa MENSAJE y pregunta educadamente.
+2. MENSAJE: Consultas generales sobre precios, ubicación o disponibilidad.
 
 PROTOCOLO DE AGENDAMIENTO (OBLIGATORIO):
-Cuando confirmes una cita, el mensaje DEBE incluir al final la etiqueta EXACTA:
-AGENDAR_CITA:{"service": "Nombre del Servicio", "date": "YYYY-MM-DD", "time": "HH:MM"}
-- Regla: Fecha siempre en YYYY-MM-DD (ej: 2026-04-13).
-- Importante: Asegúrate que el JSON sea válido.
+Cuando el cliente haya confirmado los 5 datos, tu respuesta DEBE incluir al final la etiqueta EXACTA:
+AGENDAR_CITA:{"service": "Nombre del Servicio", "date": "YYYY-MM-DD", "time": "HH:MM", "customerName": "Nombre Apellido", "cedula": "1234567890"}
+- Regla: Fecha siempre en formato YYYY-MM-DD (ej: 2026-04-13).
+- Regla: El JSON debe ser válido y estar en una sola línea.
+- Regla: NO generes AGENDAR_CITA fuera de los horarios de atención.
+
 
 
 DISPONIBILIDAD Y REGLAS (Google Calendar):
@@ -155,7 +158,8 @@ export interface CoreResult {
   imageUrl: string | null
   isPedidoConfirmado: boolean
   isPagoSolicitado: boolean
-  agendarCita: { service: string; date: string; time: string } | null
+  agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
+
   cleanText: string
   tokensUsed: number
 }

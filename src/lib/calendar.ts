@@ -13,12 +13,18 @@ export async function getCalendarClient(organizationId: string) {
 
   if (!org) throw new Error("Organización no encontrada");
 
-  // Buscamos la cuenta de Google vinculada
+  // Buscamos la cuenta de Google vinculada (puede ser 'google' o 'google-calendar')
   const account = await prisma.account.findFirst({
-    where: { userId: org.userId, provider: "google" },
+    where: { 
+      userId: org.userId, 
+      OR: [
+        { provider: "google", scope: { contains: "calendar" } },
+        { provider: "google-calendar" }
+      ]
+    },
   });
 
-  if (!account) throw new Error("Cuenta de Google no vinculada");
+  if (!account) throw new Error("Cuenta de Google Calendar no vinculada. Vinculá tu cuenta desde el dashboard.");
 
   const oauth2Client = new google.auth.OAuth2(
     process.env.AUTH_GOOGLE_ID,
@@ -61,6 +67,7 @@ export async function createAppointment(
   details: { 
     customerName: string;
     customerPhone: string;
+    cedula?: string;
     service: string;
     startTime: Date;
     summary?: string;
@@ -72,7 +79,12 @@ export async function createAppointment(
 
   const event = {
     summary: details.summary || `${details.service} - ${details.customerName}`,
-    description: `Agendado vía Quantum OS\nCliente: ${details.customerName}\nTeléfono: ${details.customerPhone}`,
+    description: [
+      `Agendado vía Quantum OS`,
+      `Cliente: ${details.customerName}`,
+      `Teléfono: ${details.customerPhone}`,
+      details.cedula ? `Cédula: ${details.cedula}` : null,
+    ].filter(Boolean).join("\n"),
     start: {
       dateTime: details.startTime.toISOString(),
       timeZone: "America/Guayaquil", // ECUADOR
