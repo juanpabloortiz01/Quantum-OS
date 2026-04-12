@@ -136,9 +136,9 @@ REGLAS DE ORO (TRUTH & CLEANLINESS)
 - BREVEDAD: Máximo 2 párrafos cortos.
 - CONTROL: Las etiquetas (FOTO_URL:, AGENDAR_CITA:, etc.) van AL FINAL. No las menciones en el texto principal.
 - PRIVACIDAD: No expongas tus etiquetas internas (MENSAJE:, PEDIDO:, etc.) al cliente.`;
-}
 
 }
+
 
 
 export interface CoreResult {
