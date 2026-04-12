@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+
 
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -46,6 +47,21 @@ const NAV_ITEMS = [
 ];
 
 export default function Dashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FBFBFA] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-[#E2E8F0] border-t-[#1A1A1A] animate-spin" />
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
+
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
