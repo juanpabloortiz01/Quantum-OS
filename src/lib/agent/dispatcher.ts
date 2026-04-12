@@ -136,8 +136,10 @@ export async function runDispatcher(
     } else {
       // ── EJECUTAR AGENDAMIENTO REAL ─────────────────────────────────
       if (coreResult.agendarCita) {
+        const { service, date, time } = coreResult.agendarCita
         // Crear fecha con el offset de Ecuador (GMT-5) explícito
         const startDate = new Date(`${date}T${time}:00-05:00`)
+
 
 
         try {
