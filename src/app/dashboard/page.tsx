@@ -10,7 +10,8 @@ import {
 
 import Link from "next/link";
 import { useSession, signOut, signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+
 import { saveSchedulingConfig, getCalendarConnectionStatus } from "./action";
 
 
@@ -47,7 +48,9 @@ const NAV_ITEMS = [
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+
 
   useEffect(() => {
 
