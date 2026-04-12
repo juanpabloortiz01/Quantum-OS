@@ -54,13 +54,16 @@ export default function Dashboard() {
   const [active, setActive] = useState(ALL_CAPABILITIES.slice(0, 2));
   const [library, setLibrary] = useState(ALL_CAPABILITIES.slice(2));
   const [dragOver, setDragOver] = useState<"active" | "library" | null>(null);
+  const [draggingFrom, setDraggingFrom] = useState<"active" | "library" | null>(null);
 
   const activeRef = useRef<HTMLDivElement>(null);
   const libraryRef = useRef<HTMLDivElement>(null);
 
   const onDragEnd = (info: any, id: string, from: "active" | "library") => {
     setDragOver(null);
+    setDraggingFrom(null);
     const activeRect = activeRef.current?.getBoundingClientRect();
+
     const libraryRect = libraryRef.current?.getBoundingClientRect();
     const point = info.point;
 
@@ -233,9 +236,11 @@ export default function Dashboard() {
             <div
               ref={libraryRef}
               className={`relative bg-white border rounded-xl p-4 flex flex-col gap-3 transition-all ${
-                dragOver === "library" ? "border-[#94A3B8] bg-[#F9FAFB] z-10" : "border-[#E2E8F0]"
-              } ${dragOver === "active" ? "z-0" : "z-10"}`}
+                dragOver === "library" ? "border-[#94A3B8] bg-[#F9FAFB]" : "border-[#E2E8F0]"
+              }`}
+              style={{ zIndex: draggingFrom === "library" ? 50 : 1 }}
             >
+
 
 
               <div className="flex items-center justify-between">
@@ -260,7 +265,9 @@ export default function Dashboard() {
                         zone="library"
                         onDragEnd={onDragEnd}
                         setDragOver={setDragOver}
+                        setDraggingFrom={setDraggingFrom}
                       />
+
                     ))
 
                   )}
@@ -273,9 +280,11 @@ export default function Dashboard() {
           <div
             ref={activeRef}
             className={`relative flex-1 bg-white border rounded-xl flex flex-col transition-all ${
-              dragOver === "active" ? "border-[#94A3B8] z-10" : "border-[#E2E8F0]"
-            } ${dragOver === "library" ? "z-0" : "z-10"}`}
+              dragOver === "active" ? "border-[#94A3B8]" : "border-[#E2E8F0]"
+            }`}
+            style={{ zIndex: draggingFrom === "active" ? 50 : 1 }}
           >
+
 
 
             {/* Header */}
@@ -312,7 +321,9 @@ export default function Dashboard() {
                         zone="active"
                         onDragEnd={onDragEnd}
                         setDragOver={setDragOver}
+                        setDraggingFrom={setDraggingFrom}
                       />
+
                     ))
 
                   )}
@@ -347,12 +358,15 @@ function CapabilityCard({
   zone,
   onDragEnd,
   setDragOver,
+  setDraggingFrom,
 }: {
   cap: typeof ALL_CAPABILITIES[0];
   zone: "active" | "library";
   onDragEnd: (info: any, id: string, from: "active" | "library") => void;
   setDragOver: (zone: "active" | "library" | null) => void;
+  setDraggingFrom: (zone: "active" | "library" | null) => void;
 }) {
+
   const Icon = ICON_MAP[cap.icon as keyof typeof ICON_MAP];
   const isActive = zone === "active";
 
@@ -363,8 +377,12 @@ function CapabilityCard({
       drag
       dragSnapToOrigin
       dragElastic={0.05}
-      onDragStart={() => setDragOver(zone === "active" ? "library" : "active")}
+      onDragStart={() => {
+        setDraggingFrom(zone);
+        setDragOver(zone === "active" ? "library" : "active");
+      }}
       onDragEnd={(_, info) => onDragEnd(info, cap.id, zone)}
+
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96 }}
