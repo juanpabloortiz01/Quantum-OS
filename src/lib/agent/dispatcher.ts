@@ -136,12 +136,9 @@ export async function runDispatcher(
     } else {
       // ── EJECUTAR AGENDAMIENTO REAL ─────────────────────────────────
       if (coreResult.agendarCita) {
-        const { service, date, time } = coreResult.agendarCita
-        const [year, month, day] = date.split("-").map(Number)
-        const [hours, minutes] = time.split(":").map(Number)
-        
-        // Crear fecha en zona horaria local (Ecuador)
-        const startDate = new Date(year, month - 1, day, hours, minutes)
+        // Crear fecha con el offset de Ecuador (GMT-5) explícito
+        const startDate = new Date(`${date}T${time}:00-05:00`)
+
 
         try {
           console.log(`[DISPATCHER]: >>> AGENDANDO EVENTO EN CALENDAR <<<`)

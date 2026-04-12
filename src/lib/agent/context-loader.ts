@@ -65,11 +65,9 @@ export async function loadContext(
       where: { evolutionInstance: instanceName },
       include: {
         businessConfig: true,
-        // Solo cargar productos si se necesitan
-        products: sentryResult.needs_inventory
-          ? { orderBy: { createdAt: "asc" } }
-          : false,
+        products: { orderBy: { createdAt: "asc" } }
       },
+
     })
 
     if (!org) {

@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { saveSchedulingConfig, getCalendarConnectionStatus } from "./action";
+
 
 
 // ── MOCK WHATSAPP INSTANCES ──────────────────────────────────────────
@@ -58,9 +59,10 @@ export default function Dashboard() {
   const [library, setLibrary] = useState(ALL_CAPABILITIES);
   const [dragOver, setDragOver]   = useState<"active" | "library" | null>(null);
   const [draggingFrom, setDraggingFrom] = useState<"active" | "library" | null>(null);
-  const [selectedCap, setSelectedCap] = useState<string | null>(null);
+  const [selectedCap, setSelectedCap] = useState<string | null>(searchParams.get("cap") || null);
   
   const [schedConfig, setSchedConfig] = useState({
+
     simultaneous: 1,
     limitPerDay: 1,
     isGoogleConnected: false, // Debería venir de la DB
@@ -121,7 +123,20 @@ export default function Dashboard() {
     }
   }
 
+  const handleGoogleSync = async () => {
+    // Pedir permisos específicos de calendario
+    await signIn("google", {
+      authorizationParams: {
+        scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+        access_type: "offline",
+        prompt: "consent",
+      },
+      callbackUrl: "/dashboard?cap=calendar", // Volver aquí después
+    });
+  }
+
   if (status === "loading" || (isLoading && !selectedCap)) {
+
 
     return (
       <div className="min-h-screen bg-[#FBFBFA] flex items-center justify-center">
@@ -371,17 +386,35 @@ export default function Dashboard() {
 
                   <div className="space-y-6 bg-[#FBFBFA] p-6 rounded-2xl border border-[#F3F4F6]">
                     {/* Google Status */}
-                    <div className={`p-4 rounded-xl border ${schedConfig.isGoogleConnected ? "border-[#D1FAE5] bg-[#F0FDF4]" : "border-[#FEE2E2] bg-[#FEF2F2]"} flex items-center justify-between`}>
+                    <div className={`p-4 rounded-xl border ${schedConfig.isGoogleConnected ? "border-[#D1FAE5] bg-[#F0FDF4]" : "border-[#E2E8F0] bg-white"} flex items-center justify-between`}>
                       <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${schedConfig.isGoogleConnected ? "bg-[#10B981]" : "bg-[#EF4444]"} animate-pulse`} />
-                        <span className={`text-sm font-semibold ${schedConfig.isGoogleConnected ? "text-[#065F46]" : "text-[#991B1B]"}`}>
-                          {schedConfig.isGoogleConnected ? "Google Calendar Conectado" : "Google Calendar Desconectado"}
-                        </span>
+                        {schedConfig.isGoogleConnected ? (
+                          <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-[#F3F4F6] flex items-center justify-center">
+                            <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962l3.007 2.332c.708-2.127 2.692-3.714 5.036-3.714z" fill="#EA4335"/></svg>
+                          </div>
+                        )}
+                        <div>
+                          <span className={`text-sm font-semibold ${schedConfig.isGoogleConnected ? "text-[#065F46]" : "text-[#1A1A1A]"}`}>
+                            {schedConfig.isGoogleConnected ? "Google Calendar Conectado" : "Sincroniza tu calendario"}
+                          </span>
+                          {!schedConfig.isGoogleConnected && <p className="text-[10px] text-[#9CA3AF]">Requiere vincular tu cuenta para agendar</p>}
+                        </div>
                       </div>
-                      <span className={`text-xs ${schedConfig.isGoogleConnected ? "text-[#065F46]" : "text-[#991B1B]"} opacity-70`}>
-                        {schedConfig.isGoogleConnected ? "Sincronizando..." : "Requerido"}
-                      </span>
+                      
+                      {schedConfig.isGoogleConnected ? (
+                        <span className="text-xs text-[#065F46] opacity-70 italic">Sincronizado</span>
+                      ) : (
+                        <button 
+                          onClick={handleGoogleSync}
+                          className="px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold hover:bg-[#F9FAFB] transition-all shadow-sm"
+                        >
+                          Vincular Google
+                        </button>
+                      )}
                     </div>
+
 
                     <div className="grid grid-cols-1 gap-5">
                       <div className="space-y-2">
