@@ -5,23 +5,42 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy } from "lucide-react"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield } from "lucide-react"
 import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState } from "./action"
 
 const NICHES = [
-  { id: "gastro", label: "Gastronomía", desc: "Pedidos · Menú · Delivery" },
-  { id: "retail", label: "Reventa / E-commerce", desc: "Catálogo · Stock · Envíos" },
-  { id: "clinic", label: "Clínica / Servicios", desc: "Citas · Pacientes · Agenda" },
+  { 
+    id: "agenda", 
+    label: "Quantum [Agenda]", 
+    target: "Clínicas, estéticas, spas o barberías",
+    desc: "Es como tener una recepcionista de élite que nunca duerme. Se encarga de tus citas mientras tú te concentras en atender. La IA llena tu día.",
+    icon: Calendar,
+    color: "from-blue-500/20 to-indigo-500/20",
+    accent: "text-blue-600",
+    needs: ["calendar", "crm"]
+  },
+  { 
+    id: "ventas", 
+    label: "Quantum [Ventas]", 
+    target: "Restaurantes, cafeterías o negocios de comida",
+    desc: "Un mesero digital que no comete errores. Toma pedidos, organiza comandas y atiende a 20 personas al mismo tiempo sin equivocarse.",
+    icon: Coffee,
+    color: "from-orange-500/20 to-red-500/20",
+    accent: "text-orange-600",
+    needs: ["orders", "crm"]
+  },
+  { 
+    id: "showroom", 
+    label: "Quantum [Showroom]", 
+    target: "Tiendas de ropa, tecnología o e-commerce",
+    desc: "Convierte tu WhatsApp en una vitrina inteligente. La IA conoce tu stock y vende por ti sugiriendo lo que el cliente busca.",
+    icon: ShoppingBag,
+    color: "from-purple-500/20 to-pink-500/20",
+    accent: "text-purple-600",
+    needs: ["catalog", "crm"]
+  },
 ]
 
-const AVAILABLE_NEEDS = [
-  { id: "calendar", label: "Agendar citas" },
-  { id: "ocr", label: "Validar pagos" },
-  { id: "crm", label: "Gestión de clientes" },
-  { id: "orders", label: "Tomar pedidos" },
-  { id: "catalog", label: "Catálogo digital" },
-  { id: "shipping", label: "Logística y envíos" },
-]
 
 function OnboardingContent() {
   const sessionResult = useSession()
@@ -459,80 +478,82 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 1: NICHO + NECESIDADES ── */}
+              {/* ── PASO 1: SELECCIÓN DE NODO CUÁNTICO ── */}
               {step === 1 && (
                 <motion.div
                   key="step1"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="flex flex-col gap-6"
+                  className="flex flex-col gap-5"
                 >
-                  <div>
-                    <span className="text-sm font-semibold text-[#1A1A1A] block mb-3">
-                      Selecciona tu sector principal
-                    </span>
-                    <div className="flex flex-col gap-2">
-                      {NICHES.map((niche) => {
-                        const active = formData.niche === niche.id;
-                        return (
-                          <button
-                            key={niche.id}
-                            onClick={() => setFormData({ ...formData, niche: niche.id })}
-                            className={`p-4 text-left transition-all border rounded-xl flex items-center justify-between ${
-                              active ? "border-[#1A1A1A] bg-[#F9FAFB] shadow-sm" : "border-[#E2E8F0] bg-white hover:border-[#94A3B8]"
-                            }`}
-                          >
-                            <span className={`text-sm font-semibold ${active ? "text-[#1A1A1A]" : "text-[#4B5563]"}`}>
-                              {niche.label}
-                            </span>
-                            <span className="text-xs font-medium text-[#94A3B8]">
-                              {niche.desc}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
+                  <div className="text-center mb-2">
+                    <p className="text-sm text-[#6B7280]">
+                      Selecciona la especialidad de tu agente
+                    </p>
                   </div>
 
-                  <div>
-                    <span className="text-sm font-semibold text-[#1A1A1A] block mb-3">
-                      ¿Qué quieres que el agente haga?
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {AVAILABLE_NEEDS.map((need) => {
-                        const active = formData.needs.includes(need.id)
-                        return (
-                          <button
-                            key={need.id}
-                            onClick={() => toggleNeed(need.id)}
-                            className={`flex items-center gap-3 p-3 text-left transition-all border rounded-lg ${
-                              active ? "border-[#1A1A1A] bg-[#F9FAFB]" : "border-[#E2E8F0] bg-white hover:border-[#94A3B8]"
-                            }`}
-                          >
-                            <div className={`w-4 h-4 border rounded-sm flex items-center justify-center flex-shrink-0 transition-colors ${
-                              active ? "border-[#1A1A1A] bg-[#1A1A1A]" : "border-[#D1D5DB]"
-                            }`}>
-                              {active && <CheckCircle className="w-3 h-3 text-white" strokeWidth={3} />}
+                  <div className="flex flex-col gap-4">
+                    {NICHES.map((niche) => {
+                      const active = formData.niche === niche.id;
+                      const Icon = niche.icon;
+                      return (
+                        <button
+                          key={niche.id}
+                          onClick={() => setFormData({ 
+                            ...formData, 
+                            niche: niche.id,
+                            needs: niche.needs 
+                          })}
+                          className={`group relative p-5 text-left transition-all border rounded-2xl overflow-hidden ${
+                            active 
+                              ? "border-[#1A1A1A] bg-white shadow-md scale-[1.02]" 
+                              : "border-[#E2E8F0] bg-white hover:border-[#94A3B8] hover:shadow-sm"
+                          }`}
+                        >
+                          {/* Background gradient hint */}
+                          <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br ${niche.color} pointer-events-none`} />
+                          
+                          <div className="relative z-10 flex gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${active ? "bg-[#1A1A1A] text-white" : "bg-[#F3F4F6] text-[#6B7280]"}`}>
+                              <Icon size={24} />
                             </div>
-                            <span className={`text-xs font-medium ${active ? "text-[#1A1A1A]" : "text-[#4B5563]"}`}>
-                              {need.label}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
+                            
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between">
+                                <span className={`text-base font-bold tracking-tight ${active ? "text-[#1A1A1A]" : "text-[#4B5563]"}`}>
+                                  {niche.label}
+                                </span>
+                                {active && (
+                                  <motion.div layoutId="check" initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                    <CheckCircle className="w-5 h-5 text-[#1A1A1A]" fill="#1A1A1A" stroke="white" />
+                                  </motion.div>
+                                )}
+                              </div>
+                              <span className={`text-[10px] font-bold uppercase tracking-widest ${niche.accent}`}>
+                                {niche.target}
+                              </span>
+                              <p className="text-xs text-[#6B7280] leading-relaxed mt-1 line-clamp-3">
+                                {niche.desc}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
 
                   <button
                     onClick={() => setStep(2)}
                     disabled={!formData.niche}
-                    className="w-full py-3 text-sm font-medium transition-all rounded-lg mt-2 disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
+                    className="w-full py-4 text-sm font-bold transition-all rounded-xl mt-4 disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] shadow-lg shadow-black/10 flex items-center justify-center gap-2 group"
                   >
-                    Siguiente paso
+                    Activar Protocolo
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                 </motion.div>
               )}
+
 
               {/* ── PASO 2: MEMORIA BASE ── */}
               {step === 2 && (
