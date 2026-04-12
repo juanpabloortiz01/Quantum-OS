@@ -232,10 +232,11 @@ export default function Dashboard() {
             {/* Library */}
             <div
               ref={libraryRef}
-              className={`bg-white border rounded-xl p-4 flex flex-col gap-3 transition-all ${
-                dragOver === "library" ? "border-[#94A3B8] bg-[#F9FAFB]" : "border-[#E2E8F0]"
-              }`}
+              className={`relative bg-white border rounded-xl p-4 flex flex-col gap-3 transition-all ${
+                dragOver === "library" ? "border-[#94A3B8] bg-[#F9FAFB] z-10" : "border-[#E2E8F0]"
+              } ${dragOver === "active" ? "z-0" : "z-10"}`}
             >
+
 
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#1A1A1A]">Capacidades disponibles</span>
@@ -271,10 +272,11 @@ export default function Dashboard() {
           {/* RIGHT — Active capabilities */}
           <div
             ref={activeRef}
-            className={`flex-1 bg-white border rounded-xl flex flex-col transition-all ${
-              dragOver === "active" ? "border-[#94A3B8]" : "border-[#E2E8F0]"
-            }`}
+            className={`relative flex-1 bg-white border rounded-xl flex flex-col transition-all ${
+              dragOver === "active" ? "border-[#94A3B8] z-10" : "border-[#E2E8F0]"
+            } ${dragOver === "library" ? "z-0" : "z-10"}`}
           >
+
 
             {/* Header */}
             <div className="p-5 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -368,14 +370,12 @@ function CapabilityCard({
       exit={{ opacity: 0, scale: 0.96 }}
       whileHover={{ y: -2, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
       whileDrag={{ 
-
         scale: 1.05, 
-        zIndex: 50,
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+        zIndex: 999,
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)"
       }}
       className={`p-4 rounded-xl border cursor-grab active:cursor-grabbing transition-colors select-none ${
         isActive
-
           ? "border-[#E2E8F0] bg-white shadow-sm hover:border-[#94A3B8] hover:shadow-md"
           : "border-[#F3F4F6] bg-[#FBFBFA] hover:border-[#E2E8F0] hover:bg-white"
       }`}
