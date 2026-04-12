@@ -413,6 +413,26 @@ function DashboardContent() {
 
             {/* Active grid */}
             <div className="flex-1 p-5 overflow-y-auto">
+
+              {/* Banner de configuración pendiente */}
+              {active.some(c => c.id === "calendar" && !schedConfig.isGoogleConnected) && !selectedCap && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl"
+                >
+                  <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                    <span className="text-sm">⚙️</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-amber-800">Configura tu habilidad</p>
+                    <p className="text-[10px] text-amber-600">Haz clic en la tarjeta "Agendar citas" para terminar la configuración</p>
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                </motion.div>
+              )}
+
+
               {!selectedCap ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-max">
                   <AnimatePresence>
@@ -426,37 +446,18 @@ function DashboardContent() {
                         <span className="text-xs">Arrastra desde la lista de la izquierda</span>
                       </motion.div>
                     ) : (
-                      active.map(cap => {
-                        const isInactive = cap.id === "calendar" && !schedConfig.isGoogleConnected;
-                        return (
-                          <div key={cap.id} className="relative">
-                            {isInactive && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="absolute -top-11 left-0 right-0 flex justify-center z-20 pointer-events-none"
-                              >
-                                <div className="flex flex-col items-center">
-                                  <div className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
-                                    ⚙️ Configura esta habilidad
-                                  </div>
-                                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-amber-500" />
-                                </div>
-                              </motion.div>
-                            )}
-                            <CapabilityCard
-                              cap={cap}
-                              zone="active"
-                              onDragEnd={onDragEnd}
-                              setDragOver={setDragOver}
-                              setDraggingFrom={setDraggingFrom}
-                              onClick={() => setSelectedCap(cap.id)}
-                              isGoogleConnected={schedConfig.isGoogleConnected}
-                            />
-                          </div>
-                        );
-                      })
-
+                      active.map(cap => (
+                        <CapabilityCard
+                          key={cap.id}
+                          cap={cap}
+                          zone="active"
+                          onDragEnd={onDragEnd}
+                          setDragOver={setDragOver}
+                          setDraggingFrom={setDraggingFrom}
+                          onClick={() => setSelectedCap(cap.id)}
+                          isGoogleConnected={schedConfig.isGoogleConnected}
+                        />
+                      ))
                     )}
                   </AnimatePresence>
                 </div>
