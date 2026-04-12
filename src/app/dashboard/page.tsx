@@ -136,8 +136,9 @@ function DashboardContent() {
     })
     setIsLoading(false)
     if (res.success) {
-      alert("Configuración guardada con éxito")
+      setSelectedCap(null); // Cerrar panel
     } else {
+
       alert(res.error || "Fallo al guardar")
     }
   }
@@ -148,10 +149,11 @@ function DashboardContent() {
       authorizationParams: {
         scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
         access_type: "offline",
-        prompt: "consent",
+        prompt: "select_account consent",
       },
-      callbackUrl: "/dashboard?cap=calendar", // Volver aquí después
+      callbackUrl: "/dashboard?cap=calendar",
     });
+
   }
 
   if (status === "loading" || (isLoading && !selectedCap)) {
@@ -308,7 +310,29 @@ function DashboardContent() {
               }`}
               style={{ zIndex: draggingFrom === "library" ? 50 : 1 }}
             >
+            >
+              {active.length === 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="absolute -top-12 -right-4 z-10 hidden xl:block"
+                >
+                  <div className="bg-[#1A1A1A] text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl relative whitespace-nowrap">
+                    Añade tu primera habilidad
+                    <div className="absolute -bottom-1 left-4 w-2 h-2 bg-[#1A1A1A] rotate-45" />
+                  </div>
+                  <motion.div 
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="mt-2 ml-4"
+                  >
+                    <ArrowLeft className="w-5 h-5 text-[#1A1A1A] -rotate-45" />
+                  </motion.div>
+                </motion.div>
+              )}
+
               <div className="flex items-center justify-between">
+
                 <span className="text-xs font-semibold text-[#1A1A1A]">Capacidades disponibles</span>
                 <span className="text-[10px] text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">{library.length}</span>
               </div>
@@ -331,7 +355,9 @@ function DashboardContent() {
                         onDragEnd={onDragEnd}
                         setDragOver={setDragOver}
                         setDraggingFrom={setDraggingFrom}
+                        isGoogleConnected={schedConfig.isGoogleConnected}
                       />
+
                     ))
                   )}
                 </AnimatePresence>
@@ -379,7 +405,9 @@ function DashboardContent() {
                           setDragOver={setDragOver}
                           setDraggingFrom={setDraggingFrom}
                           onClick={() => setSelectedCap(cap.id)}
+                          isGoogleConnected={schedConfig.isGoogleConnected}
                         />
+
                       ))
                     )}
                   </AnimatePresence>
@@ -516,7 +544,9 @@ function CapabilityCard({
   setDragOver: (zone: "active" | "library" | null) => void;
   setDraggingFrom: (zone: "active" | "library" | null) => void;
   onClick?: () => void;
+  isGoogleConnected?: boolean;
 }) {
+
 
 
   const Icon = ICON_MAP[cap.icon as keyof typeof ICON_MAP];
@@ -568,10 +598,13 @@ function CapabilityCard({
       </div>
       {isActive && (
         <div className="mt-3 flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-          <span className="text-[10px] text-[#10B981] font-medium">Activa</span>
+          <div className={`w-1.5 h-1.5 rounded-full ${(cap.id === 'calendar' && !isGoogleConnected) ? "bg-[#EF4444]" : "bg-[#10B981]"} animate-pulse`} />
+          <span className={`text-[10px] font-bold tracking-tight uppercase ${(cap.id === 'calendar' && !isGoogleConnected) ? "text-[#EF4444]" : "text-[#10B981]"}`}>
+            {(cap.id === 'calendar' && !isGoogleConnected) ? "Inactiva" : "Activa"}
+          </span>
         </div>
       )}
+
     </motion.div>
   );
 }

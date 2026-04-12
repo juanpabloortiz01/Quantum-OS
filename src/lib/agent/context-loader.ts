@@ -79,17 +79,16 @@ export async function loadContext(
     const ctx = config.context ?? {}
     const enabledNodes: string[] = config.enabled_nodes ?? []
 
-    const products: ProductContext[] = sentryResult.needs_inventory
-      ? (org.products ?? []).map((p) => ({
-          imageUrl: p.imageUrl,
-          category: p.category,
-          brand: p.brand,
-          primaryColor: p.primaryColor,
-          secondaryColor: p.secondaryColor,
-          characteristics: p.characteristics,
-          style: p.style,
-        }))
-      : []
+    const products: ProductContext[] = (org.products ?? []).map((p) => ({
+      imageUrl: p.imageUrl,
+      category: p.category,
+      brand: p.brand,
+      primaryColor: p.primaryColor,
+      secondaryColor: p.secondaryColor,
+      characteristics: p.characteristics,
+      style: p.style,
+    }))
+
 
     return {
       organizationId: org.id,

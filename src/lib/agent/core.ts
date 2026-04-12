@@ -108,11 +108,8 @@ PROTOCOLO DE RESPUESTA (VENTAS)
 1. Si el cliente pregunta por el MENÚ o QUÉ TIENEN PARA COMER, DEBES enviar la foto del menú usando: FOTO_URL:${menuProducts[0]?.imageUrl || ""}
 2. Si el cliente pregunta por un producto específico y tienes su foto, úsala: FOTO_URL:<url_exacta_del_producto>
 3. Si confirma una compra, usa la etiqueta: PEDIDO_CONFIRMADO:
-4. Si pide cómo pagar, usa: PAGO_SOLICITADO:
+4. Si pide cómo pagar, usa: PAGO_SOLICITADO:`;
 
-CONOCIMIENTO BASE (PRODUCTOS/SERVICIOS):
-${catalogStr || "No hay un catálogo de productos registrado aún."}
-${menuProducts.length > 0 ? `MENÚ / CARTA:\n${menuInfo}` : ""}`;
 
   return `${basePrompt}
 Tu rol: ${isAgenda ? "Recepcionista y Gestor de Citas" : "Vendedor Interactivo"}.
@@ -127,7 +124,14 @@ Descripción: ${ctx.description}
 Horarios de Atención: ${scheduleStr}
 ${contactParts ? `\nContacto: ${contactParts}` : ""}
 
+═══════════════════════════════════════
+CONOCIMIENTO BASE (SERVICIOS Y PRODUCTOS)
+═══════════════════════════════════════
+${catalogStr || "No hay un catálogo de productos registrado aún."}
+${menuProducts.length > 0 ? `MENÚ / CARTA:\n${menuInfo}` : ""}
+
 ${isAgenda ? agendaRules : generalRules}
+
 
 ═══════════════════════════════════════
 REGLAS DE ORO (TRUTH & CLEANLINESS)
