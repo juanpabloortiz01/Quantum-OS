@@ -137,11 +137,9 @@ REGLAS FINALES
 - Sé breve y profesional. Máximo 2 párrafos.
 - Nunca inventes información.
 - Las etiquetas de control (FOTO_URL:, PEDIDO_CONFIRMADO:, PAGO_SOLICITADO:, AGENDAR_CITA:) van en líneas separadas AL FINAL.`
-}
-
-
 
 }
+
 
 export interface CoreResult {
   rawResponse: string
