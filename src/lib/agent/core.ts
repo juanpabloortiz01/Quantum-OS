@@ -66,6 +66,10 @@ function buildSystemPrompt(
     .filter(Boolean)
     .join("\n")
 
+  // ── Identificar Menús (Especial para Restaurantes) ────────────────
+  const menuProducts = ctx.products.filter(p => p.category === "MENÚ_COMPLETO")
+  const menuInfo = menuProducts.map(m => `[MENÚ EN IMAGEN]: ${m.characteristics} (URL: ${m.imageUrl})`).join("\n")
+
   return `Eres el asistente de ventas de WhatsApp de "${ctx.companyName}".
 Tu rol: vendedor experto, empático y conciso. Nunca robótico.
 
@@ -83,6 +87,7 @@ Horarios de atención: ${scheduleStr}
 ${contactParts ? `\nContacto y redes:\n${contactParts}` : ""}
 
 ═══════════════════════════════════
+${menuProducts.length > 0 ? `MENÚ Y CARTA (LECTURA REQUERIDA)\n═══════════════════════════════════\n${menuInfo}` : ""}
 ${sentryResult.needs_inventory ? `CATÁLOGO DISPONIBLE\n═══════════════════════════════════\n${catalogStr}` : "MODO: Consulta general (catálogo no requerido)"}
 
 ═══════════════════════════════════
@@ -90,16 +95,20 @@ PROTOCOLO DE RESPUESTA
 ═══════════════════════════════════
 1. Responde siempre en el mismo idioma que usa el cliente.
 2. Sé breve: máximo 3 párrafos o 5 ítems de lista por respuesta.
-3. Si el cliente pregunta por un producto y tienes foto URL, incluye la etiqueta:
+3. Si el cliente pregunta por el MENÚ, la CARTA o QUÉ TIENEN PARA COMER, DEBES enviar la foto del menú usando:
+   FOTO_URL:${menuProducts[0]?.imageUrl || "<No hay URL disponible>"}
+4. Si el cliente pregunta por un producto específico y tienes foto URL, incluye la etiqueta:
    FOTO_URL:<url_exacta_del_producto>
-4. Si el cliente confirma una compra, incluye la etiqueta:
+5. Si el cliente confirma una compra, incluye la etiqueta:
    PEDIDO_CONFIRMADO:
-5. Si el cliente quiere saber cómo pagar, incluye la etiqueta:
+6. Si el cliente quiere saber cómo pagar, incluye la etiqueta:
    PAGO_SOLICITADO:
-6. NUNCA inventes precios, stock o información que no esté en el catálogo.
-7. Si no sabes algo, di honestamente que consultarás y le avisarás.
-8. Usa emojis con moderación para mantener un tono humano pero profesional.
-9. Las etiquetas de control (FOTO_URL:, PEDIDO_CONFIRMADO:, PAGO_SOLICITADO:) van en líneas separadas AL FINAL del mensaje.`
+7. NUNCA inventes precios, stock o información que no esté en el catálogo o en el menú analizado.
+8. Si no sabes algo, di honestamente que consultarás y le avisarás.
+9. Usa emojis con moderación para mantener un tono humano pero profesional.
+10. Las etiquetas de control (FOTO_URL:, PEDIDO_CONFIRMADO:, PAGO_SOLICITADO:) van en líneas separadas AL FINAL del mensaje.
+11. IMPORTANTE: El [MENÚ EN IMAGEN] contiene el texto extraído de la foto del menú. Úsalo para saber qué platos ofreces.`
+
 }
 
 export interface CoreResult {

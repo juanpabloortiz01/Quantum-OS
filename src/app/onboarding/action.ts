@@ -310,3 +310,66 @@ export async function checkEvolutionConnectionState(tempId?: string) {
     return { connected: false }
   }
 }
+export async function registerAndFinalizeOnboarding(authData: {
+  email: string
+  password?: string
+}, onboardingData: {
+  niche: string
+  needs: string[]
+  contextData: any
+  products: any[]
+  testPhone: string
+  tempId?: string
+}) {
+  // 1. REGISTRAR USUARIO
+  const regResult = await registerQuantumUser(authData)
+  if ("error" in regResult) return regResult
+
+  const userId = regResult.userId
+
+  // 2. FINALIZAR ONBOARDING (CREAR ORG)
+  try {
+    const businessName = onboardingData.contextData.companyName?.trim() || `NODO_${onboardingData.testPhone.slice(-4).toUpperCase()}`
+    
+    // El instance name debe coincidir con el usado en setupEvolutionInstance
+    const instanceName = `quos_${onboardingData.tempId || userId}`
+
+    await prisma.organization.create({
+      data: {
+        name: businessName,
+        whatsappNumber: onboardingData.testPhone,
+        onboardingStep: 3,
+        protocolActive: true,
+        evolutionInstance: instanceName,
+        evolutionToken: instanceName,
+        userId: userId,
+        businessConfig: {
+          create: {
+            niche: onboardingData.niche.toUpperCase(),
+            config: {
+              context: onboardingData.contextData,
+              enabled_nodes: onboardingData.needs,
+            },
+          },
+        },
+        products: {
+          create: onboardingData.products.map((p: any) => ({
+            imageUrl: p.url_foto,
+            category: p.categoria,
+            primaryColor: p.color_principal,
+            secondaryColor: p.color_secundario,
+            brand: p.marca,
+            characteristics: p.caracteristicas,
+            style: p.estilo
+          }))
+        }
+      },
+    })
+
+    console.log(`[KERNEL_SUCCESS]: Registro diferido completo para ${businessName}`)
+    return { success: true, userId }
+  } catch (error) {
+    console.error("[DEFERRED_REG_ERROR]:", error)
+    return { error: "FAIL: No se pudo completar el registro final." }
+  }
+}

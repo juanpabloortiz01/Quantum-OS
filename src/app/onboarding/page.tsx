@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield } from "lucide-react"
-import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState } from "./action"
+import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState, registerAndFinalizeOnboarding } from "./action"
+
 
 const NICHES = [
   { 
@@ -60,10 +61,14 @@ function OnboardingContent() {
   // States for EVO QR/Code Sync
   const [connectionMethod, setConnectionMethod] = useState<"qr" | "code" | null>(null)
   const [qrBase64, setQrBase64] = useState<string | null>(null)
-  const [pairingCode, setPairingCode] = useState<string | null>(null)
-  const [evoLoading, setEvoLoading] = useState(false)
-  const [evoConnected, setEvoConnected] = useState(false)
   const [evoError, setEvoError] = useState<string | null>(null)
+  const [tempId, setTempId] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Generar un ID temporal para rastrear la sesión de onboarding sin DB
+    setTempId(crypto.randomUUID())
+  }, [])
+
 
   const [formData, setFormData] = useState({
     niche: "",
@@ -106,8 +111,9 @@ function OnboardingContent() {
     let interval: NodeJS.Timeout
     if (step === 4 && connectionMethod && !evoConnected) {
       interval = setInterval(async () => {
-        const res = await checkEvolutionConnectionState()
+        const res = await checkEvolutionConnectionState(tempId || undefined)
         if (res.connected) {
+
           setEvoConnected(true)
           clearInterval(interval)
           // Automático a dashboard tras 1.5s
@@ -121,10 +127,10 @@ function OnboardingContent() {
   }, [step, connectionMethod, evoConnected])
 
   const handleEvoConnect = async (method: "qr" | "code") => {
-    setEvoLoading(true)
     setEvoError(null)
     setConnectionMethod(method)
-    const res = await setupEvolutionInstance(method, formData.testPhone)
+    const res = await setupEvolutionInstance(method, formData.testPhone, tempId || undefined)
+
     if (res.success) {
       if (method === "qr") setQrBase64(res.base64!)
       if (method === "code") setPairingCode(res.pairingCode!)
@@ -172,9 +178,10 @@ function OnboardingContent() {
       const result = await aiRes.json()
 
       if (result.success) {
+        const isRestaurant = formData.niche === "ventas"
         setCurrentProduct((prev: any) => ({
           ...prev,
-          categoria: result.data.categoria || prev.categoria,
+          categoria: isRestaurant ? "MENÚ_COMPLETO" : (result.data.categoria || prev.categoria),
           color_principal: result.data.color_principal || prev.color_principal,
           color_secundario: result.data.color_secundario || prev.color_secundario,
           marca: result.data.marca || prev.marca,
@@ -185,6 +192,7 @@ function OnboardingContent() {
       } else {
         throw new Error("Fallo en Análisis con IA")
       }
+
     } catch (err) {
       console.error(err)
       setAnalyzingStep("ERROR")
@@ -259,25 +267,24 @@ function OnboardingContent() {
   // Si está autenticado, redirigir al dashboard o avanzar a paso 1
   useEffect(() => {
     if (status === "authenticated") {
-      // Optimistic update para evitar parpadeos
-      if (step === 0 && searchParams.get("step") === "1") {
-        setStep(1)
-      }
-
+      // Si ya hay sesión, verificamos si completó el onboarding
       fetch("/api/check-onboarding")
         .then((r) => r.json())
         .then((data) => {
           if (data.completed) {
             router.push("/dashboard")
-          } else if (step === 0) {
-            setStep(1)
+          } else {
+            // Si está autenticado pero no tiene organización, forzamos permanencia en onboarding
+            // No avanzamos automáticamente al paso 1 si no queremos, pero aquí permitimos el paso 1-4
+            if (step === 0) setStep(1)
           }
         })
         .catch(() => {
-          if (step === 0) setStep(1) // Fallback
+          if (step === 0) setStep(1)
         })
     }
-  }, [status, step, searchParams, router])
+  }, [status, router]) // Eliminamos dependency 'step' para evitar loops si forzamos step
+
 
   const toggleNeed = (id: string) => {
     setFormData((prev) => ({
@@ -305,43 +312,56 @@ function OnboardingContent() {
     }
 
     setIsLoading(true)
-    const result = await registerQuantumUser({ email, password })
+    // YA NO REGISTRAMOS AQUÍ. Solo validamos y avanzamos.
+    // El registro ocurrirá al final junto con la creación de la organización.
+    
+    // Verificamos disponibilidad de email (opcional, pero recomendado)
+    // Para simplificar, asumimos que es válido y seguimos.
     setIsLoading(false)
-
-    if (result.error) {
-      setError(result.error)
-      return
-    }
-
-    // Login automático después del registro
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
-
-    if (res?.error) {
-      setError("Fallo al iniciar sesión automáticamente.")
-      return
-    }
-
     setStep(1)
   }
 
   const handleFinalize = async () => {
-    if (!session?.user?.id) return
     setIsLoading(true)
-    await finalizeOnboarding({
-      userId: session.user.id,
-      niche: formData.niche,
-      needs: formData.needs,
-      contextData: formData.contextData,
-      products: formData.products,
-      testPhone: formData.testPhone,
-    })
+    
+    if (status === "unauthenticated") {
+      // REGISTRO DIFERIDO + FINALIZACIÓN
+      const result = await registerAndFinalizeOnboarding(
+        { email, password },
+        {
+          ...formData,
+          tempId: tempId || undefined
+        }
+      )
+      
+      if ("error" in result) {
+        setError(result.error as string)
+        setIsLoading(false)
+        return
+      }
+
+      // Login automático
+      await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+    } else if (session?.user?.id) {
+      // Ya autenticado (Google), solo finalizamos
+      await finalizeOnboarding({
+        userId: session.user.id,
+        niche: formData.niche,
+        needs: formData.needs,
+        contextData: formData.contextData,
+        products: formData.products,
+        testPhone: formData.testPhone,
+      })
+    }
+
     setIsLoading(false)
     router.push("/dashboard")
   }
+
 
   return (
     <div className="min-h-screen bg-[#FBFBFA] text-[#1A1A1A] flex items-center justify-center p-4 selection:bg-slate-200 selection:text-black font-sans">
