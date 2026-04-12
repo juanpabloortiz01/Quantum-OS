@@ -8,6 +8,8 @@
 
 import { LoadedContext } from "./context-loader"
 import { CoreResult } from "./core"
+import { createAppointment } from "@/lib/calendar"
+
 
 export interface DispatchResult {
   success: boolean
@@ -132,8 +134,31 @@ export async function runDispatcher(
       )
       return { success: true, method: "sendMedia" }
     } else {
+      // ── EJECUTAR AGENDAMIENTO REAL ─────────────────────────────────
+      if (coreResult.agendarCita) {
+        const { service, date, time } = coreResult.agendarCita
+        const [year, month, day] = date.split("-").map(Number)
+        const [hours, minutes] = time.split(":").map(Number)
+        
+        // Crear fecha en zona horaria local (Ecuador)
+        const startDate = new Date(year, month - 1, day, hours, minutes)
+
+        try {
+          console.log(`[DISPATCHER]: >>> AGENDANDO EVENTO EN CALENDAR <<<`)
+          await createAppointment(ctx.organizationId, {
+            customerName: "Cliente WhatsApp",
+            customerPhone: to,
+            service,
+            startTime: startDate
+          })
+          console.log(`[DISPATCHER]: Evento creado con éxito para ${date} ${time}`)
+        } catch (calErr: any) {
+          console.error(`[DISPATCHER_CALENDAR_ERROR]:`, calErr.message)
+        }
+      }
+
       if (!coreResult.cleanText) {
-        console.warn("[DISPATCHER_WARN]: No hay texto cargado en coreResult.")
+        console.warn("[DISPATCHER_WARN]: No hay texto cargada en coreResult.")
         return { success: false, method: "none", error: "Respuesta vacía del Core." }
       }
 
@@ -141,6 +166,7 @@ export async function runDispatcher(
       await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
       return { success: true, method: "sendText" }
     }
+
   } catch (err: any) {
     console.error(`[DISPATCHER_FATAL]: Fallo en la conexión Fetch ->`, err?.message ?? err)
     return { success: false, method: "none", error: err?.message ?? "Error Fetch en Dispatcher." }

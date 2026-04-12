@@ -43,6 +43,8 @@ const NICHES = [
 ]
 
 
+
+
 function OnboardingContent() {
   const sessionResult = useSession()
   const session = sessionResult?.data

@@ -5,11 +5,14 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   ScanLine, MessageSquare, ShoppingCart, Calendar, Settings,
   Wifi, WifiOff, Activity, Smartphone, LogOut, ChevronRight,
-  GripVertical, Inbox, Zap, BarChart3, HelpCircle, User
+  GripVertical, Inbox, Zap, BarChart3, HelpCircle, User, ArrowLeft
 } from "lucide-react";
+
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { saveSchedulingConfig, getCalendarConnectionStatus } from "./action";
+
 
 // ── MOCK WHATSAPP INSTANCES ──────────────────────────────────────────
 const MOCK_INSTANCES = [
@@ -19,20 +22,18 @@ const MOCK_INSTANCES = [
 
 // ── CAPACIDADES DEL AGENTE ───────────────────────────────────────────
 const ICON_MAP = {
-  ocr: ScanLine,
-  voice: MessageSquare,
-  orders: ShoppingCart,
   calendar: Calendar,
-  retail: Settings,
 };
 
 const ALL_CAPABILITIES = [
-  { id: "ocr",      name: "Validar pagos",         desc: "Reconoce comprobantes de transferencia automáticamente.",  icon: "ocr" },
-  { id: "voice",    name: "Entender audios",        desc: "Transcribe y responde mensajes de voz de tus clientes.",    icon: "voice" },
-  { id: "orders",   name: "Tomar pedidos",          desc: "Genera comandas y carritos de compra en el chat.",         icon: "orders" },
-  { id: "calendar", name: "Agendar citas",          desc: "Sincroniza disponibilidad con tu Google Calendar.",        icon: "calendar" },
-  { id: "retail",   name: "Buscar en catálogo",     desc: "Responde preguntas sobre productos del inventario.",       icon: "retail" },
+  { 
+    id: "calendar", 
+    name: "Agendar citas", 
+    desc: "Sincroniza tu disponibilidad con Google Calendar y permite que tus clientes agenden por WhatsApp.", 
+    icon: "calendar" 
+  },
 ];
+
 
 // ── NAVEGACIÓN LATERAL ───────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -45,16 +46,26 @@ const NAV_ITEMS = [
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+
     if (status === "unauthenticated") router.push("/");
   }, [status, router]);
 
   // Drag & drop state
-  const [active, setActive] = useState(ALL_CAPABILITIES.slice(0, 2));
-  const [library, setLibrary] = useState(ALL_CAPABILITIES.slice(2));
-  const [dragOver, setDragOver] = useState<"active" | "library" | null>(null);
+  const [active, setActive] = useState<any[]>([]);
+  const [library, setLibrary] = useState(ALL_CAPABILITIES);
+  const [dragOver, setDragOver]   = useState<"active" | "library" | null>(null);
   const [draggingFrom, setDraggingFrom] = useState<"active" | "library" | null>(null);
+  const [selectedCap, setSelectedCap] = useState<string | null>(null);
+  
+  const [schedConfig, setSchedConfig] = useState({
+    simultaneous: 1,
+    limitPerDay: 1,
+    isGoogleConnected: false, // Debería venir de la DB
+  });
+
 
   const activeRef = useRef<HTMLDivElement>(null);
   const libraryRef = useRef<HTMLDivElement>(null);
@@ -88,7 +99,30 @@ export default function Dashboard() {
   };
 
 
-  if (status === "loading") {
+   useEffect(() => {
+    async function checkConn() {
+      const res = await getCalendarConnectionStatus()
+      setSchedConfig(prev => ({ ...prev, isGoogleConnected: res.connected }))
+    }
+    checkConn()
+  }, [])
+
+  const handleSaveConfig = async () => {
+    setIsLoading(true)
+    const res = await saveSchedulingConfig({
+      simultaneous: schedConfig.simultaneous,
+      limitPerDay: schedConfig.limitPerDay,
+    })
+    setIsLoading(false)
+    if (res.success) {
+      alert("Configuración guardada con éxito")
+    } else {
+      alert(res.error || "Fallo al guardar")
+    }
+  }
+
+  if (status === "loading" || (isLoading && !selectedCap)) {
+
     return (
       <div className="min-h-screen bg-[#FBFBFA] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -240,9 +274,6 @@ export default function Dashboard() {
               }`}
               style={{ zIndex: draggingFrom === "library" ? 50 : 1 }}
             >
-
-
-
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#1A1A1A]">Capacidades disponibles</span>
                 <span className="text-[10px] text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">{library.length}</span>
@@ -267,9 +298,7 @@ export default function Dashboard() {
                         setDragOver={setDragOver}
                         setDraggingFrom={setDraggingFrom}
                       />
-
                     ))
-
                   )}
                 </AnimatePresence>
               </div>
@@ -284,51 +313,119 @@ export default function Dashboard() {
             }`}
             style={{ zIndex: draggingFrom === "active" ? 50 : 1 }}
           >
-
-
-
             {/* Header */}
             <div className="p-5 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-[#1A1A1A]">Tu agente puede hacer esto</h2>
-                <p className="text-xs text-[#9CA3AF] mt-0.5">
-                  {active.length} de {ALL_CAPABILITIES.length} capacidades activas · Arrastra para añadir o quitar
-                </p>
+                <h2 className="text-sm font-semibold text-[#1A1A1A]">Capacidades activas</h2>
+                <p className="text-xs text-[#9CA3AF]">Configura el comportamiento de tu agente</p>
               </div>
-              <button className="self-start sm:self-auto px-4 py-2 bg-[#1A1A1A] text-white text-xs font-medium rounded-lg hover:bg-[#333] transition-colors shadow-sm">
-                Guardar cambios
-              </button>
             </div>
 
             {/* Active grid */}
             <div className="flex-1 p-5 overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-max">
-                <AnimatePresence>
-                  {active.length === 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className="col-span-full h-48 border-2 border-dashed border-[#E2E8F0] rounded-xl flex flex-col items-center justify-center gap-2 text-[#9CA3AF]"
+              {!selectedCap ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-max">
+                  <AnimatePresence>
+                    {active.length === 0 ? (
+                      <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="col-span-full h-48 border-2 border-dashed border-[#E2E8F0] rounded-xl flex flex-col items-center justify-center gap-2 text-[#9CA3AF]"
+                      >
+                        <Inbox size={24} className="opacity-40" />
+                        <span className="text-sm font-medium">Sin capacidades activas</span>
+                        <span className="text-xs">Arrastra desde la lista de la izquierda</span>
+                      </motion.div>
+                    ) : (
+                      active.map(cap => (
+                        <CapabilityCard
+                          key={cap.id}
+                          cap={cap}
+                          zone="active"
+                          onDragEnd={onDragEnd}
+                          setDragOver={setDragOver}
+                          setDraggingFrom={setDraggingFrom}
+                          onClick={() => setSelectedCap(cap.id)}
+                        />
+                      ))
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="max-w-xl mx-auto py-4">
+                  <button 
+                    onClick={() => setSelectedCap(null)}
+                    className="flex items-center gap-2 text-xs text-[#6B7280] hover:text-[#1A1A1A] mb-6 transition-colors"
+                  >
+                    <ArrowLeft size={14} /> Volver al listado
+                  </button>
+                  
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] flex items-center justify-center shadow-inner">
+                      <Calendar size={24} className="text-[#1A1A1A]" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-[#1A1A1A]">Configuración de Agendamiento</h3>
+                      <p className="text-sm text-[#9CA3AF]">Define cómo el agente gestionará las citas físicas.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 bg-[#FBFBFA] p-6 rounded-2xl border border-[#F3F4F6]">
+                    {/* Google Status */}
+                    <div className={`p-4 rounded-xl border ${schedConfig.isGoogleConnected ? "border-[#D1FAE5] bg-[#F0FDF4]" : "border-[#FEE2E2] bg-[#FEF2F2]"} flex items-center justify-between`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${schedConfig.isGoogleConnected ? "bg-[#10B981]" : "bg-[#EF4444]"} animate-pulse`} />
+                        <span className={`text-sm font-semibold ${schedConfig.isGoogleConnected ? "text-[#065F46]" : "text-[#991B1B]"}`}>
+                          {schedConfig.isGoogleConnected ? "Google Calendar Conectado" : "Google Calendar Desconectado"}
+                        </span>
+                      </div>
+                      <span className={`text-xs ${schedConfig.isGoogleConnected ? "text-[#065F46]" : "text-[#991B1B]"} opacity-70`}>
+                        {schedConfig.isGoogleConnected ? "Sincronizando..." : "Requerido"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-[#374151] uppercase tracking-wide">Citas simultáneas</label>
+                        <p className="text-[11px] text-[#6B7280] mb-2">¿Cuántas citas pueden atenderse al mismo tiempo en tu clínica?</p>
+                        <input 
+                          type="number" 
+                          value={schedConfig.simultaneous}
+                          onChange={(e) => setSchedConfig({...schedConfig, simultaneous: parseInt(e.target.value)})}
+                          className="w-full h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-[#374151] uppercase tracking-wide">Límite por persona al día</label>
+                        <p className="text-[11px] text-[#6B7280] mb-2">Máximo de citas que un mismo cliente puede agendar en un solo día.</p>
+                        <input 
+                          type="number" 
+                          value={schedConfig.limitPerDay}
+                          onChange={(e) => setSchedConfig({...schedConfig, limitPerDay: parseInt(e.target.value)})}
+                          className="w-full h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-2 opacity-60">
+                        <label className="text-xs font-bold text-[#374151] uppercase tracking-wide">Margen entre citas (Buffer)</label>
+                        <p className="text-[11px] text-[#6B7280] mb-2">Tiempo de descanso establecido por defecto.</p>
+                        <div className="h-11 px-4 rounded-xl border border-[#E2E8F0] bg-[#F3F4F6] text-sm flex items-center">
+                          15 minutos
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={handleSaveConfig}
+                      disabled={isLoading}
+                      className="w-full h-12 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-black transition-all shadow-lg shadow-black/10 mt-4 disabled:opacity-50"
                     >
-                      <Inbox size={24} className="opacity-40" />
-                      <span className="text-sm font-medium">Sin capacidades activas</span>
-                      <span className="text-xs">Arrastra desde la lista de la izquierda</span>
-                    </motion.div>
-                  ) : (
-                    active.map(cap => (
-                      <CapabilityCard
-                        key={cap.id}
-                        cap={cap}
-                        zone="active"
-                        onDragEnd={onDragEnd}
-                        setDragOver={setDragOver}
-                        setDraggingFrom={setDraggingFrom}
-                      />
+                      {isLoading ? "Guardando..." : "Guardar configuración"}
+                    </button>
 
-                    ))
-
-                  )}
-                </AnimatePresence>
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer status */}
@@ -359,13 +456,16 @@ function CapabilityCard({
   onDragEnd,
   setDragOver,
   setDraggingFrom,
+  onClick,
 }: {
   cap: typeof ALL_CAPABILITIES[0];
   zone: "active" | "library";
   onDragEnd: (info: any, id: string, from: "active" | "library") => void;
   setDragOver: (zone: "active" | "library" | null) => void;
   setDraggingFrom: (zone: "active" | "library" | null) => void;
+  onClick?: () => void;
 }) {
+
 
   const Icon = ICON_MAP[cap.icon as keyof typeof ICON_MAP];
   const isActive = zone === "active";
@@ -374,7 +474,9 @@ function CapabilityCard({
     <motion.div
       layout
       layoutId={cap.id}
+      onClick={onClick}
       drag
+
       dragSnapToOrigin
       dragElastic={0.05}
       onDragStart={() => {

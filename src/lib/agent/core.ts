@@ -70,44 +70,76 @@ function buildSystemPrompt(
   const menuProducts = ctx.products.filter(p => p.category === "MENÚ_COMPLETO")
   const menuInfo = menuProducts.map(m => `[MENÚ EN IMAGEN]: ${m.characteristics} (URL: ${m.imageUrl})`).join("\n")
 
-  return `Eres el asistente de ventas de WhatsApp de "${ctx.companyName}".
-Tu rol: vendedor experto, empático y conciso. Nunca robótico.
+  // ── Calendario formateado ──────────────────────────────────────────
+  const availabilityStr = ctx.calendarAvailability && ctx.calendarAvailability.length > 0
+    ? ctx.calendarAvailability.map(s => `- Ocupado: ${s.start} a ${s.end}`).join("\n")
+    : "Todo el horario laboral está disponible."
 
-═══════════════════════════════════
-IDENTIDAD DEL NEGOCIO
-═══════════════════════════════════
-Nombre: ${ctx.companyName}
-Producto/Servicio principal: ${ctx.service}
+  const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
+
+  const basePrompt = `Eres el asistente virtual experto de "${ctx.companyName}".
+La fecha y hora actual es: ${new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" })}.`;
+
+  const agendaRules = `
+Tu objetivo principal es agendar citas de manera eficiente y profesional.
+═══════════════════════════════════════
+🚨 REGLAS DE INTENCIÓN (OBLIGATORIO)
+═══════════════════════════════════════
+Tus respuestas deben categorizarse internamente en una de estas 3 intenciones:
+1. PEDIDO (AGENDAR CITA): Solo cuando el cliente ha confirmado los 3 elementos clave: FECHA, HORA y SERVICIO.
+   Si faltan datos, usa MENSAJE y pregunta educadamente.
+2. CONFIRMACION: El cliente desea cambiar, mover o cancelar una cita ya existente.
+3. MENSAJE: Consultas generales sobre precios, ubicación o disponibilidad.
+
+Si agendas una cita, DEBES incluir al final la etiqueta:
+AGENDAR_CITA:{"service":"nombre_del_servicio","date":"YYYY-MM-DD","time":"HH:mm"}
+
+═══════════════════════════════════════
+DISPONIBILIDAD Y REGLAS (Google Calendar)
+═══════════════════════════════════════
+- Capacidad máxima simultánea: ${ctx.schedulingConfig?.maxSimultaneousEvents || 1} cita(s).
+- Límite por cliente: Máximo ${ctx.schedulingConfig?.limitPerPersonPerDay || 1} cita(s) al día.
+- Duración por defecto: Todas las citas duran 60 minutos.
+Estas son las horas que ya están OCUPADAS:
+${availabilityStr}`;
+
+  const generalRules = `
+Tu rol: vendedor experto, empático y conciso.
+═══════════════════════════════════════
+PROTOCOLO DE RESPUESTA (VENTAS)
+═══════════════════════════════════════
+1. Si el cliente pregunta por el MENÚ o QUÉ TIENEN PARA COMER, DEBES enviar la foto del menú usando: FOTO_URL:${menuProducts[0]?.imageUrl || ""}
+2. Si el cliente pregunta por un producto específico y tienes su foto, úsala: FOTO_URL:<url_exacta_del_producto>
+3. Si confirma una compra, usa la etiqueta: PEDIDO_CONFIRMADO:
+4. Si pide cómo pagar, usa: PAGO_SOLICITADO:
+
+${sentryResult.needs_inventory ? `CATÁLOGO DISPONIBLE:\n${catalogStr}` : ""}
+${menuProducts.length > 0 ? `MENÚ / CARTA:\n${menuInfo}` : ""}`;
+
+  return `${basePrompt}
+Tu rol: ${isAgenda ? "Recepcionista y Gestor de Citas" : "Vendedor Interactivo"}.
+
+═══════════════════════════════════════
+INFORMACIÓN DEL NEGOCIO
+═══════════════════════════════════════
+Empresa: ${ctx.companyName}
+Nicho: ${ctx.niche}
+Servicio: ${ctx.service}
 Descripción: ${ctx.description}
+Horarios: ${scheduleStr}
+${contactParts ? `\nContacto: ${contactParts}` : ""}
 
-═══════════════════════════════════
-INFORMACIÓN OPERATIVA
-═══════════════════════════════════
-Horarios de atención: ${scheduleStr}
-${contactParts ? `\nContacto y redes:\n${contactParts}` : ""}
+${isAgenda ? agendaRules : generalRules}
 
-═══════════════════════════════════
-${menuProducts.length > 0 ? `MENÚ Y CARTA (LECTURA REQUERIDA)\n═══════════════════════════════════\n${menuInfo}` : ""}
-${sentryResult.needs_inventory ? `CATÁLOGO DISPONIBLE\n═══════════════════════════════════\n${catalogStr}` : "MODO: Consulta general (catálogo no requerido)"}
+═══════════════════════════════════════
+REGLAS FINALES
+═══════════════════════════════════════
+- Sé breve y profesional. Máximo 2 párrafos.
+- Nunca inventes información.
+- Las etiquetas de control (FOTO_URL:, PEDIDO_CONFIRMADO:, PAGO_SOLICITADO:, AGENDAR_CITA:) van en líneas separadas AL FINAL.`
+}
 
-═══════════════════════════════════
-PROTOCOLO DE RESPUESTA
-═══════════════════════════════════
-1. Responde siempre en el mismo idioma que usa el cliente.
-2. Sé breve: máximo 3 párrafos o 5 ítems de lista por respuesta.
-3. Si el cliente pregunta por el MENÚ, la CARTA o QUÉ TIENEN PARA COMER, DEBES enviar la foto del menú usando:
-   FOTO_URL:${menuProducts[0]?.imageUrl || "<No hay URL disponible>"}
-4. Si el cliente pregunta por un producto específico y tienes foto URL, incluye la etiqueta:
-   FOTO_URL:<url_exacta_del_producto>
-5. Si el cliente confirma una compra, incluye la etiqueta:
-   PEDIDO_CONFIRMADO:
-6. Si el cliente quiere saber cómo pagar, incluye la etiqueta:
-   PAGO_SOLICITADO:
-7. NUNCA inventes precios, stock o información que no esté en el catálogo o en el menú analizado.
-8. Si no sabes algo, di honestamente que consultarás y le avisarás.
-9. Usa emojis con moderación para mantener un tono humano pero profesional.
-10. Las etiquetas de control (FOTO_URL:, PEDIDO_CONFIRMADO:, PAGO_SOLICITADO:) van en líneas separadas AL FINAL del mensaje.
-11. IMPORTANTE: El [MENÚ EN IMAGEN] contiene el texto extraído de la foto del menú. Úsalo para saber qué platos ofreces.`
+
 
 }
 
@@ -117,9 +149,11 @@ export interface CoreResult {
   imageUrl: string | null
   isPedidoConfirmado: boolean
   isPagoSolicitado: boolean
+  agendarCita: { service: string; date: string; time: string } | null
   cleanText: string
   tokensUsed: number
 }
+
 
 /**
  * El Cerebro Multimodal. Razona sobre el mensaje del cliente,
@@ -205,13 +239,25 @@ export async function runCore(
   const isPedidoConfirmado = /PEDIDO_CONFIRMADO:/i.test(rawResponse)
   const isPagoSolicitado = /PAGO_SOLICITADO:/i.test(rawResponse)
 
+  const agendarMatch = rawResponse.match(/AGENDAR_CITA:({.+})/i)
+  let agendarCita = null
+  if (agendarMatch) {
+    try {
+      agendarCita = JSON.parse(agendarMatch[1])
+    } catch (e) {
+      console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de agendamiento")
+    }
+  }
+
   // ── 5. Limpiar texto para el cliente ──────────────────────────────
   const cleanText = rawResponse
     .replace(/FOTO_URL:(https?:\/\/\S+)/gi, "")
     .replace(/PEDIDO_CONFIRMADO:/gi, "")
     .replace(/PAGO_SOLICITADO:/gi, "")
+    .replace(/AGENDAR_CITA:({.+})/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
+
 
   // ── 6. Persistir en historial ─────────────────────────────────────
   await prisma.chatHistory.createMany({
@@ -237,7 +283,9 @@ export async function runCore(
     imageUrl,
     isPedidoConfirmado,
     isPagoSolicitado,
+    agendarCita,
     cleanText,
     tokensUsed,
   }
+
 }

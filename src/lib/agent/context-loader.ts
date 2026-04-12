@@ -8,10 +8,14 @@
 
 import { prisma } from "@/lib/prisma"
 import { SentryResult } from "./sentry"
+import { getBusySlots } from "@/lib/calendar"
+
 
 export interface LoadedContext {
   organizationId: string
   companyName: string
+  niche: string
+
   service: string
   description: string
   scheduleDays: string[]
@@ -28,7 +32,14 @@ export interface LoadedContext {
   evolutionInstance: string
   evolutionToken: string
   whatsappNumber: string
+  calendarAvailability?: any[] 
+  schedulingConfig?: {
+    maxSimultaneousEvents: number
+    limitPerPersonPerDay: number
+  }
 }
+
+
 
 export interface ProductContext {
   imageUrl: string
@@ -85,7 +96,9 @@ export async function loadContext(
     return {
       organizationId: org.id,
       companyName: org.name,
+      niche: org.businessConfig?.niche || "AGENDA",
       service: ctx.service ?? "",
+
       description: ctx.description ?? "",
       scheduleDays: ctx.scheduleDays ?? [],
       openTime: ctx.openTime ?? "09:00",
@@ -101,7 +114,16 @@ export async function loadContext(
       evolutionInstance: org.evolutionInstance ?? "",
       evolutionToken: org.evolutionToken ?? "",
       whatsappNumber: org.whatsappNumber,
+      calendarAvailability: enabledNodes.includes("calendar") 
+        ? await getBusySlots(org.id, new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).catch(() => [])
+        : [],
+      schedulingConfig: {
+        maxSimultaneousEvents: config.scheduling?.maxSimultaneousEvents ?? 1,
+        limitPerPersonPerDay: config.scheduling?.limitPerPersonPerDay ?? 1,
+      }
     }
+
+
   } catch (err: any) {
     console.error("[CONTEXT_LOADER_ERROR]:", err?.message ?? err)
     return null
