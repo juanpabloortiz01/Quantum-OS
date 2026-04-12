@@ -310,8 +310,9 @@ function DashboardContent() {
               }`}
               style={{ zIndex: draggingFrom === "library" ? 50 : 1 }}
             >
-            >
+
               {active.length === 0 && (
+
                 <motion.div 
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
