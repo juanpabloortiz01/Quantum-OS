@@ -97,6 +97,11 @@ function OnboardingContent() {
     estilo: "",
   })
 
+  // States for Conditional Step 3
+  const [ventasMethod, setVentasMethod] = useState<"choose" | "ai" | "manual">("choose")
+  const [manualItem, setManualItem] = useState({ name: "", price: "" })
+
+
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (step === 4 && connectionMethod && !evoConnected) {
@@ -197,6 +202,29 @@ function OnboardingContent() {
     setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
     setAnalyzingStep("IDLE")
   }
+
+  const handleAddManualItem = () => {
+    if (!manualItem.name || !manualItem.price) return
+    if (formData.products.length >= 15) return // Higher limit for text items
+
+    setFormData((prev) => ({
+      ...prev,
+      products: [
+        ...prev.products,
+        {
+          url_foto: "",
+          categoria: manualItem.name,
+          marca: manualItem.price,
+          color_principal: "Manual",
+          color_secundario: "",
+          caracteristicas: "Entrada manual",
+          estilo: "",
+        },
+      ],
+    }))
+    setManualItem({ name: "", price: "" })
+  }
+
 
   const updateContext = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -718,7 +746,7 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 3: CATÁLOGO IA ── */}
+              {/* ── PASO 3: CATÁLOGO / SERVICIOS ── */}
               {step === 3 && (
                 <motion.div
                   key="step3"
@@ -727,109 +755,233 @@ function OnboardingContent() {
                   exit={{ opacity: 0, x: -20 }}
                   className="flex flex-col gap-6"
                 >
-                  <p className="text-sm text-[#4B5563] leading-relaxed">
-                    Agrega fotos de tus productos principales. Nuestra IA las analizará y extraerá automáticamente todas sus características para tu agente de ventas.
-                  </p>
+                  {/* TÍTULO DINÁMICO */}
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-sm font-bold text-[#1A1A1A]">
+                      {formData.niche === "agenda" && "Enlista los servicios que el agente ofrecerá"}
+                      {formData.niche === "showroom" && "Sube tu catálogo de productos"}
+                      {formData.niche === "ventas" && (
+                        ventasMethod === "choose" ? "¿Cómo prefieres subir tu menú?" : 
+                        ventasMethod === "ai" ? "Sube fotos de tu menú" : "Enlista tus platos y precios"
+                      )}
+                    </h2>
+                    <p className="text-xs text-[#6B7280] leading-relaxed">
+                      {formData.niche === "agenda" && "Agregaremos nombre y precio para que el agente pueda informar a tus clientes."}
+                      {formData.niche === "showroom" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
+                      {formData.niche === "ventas" && ventasMethod !== "choose" && "Define los productos que tu mesero digital ofrecerá."}
+                    </p>
+                  </div>
 
-                  <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
+                  <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
-                    {formData.products.length < 5 ? (
-                      <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-36">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          title=""
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          disabled={isLoading}
-                        />
-                        {analyzingStep === "IDLE" || analyzingStep === "COMPLETADO" || analyzingStep === "ERROR" ? (
-                          <div className="flex flex-col items-center gap-3 text-[#6B7280] group-hover:text-[#1A1A1A]">
-                            <div className="w-10 h-10 bg-white border border-[#E2E8F0] shadow-sm flex items-center justify-center rounded-full">
-                              <Upload size={18} />
-                            </div>
-                            <span className="text-xs font-medium">Hacer clic o arrastrar imagen aquí</span>
+                    {/* 1. SELECCIÓN PARA RESTAURANTES */}
+                    {formData.niche === "ventas" && ventasMethod === "choose" && (
+                      <div className="flex flex-col gap-3">
+                        <button 
+                          onClick={() => setVentasMethod("ai")}
+                          className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
+                        >
+                          <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
+                            <Scan size={20} />
                           </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-3 text-[#1A1A1A]">
-                            <Loader2 size={24} className="animate-spin text-[#1A1A1A]" />
-                            <span className="text-xs font-medium animate-pulse">
-                              {analyzingStep === "SUBIENDO" ? "Subiendo archivo..." : "Analizando características..."}
-                            </span>
+                          <div className="flex flex-col text-left">
+                            <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
+                            <span className="text-[10px] text-[#6B7280]">Sube una foto de tu menú físico</span>
                           </div>
-                        )}
-                        {analyzingStep === "ERROR" && <span className="text-xs font-semibold text-red-500 mt-3">Error procesando imagen. Intenta otra vez.</span>}
-                      </div>
-                    ) : (
-                      <div className="text-center text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
-                        Límite de productos alcanzado (5/5)
-                      </div>
-                    )}
-
-                    {currentProduct.url_foto && analyzingStep === "COMPLETADO" && (
-                      <div className="border border-[#E2E8F0] bg-white rounded-xl p-5 shadow-sm flex flex-col gap-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">Análisis Inteligente Listo</span>
-                        </div>
-                        <div className="flex gap-5">
-                          <img src={currentProduct.url_foto} alt="Preview" className="w-24 h-24 object-cover border border-[#E2E8F0] rounded-md shadow-sm" />
-                          <div className="flex-1 grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Categoría</label>
-                              <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({ ...currentProduct, categoria: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Marca</label>
-                              <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({ ...currentProduct, marca: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Color</label>
-                              <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Estilo</label>
-                              <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                            </div>
+                        </button>
+                        <button 
+                          onClick={() => setVentasMethod("manual")}
+                          className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
+                        >
+                          <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
+                            <Copy size={20} />
                           </div>
-                        </div>
-                        <div className="flex flex-col gap-1.5 pt-1">
-                          <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Características a resaltar</label>
-                          <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none leading-relaxed" />
-                        </div>
-                        <button onClick={handleAddProduct} className="bg-[#F3F4F6] border border-[#E2E8F0] text-[#1A1A1A] font-semibold text-xs py-3 mt-1 rounded-lg hover:bg-[#E5E7EB] transition-colors">
-                          Añadir producto a la base de datos
+                          <div className="flex flex-col text-left">
+                            <span className="text-sm font-bold text-[#1A1A1A]">Lista Manual</span>
+                            <span className="text-[10px] text-[#6B7280]">Escribe los platillos uno a uno</span>
+                          </div>
                         </button>
                       </div>
                     )}
 
-                    {formData.products.length > 0 && (
-                      <div className="flex flex-col gap-3 mt-4">
-                        <span className="text-xs font-semibold text-[#4B5563] uppercase tracking-wider">Productos Agregados ({formData.products.length}/5)</span>
-                        <div className="grid grid-cols-2 gap-3">
-                          {formData.products.map((prod: any, idx: number) => (
-                            <div key={idx} className="flex border border-[#E2E8F0] bg-white rounded-lg p-2.5 gap-3 items-center shadow-sm">
-                              <img src={prod.url_foto} className="w-10 h-10 object-cover rounded-md border border-[#E2E8F0]" />
-                              <div className="flex flex-col overflow-hidden">
-                                <span className="text-xs font-semibold text-[#1A1A1A] truncate">{prod.categoria || "Producto"}</span>
-                                <span className="text-[10px] text-[#6B7280] truncate">{prod.marca || "Generic"} • {prod.color_principal}</span>
-                              </div>
+                    {/* 2. ENTRADA MANUAL (Agenda o Ventas Manual) */}
+                    {(formData.niche === "agenda" || (formData.niche === "ventas" && ventasMethod === "manual")) && (
+                      <div className="flex flex-col gap-4">
+                        <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
+                          <div className="col-span-3">
+                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
+                            <input 
+                              type="text" 
+                              placeholder="Ej: Limpieza profunda" 
+                              value={manualItem.name}
+                              onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
+                              className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="$45.00" 
+                                value={manualItem.price}
+                                onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
+                              />
+                              <button 
+                                onClick={handleAddManualItem}
+                                className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
+                              >
+                                <Zap size={16} fill="white" />
+                              </button>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* LISTA DE ITEMS MANUALES */}
+                        <div className="flex flex-col gap-2">
+                          {formData.products.filter(p => !p.url_foto).map((prod, idx) => (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 5 }} 
+                              animate={{ opacity: 1, y: 0 }}
+                              key={idx} 
+                              className="flex items-center justify-between p-3 border border-[#E2E8F0] bg-white rounded-xl group hover:border-[#94A3B8] transition-all"
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-[#1A1A1A]">{prod.categoria}</span>
+                                <span className="text-[10px] text-[#6B7280] font-medium">{formData.niche === "agenda" ? "Servicio" : "Platillo"}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-[#1A1A1A] bg-[#F3F4F6] px-2 py-1 rounded-md">{prod.marca}</span>
+                                <button 
+                                  onClick={() => setFormData({ ...formData, products: formData.products.filter((_, i) => i !== idx) })}
+                                  className="text-[#94A3B8] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                  <RefreshCw size={14} />
+                                </button>
+                              </div>
+                            </motion.div>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {/* 3. CATÁLOGO IA (Showroom o Ventas IA) */}
+                    {(formData.niche === "showroom" || (formData.niche === "ventas" && ventasMethod === "ai")) && (
+                      <div className="flex flex-col gap-5">
+                        {formData.niche === "ventas" && (
+                          <button onClick={() => setVentasMethod("choose")} className="text-[10px] font-bold text-[#6B7280] hover:text-[#1A1A1A] transition-colors self-start underline">
+                            ← Cambiar a lista manual
+                          </button>
+                        )}
+                        
+                        {formData.products.length < 5 ? (
+                          <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-36">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              title=""
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              disabled={isLoading}
+                            />
+                            {analyzingStep === "IDLE" || analyzingStep === "COMPLETADO" || analyzingStep === "ERROR" ? (
+                              <div className="flex flex-col items-center gap-3 text-[#6B7280] group-hover:text-[#1A1A1A]">
+                                <div className="w-10 h-10 bg-white border border-[#E2E8F0] shadow-sm flex items-center justify-center rounded-full">
+                                  <Upload size={18} />
+                                </div>
+                                <span className="text-xs font-medium">Hacer clic o arrastrar imagen aquí</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-3 text-[#1A1A1A]">
+                                <Loader2 size={24} className="animate-spin text-[#1A1A1A]" />
+                                <span className="text-xs font-medium animate-pulse">
+                                  {analyzingStep === "SUBIENDO" ? "Subiendo archivo..." : "Analizando características..."}
+                                </span>
+                              </div>
+                            )}
+                            {analyzingStep === "ERROR" && <span className="text-xs font-semibold text-red-500 mt-3">Error procesando imagen. Intenta otra vez.</span>}
+                          </div>
+                        ) : (
+                          <div className="text-center text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+                            Límite de productos alcanzado (5/5)
+                          </div>
+                        )}
+
+                        {currentProduct.url_foto && analyzingStep === "COMPLETADO" && (
+                          <div className="border border-[#E2E8F0] bg-white rounded-xl p-5 shadow-sm flex flex-col gap-4">
+                            <div className="flex items-center gap-2 mb-1">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wider">Análisis Inteligente Listo</span>
+                            </div>
+                            <div className="flex gap-5">
+                              <img src={currentProduct.url_foto} alt="Preview" className="w-24 h-24 object-cover border border-[#E2E8F0] rounded-md shadow-sm" />
+                              <div className="flex-1 grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Categoría</label>
+                                  <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({ ...currentProduct, categoria: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Marca</label>
+                                  <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({ ...currentProduct, marca: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Color</label>
+                                  <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Estilo</label>
+                                  <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1.5 pt-1">
+                              <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Características a resaltar</label>
+                              <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none leading-relaxed" />
+                            </div>
+                            <button onClick={handleAddProduct} className="bg-[#F3F4F6] border border-[#E2E8F0] text-[#1A1A1A] font-semibold text-xs py-3 mt-1 rounded-lg hover:bg-[#E5E7EB] transition-colors">
+                              Añadir producto a la base de datos
+                            </button>
+                          </div>
+                        )}
+
+                        {formData.products.filter(p => p.url_foto).length > 0 && (
+                          <div className="flex flex-col gap-3 mt-4">
+                            <span className="text-xs font-semibold text-[#4B5563] uppercase tracking-wider">Productos Agregados ({formData.products.filter(p => p.url_foto).length}/5)</span>
+                            <div className="grid grid-cols-2 gap-3">
+                              {formData.products.filter(p => p.url_foto).map((prod: any, idx: number) => (
+                                <div key={idx} className="flex border border-[#E2E8F0] bg-white rounded-lg p-2.5 gap-3 items-center shadow-sm">
+                                  <img src={prod.url_foto} className="w-10 h-10 object-cover rounded-md border border-[#E2E8F0]" />
+                                  <div className="flex flex-col overflow-hidden">
+                                    <span className="text-xs font-semibold text-[#1A1A1A] truncate">{prod.categoria || "Producto"}</span>
+                                    <span className="text-[10px] text-[#6B7280] truncate">{prod.marca || "Generic"} • {prod.color_principal}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
                   <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
-                      onClick={() => setStep(2)}
+                      onClick={() => {
+                        if (formData.niche === "ventas" && ventasMethod !== "choose") {
+                          setVentasMethod("choose")
+                        } else {
+                          setStep(2)
+                        }
+                      }}
                       className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors"
                     >
                       ← Atrás
                     </button>
                     <button
                       onClick={() => setStep(4)}
+                      disabled={formData.niche === "ventas" && ventasMethod === "choose"}
                       className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all ${
                         formData.products.length === 0 
                           ? "bg-white border border-[#E2E8F0] text-[#1A1A1A] hover:bg-[#F9FAFB]" 
