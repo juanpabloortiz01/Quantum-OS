@@ -58,3 +58,58 @@ export async function getCalendarConnectionStatus() {
 
   return { connected: !!account }
 }
+
+export async function saveActiveSkills(skillIds: string[]) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "No autorizado" }
+
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { userId: session.user.id },
+      include: { businessConfig: true }
+    })
+
+    if (!org) return { error: "Organización no encontrada" }
+
+    const currentConfig = (org.businessConfig?.config as any) || {}
+    const updatedConfig = {
+      ...currentConfig,
+      enabled_nodes: skillIds
+    }
+
+    await prisma.businessConfig.update({
+      where: { organizationId: org.id },
+      data: { config: updatedConfig }
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("[SAVE_ACTIVE_SKILLS_ERROR]:", error)
+    return { error: "Fallo al guardar habilidades" }
+  }
+}
+
+export async function getDashboardLayout() {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { userId: session.user.id },
+      include: { businessConfig: true }
+    })
+
+    if (!org) return null
+
+    const config = (org.businessConfig?.config as any) || {}
+    const activeSkills = config.enabled_nodes || []
+
+    return {
+      companyName: org.name,
+      niche: org.businessConfig?.niche || "AGENDA",
+      activeSkills: activeSkills as string[]
+    }
+  } catch (error) {
+    return null
+  }
+}

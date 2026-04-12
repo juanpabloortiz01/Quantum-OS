@@ -12,8 +12,12 @@ import {
 import Link from "next/link";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-
-import { saveSchedulingConfig, getCalendarConnectionStatus } from "./action";
+import { 
+  saveSchedulingConfig, 
+  getCalendarConnectionStatus, 
+  saveActiveSkills, 
+  getDashboardLayout 
+} from "./action";
 
 
 
@@ -110,14 +114,26 @@ function DashboardContent() {
     if (!to || from === to) return;
 
     const cap = ALL_CAPABILITIES.find(c => c.id === id)!;
+    let newActive = [...active];
+    
     if (to === "active") {
       setLibrary(p => p.filter(c => c.id !== id));
-      setActive(p => [...p, cap]);
+      setActive(p => {
+        newActive = [...p, cap];
+        return newActive;
+      });
     } else {
-      setActive(p => p.filter(c => c.id !== id));
+      setActive(p => {
+        newActive = p.filter(c => c.id !== id);
+        return newActive;
+      });
       setLibrary(p => [...p, cap]);
     }
+
+    // Persistir el cambio en la BD
+    saveActiveSkills(newActive.map(c => c.id));
   };
+
 
 
    useEffect(() => {
@@ -125,8 +141,26 @@ function DashboardContent() {
       const res = await getCalendarConnectionStatus()
       setSchedConfig(prev => ({ ...prev, isGoogleConnected: res.connected }))
     }
+
+    async function loadLayout() {
+      setIsLoading(true)
+      const layout = await getDashboardLayout()
+      if (layout) {
+        // Mover habilidades a sus cajas correctas
+        const activeIds = layout.activeSkills || []
+        const newActive = ALL_CAPABILITIES.filter(c => activeIds.includes(c.id))
+        const newLib = ALL_CAPABILITIES.filter(c => !activeIds.includes(c.id))
+        
+        setActive(newActive)
+        setLibrary(newLib)
+      }
+      setIsLoading(false)
+    }
+
     checkConn()
+    loadLayout()
   }, [])
+
 
   const handleSaveConfig = async () => {
     setIsLoading(true)
@@ -146,13 +180,12 @@ function DashboardContent() {
   const handleGoogleSync = async () => {
     // Pedir permisos específicos de calendario
     await signIn("google", {
-      authorizationParams: {
-        scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
-        access_type: "offline",
-        prompt: "select_account consent",
-      },
       callbackUrl: "/dashboard?cap=calendar",
+      scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+      prompt: "select_account consent",
+      access_type: "offline",
     });
+
 
   }
 
