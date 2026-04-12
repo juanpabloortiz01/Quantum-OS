@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
 import { motion, AnimatePresence } from "motion/react";
 import {
   ScanLine, MessageSquare, ShoppingCart, Calendar, Settings,
@@ -50,24 +51,39 @@ export default function Dashboard() {
   }, [status, router]);
 
   // Drag & drop state
-  const [active, setActive]       = useState(ALL_CAPABILITIES.slice(0, 2));
-  const [library, setLibrary]     = useState(ALL_CAPABILITIES.slice(2));
-  const [dragOver, setDragOver]   = useState<"active" | "library" | null>(null);
+  const [active, setActive] = useState(ALL_CAPABILITIES.slice(0, 2));
+  const [library, setLibrary] = useState(ALL_CAPABILITIES.slice(2));
+  const [dragOver, setDragOver] = useState<"active" | "library" | null>(null);
 
-  const onDragStart = (e: React.DragEvent, id: string, from: "active" | "library") => {
-    e.dataTransfer.setData("id", id);
-    e.dataTransfer.setData("from", from);
-  };
-  const onDrop = (e: React.DragEvent, to: "active" | "library") => {
-    e.preventDefault();
+  const activeRef = useRef<HTMLDivElement>(null);
+  const libraryRef = useRef<HTMLDivElement>(null);
+
+  const onDragEnd = (info: any, id: string, from: "active" | "library") => {
     setDragOver(null);
-    const id   = e.dataTransfer.getData("id");
-    const from = e.dataTransfer.getData("from") as "active" | "library";
-    if (from === to) return;
+    const activeRect = activeRef.current?.getBoundingClientRect();
+    const libraryRect = libraryRef.current?.getBoundingClientRect();
+    const point = info.point;
+
+    let to: "active" | "library" | null = null;
+
+    if (activeRect && point.x >= activeRect.left && point.x <= activeRect.right && point.y >= activeRect.top && point.y <= activeRect.bottom) {
+      to = "active";
+    } else if (libraryRect && point.x >= libraryRect.left && point.x <= libraryRect.right && point.y >= libraryRect.top && point.y <= libraryRect.bottom) {
+      to = "library";
+    }
+
+    if (!to || from === to) return;
+
     const cap = ALL_CAPABILITIES.find(c => c.id === id)!;
-    if (to === "active")  { setLibrary(p => p.filter(c => c.id !== id)); setActive(p  => [...p, cap]); }
-    else                  { setActive(p  => p.filter(c => c.id !== id)); setLibrary(p => [...p, cap]); }
+    if (to === "active") {
+      setLibrary(p => p.filter(c => c.id !== id));
+      setActive(p => [...p, cap]);
+    } else {
+      setActive(p => p.filter(c => c.id !== id));
+      setLibrary(p => [...p, cap]);
+    }
   };
+
 
   if (status === "loading") {
     return (
@@ -215,13 +231,12 @@ export default function Dashboard() {
 
             {/* Library */}
             <div
+              ref={libraryRef}
               className={`bg-white border rounded-xl p-4 flex flex-col gap-3 transition-all ${
                 dragOver === "library" ? "border-[#94A3B8] bg-[#F9FAFB]" : "border-[#E2E8F0]"
               }`}
-              onDragOver={e => { e.preventDefault(); setDragOver("library"); }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={e => onDrop(e, "library")}
             >
+
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#1A1A1A]">Capacidades disponibles</span>
                 <span className="text-[10px] text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">{library.length}</span>
@@ -237,7 +252,16 @@ export default function Dashboard() {
                       Todas las capacidades están activas
                     </motion.div>
                   ) : (
-                    library.map(cap => <CapabilityCard key={cap.id} cap={cap} zone="library" onDragStart={onDragStart} />)
+                     library.map(cap => (
+                      <CapabilityCard
+                        key={cap.id}
+                        cap={cap}
+                        zone="library"
+                        onDragEnd={onDragEnd}
+                        setDragOver={setDragOver}
+                      />
+                    ))
+
                   )}
                 </AnimatePresence>
               </div>
@@ -246,13 +270,12 @@ export default function Dashboard() {
 
           {/* RIGHT — Active capabilities */}
           <div
+            ref={activeRef}
             className={`flex-1 bg-white border rounded-xl flex flex-col transition-all ${
               dragOver === "active" ? "border-[#94A3B8]" : "border-[#E2E8F0]"
             }`}
-            onDragOver={e => { e.preventDefault(); setDragOver("active"); }}
-            onDragLeave={() => setDragOver(null)}
-            onDrop={e => onDrop(e, "active")}
           >
+
             {/* Header */}
             <div className="p-5 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -280,7 +303,16 @@ export default function Dashboard() {
                       <span className="text-xs">Arrastra desde la lista de la izquierda</span>
                     </motion.div>
                   ) : (
-                    active.map(cap => <CapabilityCard key={cap.id} cap={cap} zone="active" onDragStart={onDragStart} />)
+                    active.map(cap => (
+                      <CapabilityCard
+                        key={cap.id}
+                        cap={cap}
+                        zone="active"
+                        onDragEnd={onDragEnd}
+                        setDragOver={setDragOver}
+                      />
+                    ))
+
                   )}
                 </AnimatePresence>
               </div>
@@ -311,11 +343,13 @@ export default function Dashboard() {
 function CapabilityCard({
   cap,
   zone,
-  onDragStart,
+  onDragEnd,
+  setDragOver,
 }: {
   cap: typeof ALL_CAPABILITIES[0];
   zone: "active" | "library";
-  onDragStart: (e: React.DragEvent, id: string, from: "active" | "library") => void;
+  onDragEnd: (info: any, id: string, from: "active" | "library") => void;
+  setDragOver: (zone: "active" | "library" | null) => void;
 }) {
   const Icon = ICON_MAP[cap.icon as keyof typeof ICON_MAP];
   const isActive = zone === "active";
@@ -324,14 +358,23 @@ function CapabilityCard({
     <motion.div
       layout
       layoutId={cap.id}
-      draggable
-      onDragStart={(e: any) => onDragStart(e, cap.id, zone)}
+      drag
+      dragSnapToOrigin
+      dragElastic={0.05}
+      onDragStart={() => setDragOver(zone === "active" ? "library" : "active")}
+      onDragEnd={(_, info) => onDragEnd(info, cap.id, zone)}
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96 }}
-      whileHover={{ y: -1 }}
-      className={`p-4 rounded-xl border cursor-grab active:cursor-grabbing transition-all select-none ${
+      whileHover={{ y: -2, shadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+      whileDrag={{ 
+        scale: 1.05, 
+        zIndex: 50,
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+      }}
+      className={`p-4 rounded-xl border cursor-grab active:cursor-grabbing transition-colors select-none ${
         isActive
+
           ? "border-[#E2E8F0] bg-white shadow-sm hover:border-[#94A3B8] hover:shadow-md"
           : "border-[#F3F4F6] bg-[#FBFBFA] hover:border-[#E2E8F0] hover:bg-white"
       }`}
