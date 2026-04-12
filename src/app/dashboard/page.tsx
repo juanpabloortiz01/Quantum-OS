@@ -178,16 +178,12 @@ function DashboardContent() {
   }
 
   const handleGoogleSync = async () => {
-    // Pedir permisos específicos de calendario
-    await signIn("google", {
+    // Usar el proveedor específico de calendario configurado en auth.ts
+    await signIn("google-calendar", {
       callbackUrl: "/dashboard?cap=calendar",
-      scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
-      prompt: "select_account consent",
-      access_type: "offline",
     });
-
-
   }
+
 
   if (status === "loading" || (isLoading && !selectedCap)) {
 

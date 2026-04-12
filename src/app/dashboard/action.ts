@@ -51,10 +51,10 @@ export async function getCalendarConnectionStatus() {
   const account = await prisma.account.findFirst({
     where: { 
       userId: session.user.id, 
-      provider: "google",
       scope: { contains: "calendar" }
     }
   })
+
 
   return { connected: !!account }
 }
