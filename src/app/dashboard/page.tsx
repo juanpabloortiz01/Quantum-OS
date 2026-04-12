@@ -538,7 +538,9 @@ function CapabilityCard({
   setDragOver,
   setDraggingFrom,
   onClick,
+  isGoogleConnected,
 }: {
+
   cap: typeof ALL_CAPABILITIES[0];
   zone: "active" | "library";
   onDragEnd: (info: any, id: string, from: "active" | "library") => void;
