@@ -154,19 +154,24 @@ export async function getCloudinaryConfig() {
   }
 }
 
-export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?: string) {
+export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?: string, tempId?: string) {
   try {
     const session = await auth()
-    if (!session?.user?.email) throw new Error("No autenticado")
+    let userId = session?.user?.id
+    let userEmail = session?.user?.email
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-    if (!user) throw new Error("Usuario no encontrado")
+    // Si no hay sesión, usamos el tempId proporcionado (ej. hash del email o random)
+    const effectiveId = userId || tempId
+    if (!effectiveId) throw new Error("No se proporcionó identificador (sesión o temporal).")
 
-    const org = await prisma.organization.findFirst({
+    const user = userEmail ? await prisma.user.findUnique({
+      where: { email: userEmail }
+    }) : null
+
+    const org = user ? await prisma.organization.findFirst({
       where: { userId: user.id },
-    })
+    }) : null
+
 
     const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
     const EVO_API_KEY = process.env.EVOLUTION_API_KEY
@@ -175,7 +180,8 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
       throw new Error("Credenciales maestras de Evolution no configuradas en el servidor VPS.")
     }
 
-    const instanceName = org?.evolutionInstance || `quos_${user.id}`
+    const instanceName = org?.evolutionInstance || `quos_${effectiveId}`
+
     let instanceToken = org?.evolutionToken || instanceName
 
     // Forzamos borrado previo si existe pero no está conectada, 
@@ -266,21 +272,25 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
   }
 }
 
-export async function checkEvolutionConnectionState() {
+export async function checkEvolutionConnectionState(tempId?: string) {
   try {
     const session = await auth()
-    if (!session?.user?.email) return { connected: false }
+    const userId = session?.user?.id
+    const userEmail = session?.user?.email
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-    if (!user) return { connected: false }
+    const effectiveId = userId || tempId
+    if (!effectiveId) return { connected: false }
 
-    const org = await prisma.organization.findFirst({
+    const user = userEmail ? await prisma.user.findUnique({
+      where: { email: userEmail }
+    }) : null
+
+    const org = user ? await prisma.organization.findFirst({
       where: { userId: user.id },
-    })
+    }) : null
 
-    const instanceName = org?.evolutionInstance || `quos_${user.id}`
+    const instanceName = org?.evolutionInstance || `quos_${effectiveId}`
+
 
     const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
     const EVO_API_KEY = process.env.EVOLUTION_API_KEY
