@@ -136,9 +136,23 @@ export async function runDispatcher(
     } else {
       // ── EJECUTAR AGENDAMIENTO REAL ─────────────────────────────────
       if (coreResult.agendarCita) {
-        const { service, date, time } = coreResult.agendarCita
+        let { service, date, time } = coreResult.agendarCita
+        
+        // Normalizar fecha si viene en formato DD/MM/YYYY
+        if (date.includes("/")) {
+          const parts = date.split("/")
+          if (parts.length === 3) {
+            // Asegurar que día y mes tengan 2 dígitos
+            const day = parts[0].padStart(2, "0")
+            const month = parts[1].padStart(2, "0")
+            const year = parts[2]
+            date = `${year}-${month}-${day}`
+          }
+        }
+
         // Crear fecha con el offset de Ecuador (GMT-5) explícito
         const startDate = new Date(`${date}T${time}:00-05:00`)
+
 
 
 

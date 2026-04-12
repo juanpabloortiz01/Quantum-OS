@@ -88,10 +88,14 @@ Tu objetivo principal es agendar citas de manera eficiente y profesional.
 Tus respuestas deben categorizarse internamente en una de estas 3 intenciones:
 1. PEDIDO (AGENDAR CITA): Solo cuando el cliente ha confirmado los 3 elementos clave: FECHA, HORA y SERVICIO.
    Si faltan datos, usa MENSAJE y pregunta educadamente.
-   - REGLA CRÍTICA: NO generes AGENDAR_CITA fuera de los horarios (${scheduleStr}).
-2. CONFIRMACION: El cliente desea cambiar, mover o cancelar una cita ya existente.
-   - REGLA CRÍTICA: NO resuelvas agendamientos fuera de horario.
 3. MENSAJE: Consultas generales sobre precios, ubicación o disponibilidad.
+
+PROTOCOLO DE AGENDAMIENTO (OBLIGATORIO):
+Cuando confirmes una cita, el mensaje DEBE incluir al final la etiqueta EXACTA:
+AGENDAR_CITA:{"service": "Nombre del Servicio", "date": "YYYY-MM-DD", "time": "HH:MM"}
+- Regla: Fecha siempre en YYYY-MM-DD (ej: 2026-04-13).
+- Importante: Asegúrate que el JSON sea válido.
+
 
 DISPONIBILIDAD Y REGLAS (Google Calendar):
 - Capacidad máxima simultánea: ${ctx.schedulingConfig?.maxSimultaneousEvents || 1} cita(s).
@@ -241,15 +245,27 @@ export async function runCore(
   const isPedidoConfirmado = /PEDIDO_CONFIRMADO:/i.test(rawResponse)
   const isPagoSolicitado = /PAGO_SOLICITADO:/i.test(rawResponse)
 
-  const agendarMatch = rawResponse.match(/AGENDAR_CITA:({.+})/i)
+  const agendarJSONMatch = rawResponse.match(/AGENDAR_CITA:\s*({.+})/i)
+  const agendarTextMatch = rawResponse.match(/AGENDAR_CITA:\s*([^,]+),\s*(\d{1,2}\/\d{1,2}\/\d{4}),\s*(\d{1,2}:\d{2})/i)
+  
   let agendarCita = null
-  if (agendarMatch) {
+  
+  if (agendarJSONMatch) {
     try {
-      agendarCita = JSON.parse(agendarMatch[1])
+      agendarCita = JSON.parse(agendarJSONMatch[1])
     } catch (e) {
       console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de agendamiento")
     }
+  } else if (agendarTextMatch) {
+    // Contingencia para formato de texto: Limpieza, 13/4/2026, 16:00
+    agendarCita = {
+      service: agendarTextMatch[1].trim(),
+      date: agendarTextMatch[2].trim(),
+      time: agendarTextMatch[3].trim()
+    }
+    console.log("[CORE_FALLBACK]: Usando formato de texto para agendamiento")
   }
+
 
   // ── 5. Limpiar texto para el cliente ──────────────────────────────
   const cleanText = rawResponse
@@ -257,7 +273,9 @@ export async function runCore(
     .replace(/PEDIDO_CONFIRMADO:/gi, "")
     .replace(/PAGO_SOLICITADO:/gi, "")
     .replace(/AGENDAR_CITA:({.+})/gi, "")
-    .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "") // Limpiar prefijos de intención
+    .replace(/AGENDAR_CITA:[^.\n]+/gi, "") // Limpiar formato de texto también
+    .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "")
+ // Limpiar prefijos de intención
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO)\s+/gi, "") // Limpiar palabras sueltas al inicio
     .replace(/\n{3,}/g, "\n\n")
     .trim()
