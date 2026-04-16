@@ -126,7 +126,8 @@ export function applyLogicFilter(raw: any): FilterResult {
 
   // ── PARSEO ────────────────────────────────────────────────────────
 
-  let messageType: "text" | "image" = "text"
+  let messageType: "text" | "image" | "location" = "text"
+
   let text: string | null = null
   let imageUrl: string | null = null
   let imageBase64: string | null = null
