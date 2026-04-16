@@ -11,7 +11,9 @@ const VALID_MESSAGE_TYPES = new Set([
   "conversation",
   "extendedTextMessage",
   "imageMessage",
+  "locationMessage",
 ])
+
 
 // Tipos que se descartan silenciosamente (sin log de error)
 const SILENT_DISCARD_TYPES = new Set([
@@ -30,7 +32,7 @@ const SILENT_DISCARD_TYPES = new Set([
 export interface ParsedMessage {
   remoteJid: string
   instanceName: string
-  messageType: "text" | "image"
+  messageType: "text" | "image" | "location"
   text: string | null
   imageUrl: string | null       // Base64 o URL directa de EvolutionAPI
   imageBase64: string | null
@@ -39,6 +41,7 @@ export interface ParsedMessage {
   pushName: string | null
   timestamp: number
 }
+
 
 export interface FilterResult {
   valid: boolean
@@ -136,6 +139,12 @@ export function applyLogicFilter(raw: any): FilterResult {
     imageUrl = msgObj.imageMessage?.url ?? null
     imageBase64 = data?.message?.base64 ?? null
     imageMimetype = msgObj.imageMessage?.mimetype ?? "image/jpeg"
+  } else if (rawType === "locationMessage") {
+    // Detección de ubicación compartida por WhatsApp
+    // No extraemos coordenadas — simplemente le decimos al agente que recibió una ubicación
+    messageType = "location"
+    text = "[UBICACIÓN_ENVIADA]"
+    console.log("[LOGIC_FILTER]: Ubicación de WhatsApp detectada → tratada como dirección de entrega")
   } else {
     // conversation o extendedTextMessage
     text =
@@ -147,6 +156,7 @@ export function applyLogicFilter(raw: any): FilterResult {
       return { valid: false, reason: "EMPTY_TEXT: Mensaje de texto vacío → descartado.", parsed: null }
     }
   }
+
 
   return {
     valid: true,

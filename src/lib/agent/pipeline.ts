@@ -13,6 +13,8 @@ import { runSentry } from "./sentry"
 import { loadContext } from "./context-loader"
 import { runCore } from "./core"
 import { runDispatcher } from "./dispatcher"
+import { debounceMessage } from "./debouncer"
+
 
 export interface PipelineResult {
   status:
@@ -51,6 +53,18 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   )
 
   // ─────────────────────────────────────────────
+  //  NODO 2.5 — DEBOUNCER: El Agón
+  //  Espera que el cliente termine de escribir
+  //  antes de pasar al pipeline costoso.
+  // ─────────────────────────────────────────────
+  if (msg.messageType === "text") {
+    console.log(`[PIPELINE]: DEBOUNCER activo — esperando silencio de 2.5s para JID: ${msg.remoteJid}`)
+    const combinedText = await debounceMessage(msg.remoteJid, msg.text ?? "", msg.messageType)
+    msg.text = combinedText
+    console.log(`[PIPELINE]: DEBOUNCER resuelto — texto final: "${combinedText.slice(0, 80)}"`)
+  }
+
+  // ─────────────────────────────────────────────
   //  NODO 3 — The Sentry: El Clasificador
   // ─────────────────────────────────────────────
   console.log("[PIPELINE]: Inicia NODO 3 (Sentry)")
@@ -58,6 +72,7 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   console.log(
     `[SENTRY]: intent=${sentryResult.intent} | needs_inventory=${sentryResult.needs_inventory} | conf=${sentryResult.confidence}`
   )
+
 
   // ─────────────────────────────────────────────
   //  NODO 4 — Context Loader: El Bibliotecario
