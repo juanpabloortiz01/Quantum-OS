@@ -38,6 +38,7 @@ function buildSystemPrompt(
   const catalogStr =
     ctx.products.length > 0
       ? ctx.products
+          .filter(p => p.primaryColor !== "Menú" && p.category !== "MENÚ_COMPLETO") // excluir platos que ya van en menuInfo
           .map((p, i) => {
             const parts = [
               `[Producto ${i + 1}]`,
@@ -54,6 +55,7 @@ function buildSystemPrompt(
           .join("\n\n")
       : "No hay productos cargados en el sistema."
 
+
   // ── Información de contacto y redes ───────────────────────────────
   const contactParts = [
     ctx.address ? `Dirección: ${ctx.address}` : null,
@@ -67,8 +69,19 @@ function buildSystemPrompt(
     .join("\n")
 
   // ── Identificar Menús (Especial para Restaurantes) ────────────────
-  const menuProducts = ctx.products.filter(p => p.category === "MENÚ_COMPLETO")
-  const menuInfo = menuProducts.map(m => `[MENÚ EN IMAGEN]: ${m.characteristics} (URL: ${m.imageUrl})`).join("\n")
+  const menuProducts = ctx.products.filter(p => 
+    p.category === "MENÚ_COMPLETO" || p.primaryColor === "Menú"
+  )
+  const menuInfo = menuProducts.map(m => {
+    const parts = [
+      m.category ? `Plato: ${m.category}` : null,
+      m.brand ? `Precio: ${m.brand}` : null,
+      m.characteristics ? `Descripción: ${m.characteristics}` : null,
+      m.imageUrl ? `Foto referencia: ${m.imageUrl}` : null,
+    ].filter(Boolean)
+    return parts.join(" | ")
+  }).join("\n")
+
 
   // ── Calendario formateado ──────────────────────────────────────────
   const availabilityStr = ctx.calendarAvailability && ctx.calendarAvailability.length > 0

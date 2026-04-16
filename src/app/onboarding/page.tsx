@@ -181,25 +181,46 @@ function OnboardingContent() {
       const aiRes = await fetch("/api/analyze-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl })
+        body: JSON.stringify({ imageUrl, niche: formData.niche })
       })
       const result = await aiRes.json()
 
       if (result.success) {
-        const isRestaurant = formData.niche === "ventas"
-        setCurrentProduct((prev: any) => ({
-          ...prev,
-          categoria: isRestaurant ? "MENÚ_COMPLETO" : (result.data.categoria || prev.categoria),
-          color_principal: result.data.color_principal || prev.color_principal,
-          color_secundario: result.data.color_secundario || prev.color_secundario,
-          marca: result.data.marca || prev.marca,
-          caracteristicas: result.data.caracteristicas || prev.caracteristicas,
-          estilo: result.data.estilo || prev.estilo,
-        }))
-        setAnalyzingStep("COMPLETADO")
+        if (result.isMenu && result.data.platos && Array.isArray(result.data.platos)) {
+          // VENTAS: añadir cada plato como un producto independiente
+          const newProducts = result.data.platos.map((plato: any) => ({
+            url_foto: imageUrl,
+            categoria: plato.nombre || "",
+            marca: plato.precio || "",
+            color_principal: "Menú",
+            color_secundario: "",
+            caracteristicas: plato.descripcion || "",
+            estilo: "",
+          }))
+          setFormData((prev: any) => ({
+            ...prev,
+            products: [...prev.products, ...newProducts].slice(0, 20),
+          }))
+          // Limpiar current product ya que se añadieron todos
+          setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
+          setAnalyzingStep("COMPLETADO")
+        } else {
+          // SHOWROOM / AGENDA: flujo normal de un solo producto
+          setCurrentProduct((prev: any) => ({
+            ...prev,
+            categoria: result.data.categoria || prev.categoria,
+            color_principal: result.data.color_principal || prev.color_principal,
+            color_secundario: result.data.color_secundario || prev.color_secundario,
+            marca: result.data.marca || prev.marca,
+            caracteristicas: result.data.caracteristicas || prev.caracteristicas,
+            estilo: result.data.estilo || prev.estilo,
+          }))
+          setAnalyzingStep("COMPLETADO")
+        }
       } else {
         throw new Error("Fallo en Análisis con IA")
       }
+
 
     } catch (err) {
       console.error(err)
