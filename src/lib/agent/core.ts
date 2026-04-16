@@ -121,14 +121,59 @@ Estas son las horas que ya están OCUPADAS actualmente:
 ${availabilityStr}`;
 
   const generalRules = `
-Tu rol: vendedor experto, empático y conciso.
+Tu rol: Asistente de ventas y pedidos para "${ctx.companyName}".
+Tu objetivo es guiar al cliente paso a paso hasta completar su pedido.
+
 ═══════════════════════════════════════
-PROTOCOLO DE RESPUESTA (VENTAS)
+📋 MENÚ DE INICIO (BIENVENIDA)
 ═══════════════════════════════════════
-1. Si el cliente pregunta por el MENÚ o QUÉ TIENEN PARA COMER, DEBES enviar la foto del menú usando: FOTO_URL:${menuProducts[0]?.imageUrl || ""}
-2. Si el cliente pregunta por un producto específico y tienes su foto, úsala: FOTO_URL:<url_exacta_del_producto>
-3. Si confirma una compra, usa la etiqueta: PEDIDO_CONFIRMADO:
-4. Si pide cómo pagar, usa: PAGO_SOLICITADO:`;
+Cuando un cliente escribe por primera vez o saluda (hola, buenas, etc.), DEBES responder con este mensaje de bienvenida EXACTO, adaptado a tu negocio:
+
+"¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
+
+1️⃣ Tomar un pedido
+2️⃣ Hablar con alguien
+3️⃣ Ver el menú / carta
+4️⃣ Información del local
+
+Responde con el número de tu opción."
+
+═══════════════════════════════════════
+🔄 FLUJO POR OPCIÓN
+═══════════════════════════════════════
+
+OPCIÓN 1 — TOMAR UN PEDIDO:
+Sigue este protocolo en orden estricto, recolectando UN dato a la vez:
+  PASO A → Pregunta: "¿Qué plato(s) deseas pedir?" (Muestra el menú si lo pide)
+  PASO B → Pregunta: "¿Cuál es tu nombre completo?"
+  PASO C → Pregunta: "¿Cuál es tu dirección de entrega?"
+  PASO D → Muestra el resumen del pedido y solicita confirmación:
+    "📋 *Resumen de tu pedido:*
+    🍽 Plato: [plato elegido]
+    👤 Nombre: [nombre]
+    📍 Dirección: [dirección]
+    
+    ¿Confirmas tu pedido? Responde *CONFIRMAR* para finalizar."
+
+OPCIÓN 2 — HABLAR CON ALGUIEN:
+Responde: "Entendido, en breve alguien de nuestro equipo se comunicará contigo. ¡Gracias por tu paciencia! 🙏"
+
+OPCIÓN 3 — VER MENÚ:
+Envía la foto del menú si está disponible usando: FOTO_URL:${menuProducts[0]?.imageUrl || ""}
+Luego lista los platos disponibles del catálogo con sus precios.
+
+OPCIÓN 4 — INFORMACIÓN:
+Comparte la dirección, horarios y datos de contacto del negocio.
+
+═══════════════════════════════════════
+⚠️ REGLAS DE CONTROL DEL FLUJO
+═══════════════════════════════════════
+- Si el cliente cambia de tema DURANTE la toma de pedido, responde amablemente la duda y REDIRIGE: "Dicho esto, ¿continuamos con tu pedido? Ya tenía anotado: [datos recolectados hasta ahora]..."
+- Si el cliente escribe CONFIRMAR (o "confirmar", "sí confirmo", etc.) tras el PASO D, emite:
+  PEDIDO_CONFIRMADO:{"plato":"[plato]","nombre":"[nombre]","direccion":"[direccion]"}
+- Si confirma pago, emite: PAGO_SOLICITADO:
+- NUNCA inventes precios ni platos que no estén en el catálogo.`;
+
 
 
   return `${basePrompt}
@@ -170,12 +215,14 @@ export interface CoreResult {
   hasImage: boolean
   imageUrl: string | null
   isPedidoConfirmado: boolean
+  pedidoData: { plato: string; nombre: string; direccion: string } | null
   isPagoSolicitado: boolean
   agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
 
   cleanText: string
   tokensUsed: number
 }
+
 
 
 /**
@@ -259,8 +306,19 @@ export async function runCore(
   // ── 4. Parsear etiquetas de control ──────────────────────────────
   const fotoMatch = rawResponse.match(/FOTO_URL:(https?:\/\/\S+)/i)
   const imageUrl = fotoMatch ? fotoMatch[1].trim() : null
-  const isPedidoConfirmado = /PEDIDO_CONFIRMADO:/i.test(rawResponse)
   const isPagoSolicitado = /PAGO_SOLICITADO:/i.test(rawResponse)
+
+  // Parsear PEDIDO_CONFIRMADO con datos opcionales
+  const pedidoMatch = rawResponse.match(/PEDIDO_CONFIRMADO:({.+})/i)
+  const isPedidoConfirmado = /PEDIDO_CONFIRMADO:/i.test(rawResponse)
+  let pedidoData = null
+  if (pedidoMatch) {
+    try {
+      pedidoData = JSON.parse(pedidoMatch[1])
+    } catch (e) {
+      console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de pedido")
+    }
+  }
 
   const agendarJSONMatch = rawResponse.match(/AGENDAR_CITA:\s*({.+})/i)
   const agendarTextMatch = rawResponse.match(/AGENDAR_CITA:\s*([^,]+),\s*(\d{1,2}\/\d{1,2}\/\d{4}),\s*(\d{1,2}:\d{2})/i)
@@ -287,6 +345,7 @@ export async function runCore(
   // ── 5. Limpiar texto para el cliente ──────────────────────────────
   const cleanText = rawResponse
     .replace(/FOTO_URL:(https?:\/\/\S+)/gi, "")
+    .replace(/PEDIDO_CONFIRMADO:({.+})/gi, "")
     .replace(/PEDIDO_CONFIRMADO:/gi, "")
     .replace(/PAGO_SOLICITADO:/gi, "")
     .replace(/AGENDAR_CITA:({.+})/gi, "")
@@ -296,6 +355,7 @@ export async function runCore(
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO)\s+/gi, "") // Limpiar palabras sueltas al inicio
     .replace(/\n{3,}/g, "\n\n")
     .trim()
+
 
 
 
@@ -322,10 +382,12 @@ export async function runCore(
     hasImage: !!imageUrl,
     imageUrl,
     isPedidoConfirmado,
+    pedidoData,
     isPagoSolicitado,
     agendarCita,
     cleanText,
     tokensUsed,
   }
+
 
 }
