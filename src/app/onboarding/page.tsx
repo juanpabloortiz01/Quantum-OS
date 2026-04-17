@@ -92,7 +92,9 @@ function OnboardingContent() {
       facebook: "",
       contactEmail: "",
       contactPhone: "",
+      notifPhone: "",
     },
+
     products: [] as any[],
     testPhone: "",
   })
@@ -111,6 +113,11 @@ function OnboardingContent() {
   // States for Conditional Step 3
   const [ventasMethod, setVentasMethod] = useState<"choose" | "ai" | "manual">("choose")
   const [manualItem, setManualItem] = useState({ name: "", price: "" })
+
+  // Cuenta cuántas imágenes distintas han sido escaneadas con IA
+  const scannedImageCount = new Set(
+    formData.products.filter(p => p.url_foto && p.color_principal === "Menú").map(p => p.url_foto)
+  ).size
 
 
   useEffect(() => {
@@ -823,6 +830,30 @@ function OnboardingContent() {
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
+                    {/* ★ TARJETA OBLIGATORIA: Número de notificaciones */}
+                    <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                          <span className="text-white text-[10px]">📲</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos</p>
+                          <p className="text-[10px] text-[#6B7280]">A este número WhatsApp llegarán las notificaciones cuando el agente confirme un pedido o cita.</p>
+                        </div>
+                      </div>
+                      <input
+                        type="tel"
+                        placeholder="Ej: +593987654321"
+                        value={formData.contextData.notifPhone || ""}
+                        onChange={(e) => updateContext("notifPhone", e.target.value)}
+                        className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
+                      />
+                      {!formData.contextData.notifPhone && (
+                        <p className="text-[10px] font-semibold text-amber-600">⚠️ Este campo es obligatorio para continuar.</p>
+                      )}
+                    </div>
+
+
                     {/* 1. SELECCIÓN PARA RESTAURANTES */}
                     {formData.niche === "ventas" && ventasMethod === "choose" && (
                       <div className="flex flex-col gap-3">
@@ -925,7 +956,27 @@ function OnboardingContent() {
                           </button>
                         )}
                         
-                        {formData.products.length < 5 ? (
+                        {/* Aviso plan gratuito para ventas y agenda */}
+                        {(formData.niche === "ventas" || formData.niche === "agenda") && (
+                          <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                            <span className="text-amber-500 text-sm shrink-0">ℹ️</span>
+                            <p className="text-[10px] text-amber-700 leading-relaxed">
+                              <strong>Plan Gratuito:</strong> Puedes escanear hasta <strong>2 imágenes</strong> con IA. Cada imagen puede contener múltiples platos o servicios.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Contador de imágenes escaneadas */}
+                        {(formData.niche === "ventas" || formData.niche === "agenda") && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-[#6B7280] font-medium">Imágenes escaneadas</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              scannedImageCount >= 2 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
+                            }`}>{scannedImageCount}/2</span>
+                          </div>
+                        )}
+
+                        {scannedImageCount < (formData.niche === "ventas" || formData.niche === "agenda" ? 2 : 99) ? (
                           <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-36">
                             <input
                               type="file"
@@ -953,10 +1004,45 @@ function OnboardingContent() {
                             {analyzingStep === "ERROR" && <span className="text-xs font-semibold text-red-500 mt-3">Error procesando imagen. Intenta otra vez.</span>}
                           </div>
                         ) : (
-                          <div className="text-center text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
-                            Límite de productos alcanzado (5/5)
+                          <div className="flex flex-col gap-3">
+                            <div className="text-center text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                              🎯 Límite de 2 imágenes alcanzado — añade items adicionales manualmente:
+                            </div>
+                            {/* ENTRADA MANUAL INTEGRADA */}
+                            <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
+                              <div className="col-span-3">
+                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
+                                <input 
+                                  type="text" 
+                                  placeholder={formData.niche === "agenda" ? "Ej: Limpieza profunda" : "Ej: Lomo saltado"}
+                                  value={manualItem.name}
+                                  onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
+                                  className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                                <div className="flex gap-2">
+                                  <input 
+                                    type="text" 
+                                    placeholder="$45.00" 
+                                    value={manualItem.price}
+                                    onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                    className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
+                                  />
+                                  <button 
+                                    onClick={handleAddManualItem}
+                                    className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
+                                  >
+                                    <Zap size={16} fill="white" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         )}
+
 
                         {currentProduct.url_foto && analyzingStep === "COMPLETADO" && (
                           <div className="border border-[#E2E8F0] bg-white rounded-xl p-5 shadow-sm flex flex-col gap-4">
@@ -1030,8 +1116,11 @@ function OnboardingContent() {
                     </button>
                     <button
                       onClick={() => setStep(4)}
-                      disabled={formData.niche === "ventas" && ventasMethod === "choose"}
-                      className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all ${
+                      disabled={
+                        (formData.niche === "ventas" && ventasMethod === "choose") ||
+                        !formData.contextData.notifPhone
+                      }
+                      className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                         formData.products.length === 0 
                           ? "bg-white border border-[#E2E8F0] text-[#1A1A1A] hover:bg-[#F9FAFB]" 
                           : "bg-[#1A1A1A] text-white hover:bg-[#333]"
@@ -1039,6 +1128,7 @@ function OnboardingContent() {
                     >
                       {formData.products.length === 0 ? "Omitir por ahora" : "Continuar"}
                     </button>
+
                   </div>
                 </motion.div>
               )}
