@@ -957,7 +957,7 @@ function OnboardingContent() {
                         )}
                         
                         {/* Aviso plan gratuito para ventas y agenda */}
-                        {(formData.niche === "ventas" || formData.niche === "agenda") && (
+                        {(["ventas","agenda"] as string[]).includes(formData.niche) && (
                           <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
                             <span className="text-amber-500 text-sm shrink-0">ℹ️</span>
                             <p className="text-[10px] text-amber-700 leading-relaxed">
@@ -967,7 +967,7 @@ function OnboardingContent() {
                         )}
 
                         {/* Contador de imágenes escaneadas */}
-                        {(formData.niche === "ventas" || formData.niche === "agenda") && (
+                        {(["ventas","agenda"] as string[]).includes(formData.niche) && (
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-[#6B7280] font-medium">Imágenes escaneadas</span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -976,7 +976,7 @@ function OnboardingContent() {
                           </div>
                         )}
 
-                        {scannedImageCount < (formData.niche === "ventas" || formData.niche === "agenda" ? 2 : 99) ? (
+                        {scannedImageCount < ((["ventas","agenda"] as string[]).includes(formData.niche) ? 2 : 99) ? (
                           <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-36">
                             <input
                               type="file"
