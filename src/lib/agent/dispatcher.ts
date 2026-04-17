@@ -179,8 +179,38 @@ export async function runDispatcher(
 
       console.log(`[DISPATCHER]: Payload Text -> "${coreResult.cleanText.substring(0, 50)}..."`)
       await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
+
+      // ── NOTIFICACIÓN AL ENCARGADO DE PEDIDOS ─────────────────────
+      // Solo para nicho VENTAS, cuando el pedido está confirmado y hay un número de notificación configurado
+      if (
+        coreResult.isPedidoConfirmado &&
+        ctx.niche?.toUpperCase() === "VENTAS" &&
+        ctx.notifPhone
+      ) {
+        const pedido = coreResult.pedidoData
+        const notifMsg = [
+          `🛒 *NUEVO PEDIDO — ${ctx.companyName}*`,
+          ``,
+          `🍽 *Plato:* ${pedido?.plato || "No especificado"}`,
+          `👤 *Cliente:* ${pedido?.nombre || "No especificado"}`,
+          `📍 *Dirección:* ${pedido?.direccion || "No especificada"}`,
+          `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
+          ``,
+          `⏰ ${new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" })}`,
+          `_Generado automáticamente por Quantum OS_`,
+        ].join("\n")
+
+        try {
+          await sendText(EVO_URL, instanceName, authKey, ctx.notifPhone, notifMsg)
+          console.log(`[DISPATCHER]: ✅ Notificación de pedido enviada a ${ctx.notifPhone}`)
+        } catch (notifErr: any) {
+          console.error(`[DISPATCHER_NOTIF_ERROR]: No se pudo notificar al encargado:`, notifErr.message)
+        }
+      }
+
       return { success: true, method: "sendText" }
     }
+
 
   } catch (err: any) {
     console.error(`[DISPATCHER_FATAL]: Fallo en la conexión Fetch ->`, err?.message ?? err)

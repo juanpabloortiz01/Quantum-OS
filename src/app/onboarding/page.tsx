@@ -5,7 +5,8 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield } from "lucide-react"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock } from "lucide-react"
+
 import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState, registerAndFinalizeOnboarding } from "./action"
 
 
@@ -832,9 +833,9 @@ function OnboardingContent() {
 
                     {/* ★ TARJETA OBLIGATORIA: Número de notificaciones */}
                     <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0">
-                          <span className="text-white text-[10px]">📲</span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                          <Phone size={14} className="text-white" />
                         </div>
                         <div>
                           <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos</p>
@@ -848,10 +849,8 @@ function OnboardingContent() {
                         onChange={(e) => updateContext("notifPhone", e.target.value)}
                         className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
                       />
-                      {!formData.contextData.notifPhone && (
-                        <p className="text-[10px] font-semibold text-amber-600">⚠️ Este campo es obligatorio para continuar.</p>
-                      )}
                     </div>
+
 
 
                     {/* 1. SELECCIÓN PARA RESTAURANTES */}
@@ -956,15 +955,7 @@ function OnboardingContent() {
                           </button>
                         )}
                         
-                        {/* Aviso plan gratuito para ventas y agenda */}
-                        {(["ventas","agenda"] as string[]).includes(formData.niche) && (
-                          <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-                            <span className="text-amber-500 text-sm shrink-0">ℹ️</span>
-                            <p className="text-[10px] text-amber-700 leading-relaxed">
-                              <strong>Plan Gratuito:</strong> Puedes escanear hasta <strong>2 imágenes</strong> con IA. Cada imagen puede contener múltiples platos o servicios.
-                            </p>
-                          </div>
-                        )}
+
 
                         {/* Contador de imágenes escaneadas */}
                         {(["ventas","agenda"] as string[]).includes(formData.niche) && (
@@ -1005,8 +996,9 @@ function OnboardingContent() {
                           </div>
                         ) : (
                           <div className="flex flex-col gap-3">
-                            <div className="text-center text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                              🎯 Límite de 2 imágenes alcanzado — añade items adicionales manualmente:
+                            <div className="flex items-center gap-2 px-3 py-2.5 bg-[#1A1A1A] rounded-xl">
+                              <Lock size={12} className="text-white shrink-0" />
+                              <span className="text-[10px] font-semibold text-white">Límite de 2 imágenes alcanzado. Añade items adicionales manualmente.</span>
                             </div>
                             {/* ENTRADA MANUAL INTEGRADA */}
                             <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">

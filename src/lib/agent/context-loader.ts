@@ -28,7 +28,9 @@ export interface LoadedContext {
   contactEmail: string
   contactPhone: string
   enabledNodes: string[]
+  notifPhone: string
   products: ProductContext[]
+
   evolutionInstance: string
   evolutionToken: string
   whatsappNumber: string
@@ -106,7 +108,9 @@ export async function loadContext(
       facebook: ctx.facebook ?? "",
       contactEmail: ctx.contactEmail ?? "",
       contactPhone: ctx.contactPhone ?? "",
+      notifPhone: ctx.notifPhone ?? "",
       enabledNodes,
+
       products,
       evolutionInstance: org.evolutionInstance ?? "",
       evolutionToken: org.evolutionToken ?? "",
