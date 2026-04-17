@@ -1014,7 +1014,8 @@ function OnboardingContent() {
                                 <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
                                 <input 
                                   type="text" 
-                                  placeholder={formData.niche === "agenda" ? "Ej: Limpieza profunda" : "Ej: Lomo saltado"}
+                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Lomo saltado"}
+
                                   value={manualItem.name}
                                   onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
                                   className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
