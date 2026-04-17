@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   ScanLine, MessageSquare, ShoppingCart, Calendar, Settings,
   Wifi, WifiOff, Activity, Smartphone, LogOut, ChevronRight,
-  GripVertical, Inbox, Zap, BarChart3, HelpCircle, User, ArrowLeft
+  GripVertical, Inbox, Zap, BarChart3, HelpCircle, User, ArrowLeft,
+  Heart, Gift
 } from "lucide-react";
+
 
 import Link from "next/link";
 import { useSession, signOut, signIn } from "next-auth/react";
@@ -30,6 +32,7 @@ const MOCK_INSTANCES = [
 // ── CAPACIDADES DEL AGENTE ───────────────────────────────────────────
 const ICON_MAP = {
   calendar: Calendar,
+  loyalty: Heart,
 };
 
 const ALL_CAPABILITIES = [
@@ -37,7 +40,15 @@ const ALL_CAPABILITIES = [
     id: "calendar", 
     name: "Agendar citas", 
     desc: "Sincroniza tu disponibilidad con Google Calendar y permite que tus clientes agenden por WhatsApp.", 
-    icon: "calendar" 
+    icon: "calendar",
+    niches: ["AGENDA"],
+  },
+  { 
+    id: "loyalty", 
+    name: "Fidelización de Clientes", 
+    desc: "Sistema de lealtad en WhatsApp. Premia a tus clientes frecuentes automáticamente, sin tarjetas ni apps.", 
+    icon: "loyalty",
+    niches: ["VENTAS"],
   },
 ];
 
@@ -85,11 +96,20 @@ function DashboardContent() {
   const [selectedCap, setSelectedCap] = useState<string | null>(searchParams.get("cap") || null);
   
   const [schedConfig, setSchedConfig] = useState({
-
     simultaneous: 1,
     limitPerDay: 1,
-    isGoogleConnected: false, // Debería venir de la DB
+    isGoogleConnected: false,
   });
+
+  const [niche, setNiche] = useState<string>("AGENDA")
+
+  const [loyaltyConfig, setLoyaltyConfig] = useState({
+    triggerProduct: "",
+    triggerCount: "10",
+    rewardProduct: "",
+    rewardCount: "1",
+    saved: false,
+  })
 
 
   const activeRef = useRef<HTMLDivElement>(null);
@@ -146,16 +166,24 @@ function DashboardContent() {
       setIsLoading(true)
       const layout = await getDashboardLayout()
       if (layout) {
-        // Mover habilidades a sus cajas correctas
+        const userNiche = (layout.niche || "AGENDA").toUpperCase()
+        setNiche(userNiche)
+
+        // Filtrar capacidades disponibles según el nicho del negocio
+        const nicheCaps = ALL_CAPABILITIES.filter(c =>
+          c.niches.includes(userNiche)
+        )
+
         const activeIds = layout.activeSkills || []
-        const newActive = ALL_CAPABILITIES.filter(c => activeIds.includes(c.id))
-        const newLib = ALL_CAPABILITIES.filter(c => !activeIds.includes(c.id))
+        const newActive = nicheCaps.filter(c => activeIds.includes(c.id))
+        const newLib = nicheCaps.filter(c => !activeIds.includes(c.id))
         
         setActive(newActive)
         setLibrary(newLib)
       }
       setIsLoading(false)
     }
+
 
     checkConn()
     loadLayout()
@@ -469,7 +497,9 @@ function DashboardContent() {
                   >
                     <ArrowLeft size={14} /> Volver al listado
                   </button>
-                  
+
+                  {/* ── PANEL: AGENDA ──────────────────────── */}
+                  {selectedCap === "calendar" && (<>
                   <div className="flex items-center gap-4 mb-8">
                     <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] flex items-center justify-center shadow-inner">
                       <Calendar size={24} className="text-[#1A1A1A]" />
@@ -479,6 +509,7 @@ function DashboardContent() {
                       <p className="text-sm text-[#9CA3AF]">Define cómo el agente gestionará las citas físicas.</p>
                     </div>
                   </div>
+
 
                   <div className="space-y-6 bg-[#FBFBFA] p-6 rounded-2xl border border-[#F3F4F6]">
                     {/* Google Status */}
@@ -553,11 +584,114 @@ function DashboardContent() {
                     </button>
 
                   </div>
+                  </>)}
+
+                  {/* ── PANEL: FIDELIZACIÓN (solo VENTAS) ──── */}
+                  {selectedCap === "loyalty" && (<>
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-12 h-12 rounded-xl bg-[#FFF1F2] flex items-center justify-center shadow-inner">
+                      <Heart size={24} className="text-rose-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-[#1A1A1A]">Fidelización de Clientes</h3>
+                      <p className="text-sm text-[#9CA3AF]">Define tu regla de lealtad. Sin código, sin fricciones.</p>
+                    </div>
+                  </div>
+
+                  {/* Preview animada de la regla */}
+                  {loyaltyConfig.triggerProduct && loyaltyConfig.rewardProduct && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                      className="mb-6 flex items-center gap-3 px-5 py-4 bg-[#1A1A1A] rounded-2xl"
+                    >
+                      <Gift size={18} className="text-white shrink-0" />
+                      <p className="text-sm text-white leading-relaxed">
+                        Cada <strong>{loyaltyConfig.triggerCount} {loyaltyConfig.triggerProduct}</strong>, el cliente gana <strong>{loyaltyConfig.rewardCount} {loyaltyConfig.rewardProduct}</strong> gratis.
+                      </p>
+                    </motion.div>
+                  )}
+
+                  <div className="space-y-5 bg-[#FBFBFA] p-6 rounded-2xl border border-[#F3F4F6]">
+                    <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Tu regla de fidelización</p>
+
+                    {/* Fila 1: Acción */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-[#374151]">¿Qué producto cuenta?</label>
+                      <p className="text-[11px] text-[#9CA3AF]">El producto que el cliente debe comprar repetidamente.</p>
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          type="number" min="1"
+                          value={loyaltyConfig.triggerCount}
+                          onChange={e => setLoyaltyConfig(p => ({ ...p, triggerCount: e.target.value }))}
+                          placeholder="10"
+                          className="w-20 h-11 px-3 rounded-xl border border-[#E2E8F0] bg-white text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-black/5"
+                        />
+                        <input
+                          type="text"
+                          value={loyaltyConfig.triggerProduct}
+                          onChange={e => setLoyaltyConfig(p => ({ ...p, triggerProduct: e.target.value }))}
+                          placeholder="Ej: Pizzas Familiares"
+                          className="flex-1 h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Separador visual */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-[#E2E8F0]" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">dan como recompensa</span>
+                      <div className="flex-1 h-px bg-[#E2E8F0]" />
+                    </div>
+
+                    {/* Fila 2: Recompensa */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-[#374151]">¿Qué regalo recibe?</label>
+                      <p className="text-[11px] text-[#9CA3AF]">Lo que el cliente gana una vez que completa el ciclo.</p>
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          type="number" min="1"
+                          value={loyaltyConfig.rewardCount}
+                          onChange={e => setLoyaltyConfig(p => ({ ...p, rewardCount: e.target.value }))}
+                          placeholder="1"
+                          className="w-20 h-11 px-3 rounded-xl border border-[#E2E8F0] bg-white text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-black/5"
+                        />
+                        <input
+                          type="text"
+                          value={loyaltyConfig.rewardProduct}
+                          onChange={e => setLoyaltyConfig(p => ({ ...p, rewardProduct: e.target.value }))}
+                          placeholder="Ej: Porción de Papas"
+                          className="flex-1 h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Plan info */}
+                    <div className="pt-2 border-t border-[#E2E8F0] flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-[#F3F4F6] flex items-center justify-center shrink-0 mt-0.5">
+                        <Zap size={11} className="text-[#6B7280]" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-[#374151]">Plan Gratuito — 1 regla activa, máx. 20 clientes/mes</p>
+                        <p className="text-[10px] text-[#9CA3AF] mt-0.5 leading-relaxed">El agente lleva la cuenta automáticamente y avisa al cliente cuando gana su premio por WhatsApp.</p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!loyaltyConfig.triggerProduct || !loyaltyConfig.rewardProduct}
+                      onClick={() => setLoyaltyConfig(p => ({ ...p, saved: true }))}
+                      className="w-full h-12 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-black transition-all shadow-lg shadow-black/10 mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {loyaltyConfig.saved ? "¡Regla guardada!" : "Activar regla de fidelización"}
+                    </button>
+                  </div>
+                  </>)}
+
                 </div>
               )}
             </div>
 
             {/* Footer status */}
+
             <div className="px-5 py-3 border-t border-[#E2E8F0] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-sm" />
