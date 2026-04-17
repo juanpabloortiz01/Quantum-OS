@@ -11,9 +11,9 @@ import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryCon
 
 
 const NICHES = [
-  { 
-    id: "agenda", 
-    label: "Quantum [Agenda]", 
+  {
+    id: "agenda",
+    label: "Quantum [Agenda]",
     target: "Clínicas, estéticas, spas o barberías",
     desc: "Es como tener una recepcionista de élite que nunca duerme. Se encarga de tus citas mientras tú te concentras en atender. La IA llena tu día.",
     icon: Calendar,
@@ -21,9 +21,9 @@ const NICHES = [
     accent: "text-blue-600",
     needs: ["calendar", "crm"]
   },
-  { 
-    id: "ventas", 
-    label: "Quantum [Ventas]", 
+  {
+    id: "ventas",
+    label: "Quantum [Ventas]",
     target: "Restaurantes, cafeterías o negocios de comida",
     desc: "Un mesero digital que no comete errores. Toma pedidos, organiza comandas y atiende a 20 personas al mismo tiempo sin equivocarse.",
     icon: Coffee,
@@ -31,9 +31,9 @@ const NICHES = [
     accent: "text-orange-600",
     needs: ["orders", "crm"]
   },
-  { 
-    id: "showroom", 
-    label: "Quantum [Showroom]", 
+  {
+    id: "showroom",
+    label: "Quantum [Showroom]",
     target: "Tiendas de ropa, tecnología o e-commerce",
     desc: "Convierte tu WhatsApp en una vitrina inteligente. La IA conoce tu stock y vende por ti sugiriendo lo que el cliente busca.",
     icon: ShoppingBag,
@@ -351,7 +351,7 @@ function OnboardingContent() {
     setIsLoading(true)
     // YA NO REGISTRAMOS AQUÍ. Solo validamos y avanzamos.
     // El registro ocurrirá al final junto con la creación de la organización.
-    
+
     // Verificamos disponibilidad de email (opcional, pero recomendado)
     // Para simplificar, asumimos que es válido y seguimos.
     setIsLoading(false)
@@ -360,7 +360,7 @@ function OnboardingContent() {
 
   const handleFinalize = async () => {
     setIsLoading(true)
-    
+
     if (status === "unauthenticated") {
       // REGISTRO DIFERIDO + FINALIZACIÓN
       const result = await registerAndFinalizeOnboarding(
@@ -370,7 +370,7 @@ function OnboardingContent() {
           tempId: tempId || undefined
         }
       )
-      
+
       if ("error" in result) {
         setError(result.error as string)
         setIsLoading(false)
@@ -402,7 +402,7 @@ function OnboardingContent() {
 
   return (
     <div className="min-h-screen bg-[#FBFBFA] text-[#1A1A1A] flex items-center justify-center p-4 selection:bg-slate-200 selection:text-black font-sans">
-      
+
       {/* DOT GRID MINIMALISTA */}
       <div className="absolute inset-0 z-0 opacity-40 pointer-events-none"
         style={{
@@ -414,7 +414,7 @@ function OnboardingContent() {
       />
 
       <div className="relative z-10 w-full max-w-md">
-        
+
         {/* HEADER MINI */}
         <div className="mb-6 flex items-center justify-between">
           <div className="text-xs font-semibold tracking-wide text-[#1A1A1A]">
@@ -429,7 +429,7 @@ function OnboardingContent() {
 
         {/* TARJETA PRINCIPAL */}
         <div className="border border-[#E2E8F0] bg-white rounded-xl shadow-sm relative overflow-hidden">
-          
+
           {/* Barra de progreso superior */}
           {step > 0 && (
             <div className="h-1 flex">
@@ -585,25 +585,24 @@ function OnboardingContent() {
                       return (
                         <button
                           key={niche.id}
-                          onClick={() => setFormData({ 
-                            ...formData, 
+                          onClick={() => setFormData({
+                            ...formData,
                             niche: niche.id,
-                            needs: niche.needs 
+                            needs: niche.needs
                           })}
-                          className={`group relative p-5 text-left transition-all border rounded-2xl overflow-hidden ${
-                            active 
-                              ? "border-[#1A1A1A] bg-white shadow-md scale-[1.02]" 
+                          className={`group relative p-5 text-left transition-all border rounded-2xl overflow-hidden ${active
+                              ? "border-[#1A1A1A] bg-white shadow-md scale-[1.02]"
                               : "border-[#E2E8F0] bg-white hover:border-[#94A3B8] hover:shadow-sm"
-                          }`}
+                            }`}
                         >
                           {/* Background gradient hint */}
                           <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br ${niche.color} pointer-events-none`} />
-                          
+
                           <div className="relative z-10 flex gap-4">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${active ? "bg-[#1A1A1A] text-white" : "bg-[#F3F4F6] text-[#6B7280]"}`}>
                               <Icon size={24} />
                             </div>
-                            
+
                             <div className="flex flex-col gap-1">
                               <div className="flex items-center justify-between">
                                 <span className={`text-base font-bold tracking-tight ${active ? "text-[#1A1A1A]" : "text-[#4B5563]"}`}>
@@ -688,11 +687,10 @@ function OnboardingContent() {
                           <button
                             key={day}
                             onClick={() => toggleDay(day)}
-                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all border ${
-                              formData.contextData.scheduleDays.includes(day)
+                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all border ${formData.contextData.scheduleDays.includes(day)
                                 ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
                                 : "border-[#E2E8F0] bg-white text-[#4B5563] hover:border-[#94A3B8]"
-                            }`}
+                              }`}
                           >
                             {day}
                           </button>
@@ -818,8 +816,8 @@ function OnboardingContent() {
                       {formData.niche === "agenda" && "Enlista los servicios que el agente ofrecerá"}
                       {formData.niche === "showroom" && "Sube tu catálogo de productos"}
                       {formData.niche === "ventas" && (
-                        ventasMethod === "choose" ? "¿Cómo prefieres subir tu menú?" : 
-                        ventasMethod === "ai" ? "Sube fotos de tu menú" : "Enlista tus platos y precios"
+                        ventasMethod === "choose" ? "¿Cómo prefieres subir tu menú?" :
+                          ventasMethod === "ai" ? "Sube fotos de tu menú" : "Enlista tus platos y precios"
                       )}
                     </h2>
                     <p className="text-xs text-[#6B7280] leading-relaxed">
@@ -856,7 +854,7 @@ function OnboardingContent() {
                     {/* 1. SELECCIÓN PARA RESTAURANTES */}
                     {formData.niche === "ventas" && ventasMethod === "choose" && (
                       <div className="flex flex-col gap-3">
-                        <button 
+                        <button
                           onClick={() => setVentasMethod("ai")}
                           className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
                         >
@@ -868,7 +866,7 @@ function OnboardingContent() {
                             <span className="text-[10px] text-[#6B7280]">Sube una foto de tu menú físico</span>
                           </div>
                         </button>
-                        <button 
+                        <button
                           onClick={() => setVentasMethod("manual")}
                           className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
                         >
@@ -889,9 +887,9 @@ function OnboardingContent() {
                         <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
                           <div className="col-span-3">
                             <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
-                            <input 
-                              type="text" 
-                              placeholder="Ej: Limpieza profunda" 
+                            <input
+                              type="text"
+                              placeholder="Ej: Limpieza profunda"
                               value={manualItem.name}
                               onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
                               className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -900,15 +898,15 @@ function OnboardingContent() {
                           <div className="col-span-2">
                             <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
                             <div className="flex gap-2">
-                              <input 
-                                type="text" 
-                                placeholder="$45.00" 
+                              <input
+                                type="text"
+                                placeholder="$45.00"
                                 value={manualItem.price}
                                 onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
                                 className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
                               />
-                              <button 
+                              <button
                                 onClick={handleAddManualItem}
                                 className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
                               >
@@ -921,10 +919,10 @@ function OnboardingContent() {
                         {/* LISTA DE ITEMS MANUALES */}
                         <div className="flex flex-col gap-2">
                           {formData.products.filter(p => !p.url_foto).map((prod, idx) => (
-                            <motion.div 
-                              initial={{ opacity: 0, y: 5 }} 
+                            <motion.div
+                              initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
-                              key={idx} 
+                              key={idx}
                               className="flex items-center justify-between p-3 border border-[#E2E8F0] bg-white rounded-xl group hover:border-[#94A3B8] transition-all"
                             >
                               <div className="flex flex-col">
@@ -933,7 +931,7 @@ function OnboardingContent() {
                               </div>
                               <div className="flex items-center gap-3">
                                 <span className="text-xs font-bold text-[#1A1A1A] bg-[#F3F4F6] px-2 py-1 rounded-md">{prod.marca}</span>
-                                <button 
+                                <button
                                   onClick={() => setFormData({ ...formData, products: formData.products.filter((_, i) => i !== idx) })}
                                   className="text-[#94A3B8] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                                 >
@@ -954,20 +952,19 @@ function OnboardingContent() {
                             ← Cambiar a lista manual
                           </button>
                         )}
-                        
+
 
 
                         {/* Contador de imágenes escaneadas */}
-                        {(["ventas","agenda"] as string[]).includes(formData.niche) && (
+                        {(["ventas", "agenda"] as string[]).includes(formData.niche) && (
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-[#6B7280] font-medium">Imágenes escaneadas</span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              scannedImageCount >= 2 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
-                            }`}>{scannedImageCount}/2</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${scannedImageCount >= 2 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
+                              }`}>{scannedImageCount}/2</span>
                           </div>
                         )}
 
-                        {scannedImageCount < ((["ventas","agenda"] as string[]).includes(formData.niche) ? 2 : 99) ? (
+                        {scannedImageCount < ((["ventas", "agenda"] as string[]).includes(formData.niche) ? 2 : 99) ? (
                           <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-36">
                             <input
                               type="file"
@@ -1004,8 +1001,8 @@ function OnboardingContent() {
                             <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
                               <div className="col-span-3">
                                 <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
-                                <input 
-                                  type="text" 
+                                <input
+                                  type="text"
                                   placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Lomo saltado"}
 
                                   value={manualItem.name}
@@ -1016,15 +1013,15 @@ function OnboardingContent() {
                               <div className="col-span-2">
                                 <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
                                 <div className="flex gap-2">
-                                  <input 
-                                    type="text" 
-                                    placeholder="$45.00" 
+                                  <input
+                                    type="text"
+                                    placeholder="$45.00"
                                     value={manualItem.price}
                                     onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
                                     className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
                                   />
-                                  <button 
+                                  <button
                                     onClick={handleAddManualItem}
                                     className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
                                   >
@@ -1111,13 +1108,13 @@ function OnboardingContent() {
                       onClick={() => setStep(4)}
                       disabled={
                         (formData.niche === "ventas" && ventasMethod === "choose") ||
-                        !formData.contextData.notifPhone
+                        (formData.contextData.notifPhone || "").replace(/\D/g, "").length < 9
                       }
-                      className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                        formData.products.length === 0 
-                          ? "bg-white border border-[#E2E8F0] text-[#1A1A1A] hover:bg-[#F9FAFB]" 
+
+                      className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${formData.products.length === 0
+                          ? "bg-white border border-[#E2E8F0] text-[#1A1A1A] hover:bg-[#F9FAFB]"
                           : "bg-[#1A1A1A] text-white hover:bg-[#333]"
-                      }`}
+                        }`}
                     >
                       {formData.products.length === 0 ? "Omitir por ahora" : "Continuar"}
                     </button>
@@ -1167,7 +1164,7 @@ function OnboardingContent() {
                           </button>
                           <span className="text-xs font-medium text-[#94A3B8] animate-pulse">Esperando conexión...</span>
                         </div>
-                        
+
                         {evoLoading || !qrBase64 ? (
                           <div className="w-48 h-48 bg-white border border-[#E2E8F0] rounded-lg shadow-sm flex flex-col items-center justify-center gap-3">
                             <Loader2 className="w-6 h-6 text-[#1A1A1A] animate-spin" />
@@ -1231,7 +1228,7 @@ function OnboardingContent() {
                           <CheckCircle className="w-8 h-8 text-green-500" />
                         </div>
                         <span className="text-sm font-bold text-green-800 text-center block mt-2">
-                          ¡Conexión Existosa! <br/> Todo está listo.
+                          ¡Conexión Existosa! <br /> Todo está listo.
                         </span>
                         <p className="text-xs text-green-700 text-center font-medium mt-1">El agente ya tiene acceso y control de tu WhatsApp.</p>
                       </div>

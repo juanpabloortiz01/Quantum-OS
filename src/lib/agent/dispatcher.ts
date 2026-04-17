@@ -137,7 +137,7 @@ export async function runDispatcher(
       // ── EJECUTAR AGENDAMIENTO REAL ─────────────────────────────────
       if (coreResult.agendarCita) {
         let { service, date, time } = coreResult.agendarCita
-        
+
         // Normalizar fecha si viene en formato DD/MM/YYYY
         if (date.includes("/")) {
           const parts = date.split("/")
@@ -201,11 +201,16 @@ export async function runDispatcher(
         ].join("\n")
 
         try {
-          await sendText(EVO_URL, instanceName, authKey, ctx.notifPhone, notifMsg)
-          console.log(`[DISPATCHER]: ✅ Notificación de pedido enviada a ${ctx.notifPhone}`)
+          // Normalizar: quitar caracteres no numéricos, eliminar 0 inicial si es formato local
+          const rawDigits = ctx.notifPhone.replace(/\D/g, "")
+          const normalizedPhone = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+
+          await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
+          console.log(`[DISPATCHER]: Notificación enviada a ${normalizedPhone}`)
         } catch (notifErr: any) {
           console.error(`[DISPATCHER_NOTIF_ERROR]: No se pudo notificar al encargado:`, notifErr.message)
         }
+
       }
 
       return { success: true, method: "sendText" }
