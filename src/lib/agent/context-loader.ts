@@ -29,7 +29,9 @@ export interface LoadedContext {
   contactPhone: string
   enabledNodes: string[]
   notifPhone: string
+  shippingZones?: string
   loyaltyRule?: {
+
     triggerCount: string
     triggerProduct: string
     rewardCount: string
@@ -116,7 +118,9 @@ export async function loadContext(
       contactEmail: ctx.contactEmail ?? "",
       contactPhone: ctx.contactPhone ?? "",
       notifPhone: ctx.notifPhone ?? "",
+      shippingZones: ctx.shippingZones ?? "",
       loyaltyRule: config.loyaltyRule ?? undefined,
+
       enabledNodes,
 
 

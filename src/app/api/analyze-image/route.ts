@@ -14,69 +14,79 @@ export async function POST(req: Request) {
     const isMenu = niche === "ventas"
     const isShowroom = niche === "showroom"
 
-    // ── PROMPT PARA MENÚ DE RESTAURANTE ─────────────────────────────────────
-    const menuPrompt = `Eres un asistente experto en gastronomía. Analiza esta imagen de un menú de restaurante.
-IMPORTANTE: La imagen puede tener UNO o VARIOS platos. Debes identificar CADA plato por separado.
+    // ── PROMPT PARA MENÚ DE RESTAURANTE (VENTAS) ─────────────────────────────
+    const menuPrompt = `Eres un sistema experto en reconocimiento óptico y análisis gastronómico.
+Tu tarea es realizar una extracción exhaustiva de CADA plato o bebida presente en la imagen del menú.
 
-Devuelve ÚNICAMENTE un JSON válido sin markdown con esta estructura:
+INSTRUCCIONES CRÍTICAS:
+1. Escanea la imagen de izquierda a derecha y de arriba abajo.
+2. Identifica CADA ítem individual. No omitas ninguno por pequeño que sea.
+3. Extrae:
+   - "nombre": El nombre exacto como aparece.
+   - "descripcion": Los ingredientes o detalles listados. Si no hay, crea una breve descripción apetitosa basada en el nombre.
+   - "precio": Solo el valor numérico con su símbolo (ej: $12.00). Si no hay, usa null.
+
+Devuelve ÚNICAMENTE un JSON válido:
 {
   "platos": [
     {
-      "nombre": "Nombre exacto del plato",
-      "descripcion": "Descripción breve del plato, máximo 20 palabras",
-      "precio": "Precio con símbolo de moneda (ej: $8.50) o null si no se ve"
+      "nombre": "string",
+      "descripcion": "string (máx 20 palabras)",
+      "precio": "string o null"
     }
   ]
 }
 
-Reglas:
-- Si hay 3 platos en la imagen, devuelve 3 objetos en el array.
-- Si hay 10 platos, devuelve 10 objetos.
-- Nunca agrupes platos distintos en un solo objeto.
-- Si no se ve el precio de un plato, pon null.
-- Descripciones en español.`
+REGLA DE ORO: Si hay 20 platos en la imagen, DEBES devolver 20 objetos. Sé extremadamente meticuloso.`
 
-    // ── PROMPT PARA SHOWROOM / MODA (MULTI-PRODUCTO) ─────────────────────────
-    const fashionPromptMulti = `Eres un experto en moda y catálogos de productos. Analiza esta imagen.
-IMPORTANTE: La imagen puede contener UNO o VARIOS productos distintos. Identifica CADA producto por separado.
+    // ── PROMPT PARA SHOWROOM / MODA (MULTI-PRODUCTO SIMPLIFICADO) ────────────
+    const fashionPromptMulti = `Eres un experto en extracción de datos de productos.
+Analiza esta imagen e identifica cada producto individual de moda o accesorio.
 
-Devuelve ÚNICAMENTE un JSON válido sin markdown con esta estructura:
+Para cada producto extrae únicamente:
+- "nombre": Qué es el producto (ej: Gorra de Cuero, Camisa de Seda).
+- "especificacion": Detalle breve que lo hace único (color, material o patrón). Máximo 10 palabras.
+- "precio": Si hay un precio visible, extráelo con su moneda (ej: $45.00). Si no, usa null.
+
+Devuelve ÚNICAMENTE un JSON válido:
 {
   "productos": [
     {
-      "categoria": "Gorras|Ropa|Accesorios|Calzado|Otro",
-      "color_principal": "color en español",
-      "color_secundario": "color en español o null",
-      "marca": "marca visible o null",
-      "caracteristicas": "descripción máximo 15 palabras en español",
-      "estilo": "Casual|Deportivo|Formal|Otro"
+      "nombre": "string",
+      "especificacion": "string",
+      "precio": "string o null"
     }
   ]
 }
 
-Reglas:
-- Si hay 3 prendas distintas, devuelve 3 objetos.
-- Nunca agrupes productos distintos en un solo objeto.
-- Si no hay precio visible, omite ese campo.`
+REGLA DE ORO: No inventes datos. Si no ves el precio, pon null.`
 
     const prompt = isMenu ? menuPrompt : fashionPromptMulti
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini", // Cambiado a modelo más económico
       messages: [
         {
           role: "user",
           content: [
             { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: imageUrl, detail: "high" } }
+            { 
+              type: "image_url", 
+              image_url: { 
+                url: imageUrl, 
+                detail: "high" 
+              } 
+            }
           ]
         }
       ],
-      max_tokens: 2000
+      temperature: 0.1, 
+      max_tokens: 1500
     })
 
     const text = response.choices[0].message?.content || "{}"
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+    const cleanText = text.replace(/```json|```/g, "").trim()
+    const parsed = JSON.parse(cleanText)
 
     return NextResponse.json({ success: true, data: parsed, isMenu, isShowroom })
   } catch (error: any) {

@@ -64,6 +64,7 @@ function buildSystemPrompt(
     ctx.facebook ? `Facebook: ${ctx.facebook}` : null,
     ctx.contactEmail ? `Email: ${ctx.contactEmail}` : null,
     ctx.contactPhone ? `Teléfono adicional: ${ctx.contactPhone}` : null,
+    ctx.shippingZones ? `Zonas de envío: ${ctx.shippingZones}` : null,
   ]
     .filter(Boolean)
     .join("\n")
