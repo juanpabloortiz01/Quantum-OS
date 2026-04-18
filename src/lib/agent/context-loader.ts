@@ -29,7 +29,14 @@ export interface LoadedContext {
   contactPhone: string
   enabledNodes: string[]
   notifPhone: string
+  loyaltyRule?: {
+    triggerCount: string
+    triggerProduct: string
+    rewardCount: string
+    rewardProduct: string
+  }
   products: ProductContext[]
+
 
   evolutionInstance: string
   evolutionToken: string
@@ -109,7 +116,9 @@ export async function loadContext(
       contactEmail: ctx.contactEmail ?? "",
       contactPhone: ctx.contactPhone ?? "",
       notifPhone: ctx.notifPhone ?? "",
+      loyaltyRule: config.loyaltyRule ?? undefined,
       enabledNodes,
+
 
       products,
       evolutionInstance: org.evolutionInstance ?? "",

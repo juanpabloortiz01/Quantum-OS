@@ -201,15 +201,18 @@ export async function runDispatcher(
         ].join("\n")
 
         try {
-          // Normalizar: quitar caracteres no numéricos, eliminar 0 inicial si es formato local
-          const rawDigits = ctx.notifPhone.replace(/\D/g, "")
-          const normalizedPhone = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+          // Normalizar al formato internacional requerido por EvolutionAPI: 593XXXXXXXXX
+          // Acepta: 968743698 | 0968743698 | +593968743698 | 593968743698
+          const rawDigits = ctx.notifPhone.replace(/\D/g, "")       // quitar todo excepto dígitos
+          const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+          const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
 
           await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
           console.log(`[DISPATCHER]: Notificación enviada a ${normalizedPhone}`)
         } catch (notifErr: any) {
           console.error(`[DISPATCHER_NOTIF_ERROR]: No se pudo notificar al encargado:`, notifErr.message)
         }
+
 
       }
 

@@ -82,6 +82,11 @@ function buildSystemPrompt(
     return parts.join(" | ")
   }).join("\n")
 
+  // ── Regla de promoción (si existe) ────────────────────────────────
+  const loyaltyStr = ctx.loyaltyRule
+    ? `Por cada ${ctx.loyaltyRule.triggerCount} ${ctx.loyaltyRule.triggerProduct}, el cliente recibe ${ctx.loyaltyRule.rewardCount} ${ctx.loyaltyRule.rewardProduct} GRATIS.`
+    : null
+
 
   // ── Calendario formateado ──────────────────────────────────────────
   const availabilityStr = ctx.calendarAvailability && ctx.calendarAvailability.length > 0
@@ -143,7 +148,9 @@ Responde con el número de tu opción."
 ═══════════════════════════════════════
 
 OPCIÓN 1 — TOMAR UN PEDIDO:
-Sigue este protocolo en orden estricto, recolectando UN dato a la vez:
+${loyaltyStr ? `Antes de preguntar el plato, menciona la promoción brevemente:
+"¡Genial! Antes de continuar, te cuento que tenemos una promo activa: ${loyaltyStr} 🎉"
+Luego continúa con el protocolo normal:` : "Sigue este protocolo:"}
   PASO A → Pregunta: "¿Qué plato(s) deseas pedir?" (Muestra el menú si lo pide)
   PASO B → Pregunta: "¿Cuál es tu nombre completo?"
   PASO C → Pregunta: "¿Cuál es tu dirección de entrega?"
@@ -161,6 +168,8 @@ Responde: "Entendido, en breve alguien de nuestro equipo se comunicará contigo.
 OPCIÓN 3 — VER MENÚ:
 Envía la foto del menú si está disponible usando: FOTO_URL:${menuProducts[0]?.imageUrl || ""}
 Luego lista los platos disponibles del catálogo con sus precios.
+${loyaltyStr ? `Al final del menú, añade siempre: "\n🎁 *Promoción activa:* ${loyaltyStr}"` : ""}
+
 
 OPCIÓN 4 — INFORMACIÓN:
 Comparte la dirección, horarios y datos de contacto del negocio.

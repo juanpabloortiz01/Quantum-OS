@@ -18,8 +18,10 @@ import {
   saveSchedulingConfig, 
   getCalendarConnectionStatus, 
   saveActiveSkills, 
-  getDashboardLayout 
+  getDashboardLayout,
+  saveLoyaltyRule,
 } from "./action";
+
 
 
 
@@ -45,11 +47,12 @@ const ALL_CAPABILITIES = [
   },
   { 
     id: "loyalty", 
-    name: "Fidelización de Clientes", 
+    name: "Promoción de Clientes", 
     desc: "Sistema de lealtad en WhatsApp. Premia a tus clientes frecuentes automáticamente, sin tarjetas ni apps.", 
     icon: "loyalty",
     niches: ["VENTAS"],
   },
+
 ];
 
 
@@ -180,7 +183,13 @@ function DashboardContent() {
         
         setActive(newActive)
         setLibrary(newLib)
+
+        // Pre-poblar config de promo si ya fue guardada
+        if (layout.loyaltyRule) {
+          setLoyaltyConfig(p => ({ ...p, ...layout.loyaltyRule!, saved: true }))
+        }
       }
+
       setIsLoading(false)
     }
 
@@ -593,7 +602,7 @@ function DashboardContent() {
                       <Heart size={24} className="text-rose-500" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-[#1A1A1A]">Fidelización de Clientes</h3>
+                      <h3 className="text-lg font-bold text-[#1A1A1A]">Promoción de Clientes</h3>
                       <p className="text-sm text-[#9CA3AF]">Define tu regla de lealtad. Sin código, sin fricciones.</p>
                     </div>
                   </div>
@@ -677,12 +686,23 @@ function DashboardContent() {
                     </div>
 
                     <button
-                      disabled={!loyaltyConfig.triggerProduct || !loyaltyConfig.rewardProduct}
-                      onClick={() => setLoyaltyConfig(p => ({ ...p, saved: true }))}
+                      disabled={!loyaltyConfig.triggerProduct || !loyaltyConfig.rewardProduct || isLoading}
+                      onClick={async () => {
+                        setIsLoading(true)
+                        await saveLoyaltyRule({
+                          triggerCount: loyaltyConfig.triggerCount,
+                          triggerProduct: loyaltyConfig.triggerProduct,
+                          rewardCount: loyaltyConfig.rewardCount,
+                          rewardProduct: loyaltyConfig.rewardProduct,
+                        })
+                        setLoyaltyConfig(p => ({ ...p, saved: true }))
+                        setIsLoading(false)
+                      }}
                       className="w-full h-12 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-black transition-all shadow-lg shadow-black/10 mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {loyaltyConfig.saved ? "¡Regla guardada!" : "Activar regla de fidelización"}
+                      {isLoading ? "Guardando..." : loyaltyConfig.saved ? "✓ Promoción activa" : "Activar promoción"}
                     </button>
+
                   </div>
                   </>)}
 
