@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     }
 
     const isMenu = niche === "ventas"
+    const isShowroom = niche === "showroom"
 
     // ── PROMPT PARA MENÚ DE RESTAURANTE ─────────────────────────────────────
     const menuPrompt = `Eres un asistente experto en gastronomía. Analiza esta imagen de un menú de restaurante.
@@ -35,17 +36,30 @@ Reglas:
 - Si no se ve el precio de un plato, pon null.
 - Descripciones en español.`
 
-    // ── PROMPT PARA SHOWROOM / MODA ──────────────────────────────────────────
-    const fashionPrompt = `Analizá esta imagen de producto de moda o accesorios y devolvé 
-ÚNICAMENTE un JSON válido sin markdown con esta estructura exacta:
+    // ── PROMPT PARA SHOWROOM / MODA (MULTI-PRODUCTO) ─────────────────────────
+    const fashionPromptMulti = `Eres un experto en moda y catálogos de productos. Analiza esta imagen.
+IMPORTANTE: La imagen puede contener UNO o VARIOS productos distintos. Identifica CADA producto por separado.
+
+Devuelve ÚNICAMENTE un JSON válido sin markdown con esta estructura:
 {
-  "categoria": "Gorras|Ropa|Accesorios|Calzado|Otro",
-  "color_principal": "color en español",
-  "color_secundario": "color en español o null",
-  "marca": "marca visible o null",
-  "caracteristicas": "descripción máximo 15 palabras en español",
-  "estilo": "Casual|Deportivo|Formal|Otro"
-}`
+  "productos": [
+    {
+      "categoria": "Gorras|Ropa|Accesorios|Calzado|Otro",
+      "color_principal": "color en español",
+      "color_secundario": "color en español o null",
+      "marca": "marca visible o null",
+      "caracteristicas": "descripción máximo 15 palabras en español",
+      "estilo": "Casual|Deportivo|Formal|Otro"
+    }
+  ]
+}
+
+Reglas:
+- Si hay 3 prendas distintas, devuelve 3 objetos.
+- Nunca agrupes productos distintos en un solo objeto.
+- Si no hay precio visible, omite ese campo.`
+
+    const prompt = isMenu ? menuPrompt : fashionPromptMulti
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -53,14 +67,8 @@ Reglas:
         {
           role: "user",
           content: [
-            {
-              type: "text",
-              text: isMenu ? menuPrompt : fashionPrompt
-            },
-            {
-              type: "image_url",
-              image_url: { url: imageUrl, detail: "high" }
-            }
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: imageUrl, detail: "high" } }
           ]
         }
       ],
@@ -70,7 +78,7 @@ Reglas:
     const text = response.choices[0].message?.content || "{}"
     const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
 
-    return NextResponse.json({ success: true, data: parsed, isMenu })
+    return NextResponse.json({ success: true, data: parsed, isMenu, isShowroom })
   } catch (error: any) {
     console.error("[ANALYZE_IMAGE_ERROR]:", error)
     return NextResponse.json(

@@ -94,7 +94,9 @@ function OnboardingContent() {
       contactEmail: "",
       contactPhone: "",
       notifPhone: "",
+      shippingZones: "",
     },
+
 
     products: [] as any[],
     testPhone: "",
@@ -116,8 +118,11 @@ function OnboardingContent() {
   const [manualItem, setManualItem] = useState({ name: "", price: "" })
 
   // Cuenta cuántas imágenes distintas han sido escaneadas con IA
+  // (aplica a ventas, agenda Y showroom)
   const scannedImageCount = new Set(
-    formData.products.filter(p => p.url_foto && p.color_principal === "Menú").map(p => p.url_foto)
+    formData.products
+      .filter(p => p.url_foto && (p.color_principal === "Menú" || p.color_principal !== "Manual"))
+      .map(p => p.url_foto)
   ).size
 
 
@@ -209,7 +214,23 @@ function OnboardingContent() {
             ...prev,
             products: [...prev.products, ...newProducts].slice(0, 20),
           }))
-          // Limpiar current product ya que se añadieron todos
+          setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
+          setAnalyzingStep("COMPLETADO")
+        } else if (result.isShowroom && result.data.productos && Array.isArray(result.data.productos)) {
+          // SHOWROOM: añadir cada producto de la imagen de forma independiente
+          const newProducts = result.data.productos.map((prod: any) => ({
+            url_foto: imageUrl,
+            categoria: prod.categoria || "",
+            color_principal: prod.color_principal || "",
+            color_secundario: prod.color_secundario || "",
+            marca: prod.marca || "",
+            caracteristicas: prod.caracteristicas || "",
+            estilo: prod.estilo || "",
+          }))
+          setFormData((prev: any) => ({
+            ...prev,
+            products: [...prev.products, ...newProducts].slice(0, 20),
+          }))
           setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
           setAnalyzingStep("COMPLETADO")
         } else {
@@ -953,10 +974,30 @@ function OnboardingContent() {
                           </button>
                         )}
 
+                        {/* Caja de zonas de envío — solo Showroom */}
+                        {formData.niche === "showroom" && (
+                          <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                                <ArrowRight size={14} className="text-white" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-[#1A1A1A]">Zonas de envío</p>
+                                <p className="text-[10px] text-[#6B7280]">Indica a qué ciudades, barrios o regiones realizas envíos. El agente informará a los clientes.</p>
+                              </div>
+                            </div>
+                            <textarea
+                              placeholder="Ej: Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
+                              value={formData.contextData.shippingZones || ""}
+                              onChange={(e) => updateContext("shippingZones", e.target.value)}
+                              rows={3}
+                              className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 resize-none leading-relaxed"
+                            />
+                          </div>
+                        )}
 
-
-                        {/* Contador de imágenes escaneadas */}
-                        {(["ventas", "agenda"] as string[]).includes(formData.niche) && (
+                        {/* Contador de imágenes escaneadas — ventas, agenda y showroom */}
+                        {(["ventas", "agenda", "showroom"] as string[]).includes(formData.niche) && (
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-[#6B7280] font-medium">Imágenes escaneadas</span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${scannedImageCount >= 2 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
@@ -964,7 +1005,8 @@ function OnboardingContent() {
                           </div>
                         )}
 
-                        {scannedImageCount < ((["ventas", "agenda"] as string[]).includes(formData.niche) ? 2 : 99) ? (
+                        {scannedImageCount < (((["ventas", "agenda", "showroom"] as string[]).includes(formData.niche)) ? 2 : 99) ? (
+
                           <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-36">
                             <input
                               type="file"
