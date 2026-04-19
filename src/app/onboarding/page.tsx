@@ -738,6 +738,25 @@ function OnboardingContent() {
                         </div>
                       </div>
                     </div>
+                    {/* Campo de Encargado movido después de Horarios */}
+                    <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl shadow-sm mt-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                          <Phone size={14} className="text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos</p>
+                          <p className="text-[10px] text-[#6B7280]">Indica a qué número llegarán las notificaciones de pedidos o citas.</p>
+                        </div>
+                      </div>
+                      <input
+                        type="tel"
+                        placeholder="Ej: 593987654321"
+                        value={formData.contextData.notifPhone || ""}
+                        onChange={(e) => updateContext("notifPhone", e.target.value)}
+                        className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
+                      />
+                    </div>
 
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
@@ -802,25 +821,7 @@ function OnboardingContent() {
                         </div>
                       </div>
 
-                      {/* Campo de Encargado movido desde Paso 3 */}
-                      <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-xl shadow-sm mt-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
-                            <Phone size={14} className="text-white" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos</p>
-                            <p className="text-[10px] text-[#6B7280]">Indica a qué número llegarán las notificaciones de pedidos o citas.</p>
-                          </div>
-                        </div>
-                        <input
-                          type="tel"
-                          placeholder="Ej: 593987654321"
-                          value={formData.contextData.notifPhone || ""}
-                          onChange={(e) => updateContext("notifPhone", e.target.value)}
-                          className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
-                        />
-                      </div>
+
                     </div>
                   </div>
 

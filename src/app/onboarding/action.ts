@@ -181,14 +181,37 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
     }
 
     const instanceName = org?.evolutionInstance || `quos_${effectiveId}`
-
     let instanceToken = org?.evolutionToken || instanceName
+
+    // ── AUTO-LIMPIEZA DE INSTANCIAS "STUCK" ─────────────────────────────
+    // Si la instancia ya existe pero no está abierta (ej. stuck en connecting),
+    // la borramos para asegurar una sesión Baileys limpia.
+    try {
+      const stateRes = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, {
+        headers: { "apikey": EVO_API_KEY as string }
+      });
+      if (stateRes.ok) {
+        const stateData = await stateRes.json();
+        if (stateData.instance?.state !== "open") {
+          console.log(`[EVO_CLEANUP]: Borrando instancia stuck (${stateData.instance?.state}): ${instanceName}`);
+          await fetch(`${EVO_URL}/instance/delete/${instanceName}`, {
+            method: "DELETE",
+            headers: { "apikey": EVO_API_KEY as string }
+          });
+          // Esperar a que el sistema de archivos del VPS libere la sesión
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    } catch (e) {
+      // Ignorar errores si la instancia no existe
+    }
 
     const createPayload: any = {
       instanceName: instanceName,
       token: instanceToken, // Forzamos un token seguro y predecible basado en la organización
       qrcode: true,
-      integration: "WHATSAPP-BAILEYS"
+      integration: "WHATSAPP-BAILEYS",
+      groupsIgnore: true,
     };
 
     // Agregar el número desde la creación de la instancia si existe y el método es "code"
