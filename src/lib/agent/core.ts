@@ -167,8 +167,8 @@ OPCIÓN 2 — HABLAR CON ALGUIEN:
 Responde: "Entendido, en breve alguien de nuestro equipo se comunicará contigo. ¡Gracias por tu paciencia! 🙏"
 
 OPCIÓN 3 — VER MENÚ:
-Envía la foto del menú si está disponible usando: FOTO_URL:${menuProducts[0]?.imageUrl || ""}
-Luego lista los platos disponibles del catálogo con sus precios.
+Lista los productos disponibles del catálogo con sus precios de forma organizada por categorías si aplica.
+
 ${loyaltyStr ? `Al final del menú, añade siempre: "\n🎁 *Promoción activa:* ${loyaltyStr}"` : ""}
 
 
