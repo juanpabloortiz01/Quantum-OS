@@ -196,7 +196,7 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
 
         if (currentState === "open" || currentState === "CONNECTED") {
           console.log(`[EVO_INFO]: Instancia ya está conectada y abierta: ${instanceName}`);
-          return { success: true, connected: true };
+          return { success: true, connected: true, instanceName };
         }
 
         if (currentState !== "open") {
@@ -280,37 +280,40 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
     const data = await connectRes.json()
 
     if (method === "code" && data.pairingCode) {
-      return { success: true, pairingCode: data.pairingCode }
+      return { success: true, pairingCode: data.pairingCode, instanceName }
     } else if (method === "qr" && data.base64) {
-      return { success: true, base64: data.base64 }
+      return { success: true, base64: data.base64, instanceName }
     }
 
-    return { success: false, error: "No se encontró QR o Código en Evolution API." }
+    return { success: false, error: "No se encontró QR o Código en Evolution API.", instanceName }
   } catch (error: any) {
     console.error("[EVO_SETUP_ERROR]", error)
     return { success: false, error: error.message }
   }
 }
 
-export async function checkEvolutionConnectionState(tempId?: string) {
+export async function checkEvolutionConnectionState(tempId?: string, explicitInstanceName?: string) {
   try {
     const session = await auth()
     const userId = session?.user?.id
     const userEmail = session?.user?.email
 
     const effectiveId = userId || tempId
-    if (!effectiveId) return { connected: false }
+    if (!effectiveId && !explicitInstanceName) return { connected: false }
 
-    const user = userEmail ? await prisma.user.findUnique({
-      where: { email: userEmail }
-    }) : null
+    let instanceName = explicitInstanceName
 
-    const org = user ? await prisma.organization.findFirst({
-      where: { userId: user.id },
-    }) : null
+    if (!instanceName) {
+      const user = userEmail ? await prisma.user.findUnique({
+        where: { email: userEmail }
+      }) : null
 
-    const instanceName = org?.evolutionInstance || `quos_${effectiveId}`
+      const org = user ? await prisma.organization.findFirst({
+        where: { userId: user.id },
+      }) : null
 
+      instanceName = org?.evolutionInstance || `quos_${effectiveId}`
+    }
 
     const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
     const EVO_API_KEY = process.env.EVOLUTION_API_KEY

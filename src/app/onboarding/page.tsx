@@ -67,8 +67,9 @@ function OnboardingContent() {
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [evoLoading, setEvoLoading] = useState(false)
   const [evoConnected, setEvoConnected] = useState(false)
-  const [evoError, setEvoError] = useState<string | null>(null)
-  const [tempId, setTempId] = useState<string | null>(null)
+   const [evoError, setEvoError] = useState<string | null>(null)
+   const [tempId, setTempId] = useState<string | null>(null)
+   const [activeInstanceName, setActiveInstanceName] = useState<string | null>(null)
 
 
   useEffect(() => {
@@ -128,11 +129,10 @@ function OnboardingContent() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (step === 5 && connectionMethod && !evoConnected) {
+    if (step === 4 && connectionMethod && !evoConnected) {
       interval = setInterval(async () => {
-        const res = await checkEvolutionConnectionState(tempId || undefined)
+        const res = await checkEvolutionConnectionState(tempId || undefined, activeInstanceName || undefined)
         if (res.connected) {
-
           setEvoConnected(true)
           clearInterval(interval)
           // Automático a dashboard tras 1.5s
@@ -143,7 +143,7 @@ function OnboardingContent() {
       }, 3000)
     }
     return () => clearInterval(interval)
-  }, [step, connectionMethod, evoConnected])
+  }, [step, connectionMethod, evoConnected, activeInstanceName])
 
   const handleEvoConnect = async (method: "qr" | "code") => {
     setEvoLoading(true)
@@ -153,6 +153,8 @@ function OnboardingContent() {
     const res = await setupEvolutionInstance(method, formData.testPhone, tempId || undefined)
 
     if (res.success) {
+      if (res.instanceName) setActiveInstanceName(res.instanceName)
+      
       if (res.connected) {
         setEvoConnected(true)
         setTimeout(() => {
