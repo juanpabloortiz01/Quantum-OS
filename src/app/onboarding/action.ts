@@ -363,4 +363,3 @@ export async function registerAndFinalizeOnboarding(authData: {
     return { error: "FAIL: No se pudo completar el registro final." }
   }
 }
-}
