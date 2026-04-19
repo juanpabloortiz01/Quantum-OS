@@ -192,8 +192,15 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
       });
       if (stateRes.ok) {
         const stateData = await stateRes.json();
-        if (stateData.instance?.state !== "open") {
-          console.log(`[EVO_CLEANUP]: Borrando instancia stuck (${stateData.instance?.state}): ${instanceName}`);
+        const currentState = stateData.instance?.state || stateData.state;
+
+        if (currentState === "open" || currentState === "CONNECTED") {
+          console.log(`[EVO_INFO]: Instancia ya está conectada y abierta: ${instanceName}`);
+          return { success: true, connected: true };
+        }
+
+        if (currentState !== "open") {
+          console.log(`[EVO_CLEANUP]: Borrando instancia stuck (${currentState}): ${instanceName}`);
           await fetch(`${EVO_URL}/instance/delete/${instanceName}`, {
             method: "DELETE",
             headers: { "apikey": EVO_API_KEY as string }
@@ -317,8 +324,12 @@ export async function checkEvolutionConnectionState(tempId?: string) {
     if (!res.ok) return { connected: false }
 
     const data = await res.json()
-    // En evolution, state "open" indica que ya emparejó el número de WhatsApp exitosamente
-    return { connected: data?.instance?.state === "open" }
+    // En evolution, state "open" indica que ya emparejó el número de WhatsApp exitosamente.
+    // Buscamos en data.instance.state o data.state para mayor compatibilidad
+    const state = data?.instance?.state || data?.state
+    const isConnected = state === "open" || state === "CONNECTED"
+
+    return { connected: isConnected }
   } catch (err) {
     return { connected: false }
   }

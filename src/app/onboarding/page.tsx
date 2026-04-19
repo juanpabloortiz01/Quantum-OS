@@ -153,8 +153,15 @@ function OnboardingContent() {
     const res = await setupEvolutionInstance(method, formData.testPhone, tempId || undefined)
 
     if (res.success) {
-      if (method === "qr") setQrBase64(res.base64!)
-      if (method === "code") setPairingCode(res.pairingCode!)
+      if (res.connected) {
+        setEvoConnected(true)
+        setTimeout(() => {
+          handleFinalize()
+        }, 1500)
+      } else {
+        if (method === "qr") setQrBase64(res.base64!)
+        if (method === "code") setPairingCode(res.pairingCode!)
+      }
     } else {
       setEvoError(res.error || "Fallo desconocido al conectar con servidor web.")
       setConnectionMethod(null)
