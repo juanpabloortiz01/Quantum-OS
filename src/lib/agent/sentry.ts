@@ -33,7 +33,7 @@ Estructura exacta:
 Reglas:
 - VENTAS: quiere comprar, precio, disponibilidad, "cuánto cuesta", "tienen X"
 - CONSULTA_PRODUCTO: compara productos, pide foto, características, tallas
-- SOPORTE: problema con pedido, queja, devolución, envío
+- SOPORTE: problema con pedido, queja, devolución, envío, quiere hablar con un "humano", "encargado", "agente" o "persona"
 - INFO_NEGOCIO: horarios, dirección, métodos de pago, redes sociales
 - SALUDO: hola, buenos días, inicio de conversación sin intención clara
 - PAGO: envía comprobante, menciona que ya pagó, referencia de pago

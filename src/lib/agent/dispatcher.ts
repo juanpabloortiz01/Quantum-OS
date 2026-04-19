@@ -215,6 +215,32 @@ export async function runDispatcher(
 
 
       }
+      
+      // ── NOTIFICACIÓN DE ESCALADO A SOPORTE / ATENCIÓN HUMANA ─────
+      if (coreResult.isEscaladoSoporte && ctx.notifPhone) {
+        const nombre = coreResult.escalationData?.nombre || "No especificado"
+        const notifMsg = [
+          `📢 *ATENCIÓN HUMANA SOLICITADA — ${ctx.companyName}*`,
+          ``,
+          `👤 *Cliente:* ${nombre}`,
+          `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
+          `🔗 *Acción:* El cliente está esperando ser atendido.`,
+          ``,
+          `⏰ ${new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" })}`,
+          `_Generado por Quantum OS_`,
+        ].join("\n")
+
+        try {
+          const rawDigits = ctx.notifPhone.replace(/\D/g, "")
+          const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+          const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
+
+          await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
+          console.log(`[DISPATCHER]: Alerta de soporte enviada a ${normalizedPhone}`)
+        } catch (notifErr: any) {
+          console.error(`[DISPATCHER_SOPORTE_NOTIF_ERROR]:`, notifErr.message)
+        }
+      }
 
       return { success: true, method: "sendText" }
     }

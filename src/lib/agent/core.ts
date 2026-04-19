@@ -163,7 +163,10 @@ Luego continúa con el protocolo normal:` : "Sigue este protocolo:"}
     ¿Confirmas tu pedido? Responde *CONFIRMAR* para finalizar."
 
 OPCIÓN 2 — HABLAR CON ALGUIEN:
-Responde: "Entendido, en breve alguien de nuestro equipo se comunicará contigo. ¡Gracias por tu paciencia! 🙏"
+1. Pregunta amablemente: "¿Con quién tengo el gusto? Así puedo avisar ahora mismo al encargado para que te atienda personalmente."
+2. Una vez que el cliente responda su nombre, emite la etiqueta EXACTA al final:
+   ESCALADO_SOPORTE:{"nombre": "[nombre del cliente]"}
+   Y responde al cliente: "Perfecto [nombre del cliente], acabo de avisar al encargado. En breve se comunicarán contigo por este medio. ¡Gracias por tu paciencia! 🙏"
 
 OPCIÓN 3 — VER MENÚ:
 Lista los productos disponibles del catálogo con sus precios de forma organizada por categorías si aplica.
@@ -230,6 +233,8 @@ export interface CoreResult {
   pedidoData: { plato: string; nombre: string; direccion: string } | null
   isPagoSolicitado: boolean
   agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
+  isEscaladoSoporte: boolean
+  escalationData: { nombre: string } | null
 
   cleanText: string
   tokensUsed: number
@@ -353,6 +358,18 @@ export async function runCore(
     console.log("[CORE_FALLBACK]: Usando formato de texto para agendamiento")
   }
 
+  // Parsear ESCALADO_SOPORTE
+  const escalationMatch = rawResponse.match(/ESCALADO_SOPORTE:({.+})/i)
+  const isEscaladoSoporte = /ESCALADO_SOPORTE:/i.test(rawResponse)
+  let escalationData = null
+  if (escalationMatch) {
+    try {
+      escalationData = JSON.parse(escalationMatch[1])
+    } catch (e) {
+      console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de escalado")
+    }
+  }
+
 
   // ── 5. Limpiar texto para el cliente ──────────────────────────────
   const cleanText = rawResponse
@@ -362,6 +379,7 @@ export async function runCore(
     .replace(/PAGO_SOLICITADO:/gi, "")
     .replace(/AGENDAR_CITA:({.+})/gi, "")
     .replace(/AGENDAR_CITA:[^.\n]+/gi, "") // Limpiar formato de texto también
+    .replace(/ESCALADO_SOPORTE:({.+})/gi, "")
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "")
  // Limpiar prefijos de intención
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO)\s+/gi, "") // Limpiar palabras sueltas al inicio
@@ -397,6 +415,8 @@ export async function runCore(
     pedidoData,
     isPagoSolicitado,
     agendarCita,
+    isEscaladoSoporte,
+    escalationData,
     cleanText,
     tokensUsed,
   }
