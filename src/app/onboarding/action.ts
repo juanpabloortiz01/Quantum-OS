@@ -184,16 +184,6 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
 
     let instanceToken = org?.evolutionToken || instanceName
 
-    // Forzamos borrado previo si existe pero no está conectada, 
-    // para poder recrearla incluyendo el `number` en caso de requerir código de emparejamiento.
-    await fetch(`${EVO_URL}/instance/delete/${instanceName}`, {
-      method: "DELETE",
-      headers: { "apikey": EVO_API_KEY }
-    }).catch(() => {});
-
-    // Pausar 1 segundo para asegurar la purga en Evolution API antes de recrear
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     const createPayload: any = {
       instanceName: instanceName,
       token: instanceToken, // Forzamos un token seguro y predecible basado en la organización
@@ -201,8 +191,8 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
       integration: "WHATSAPP-BAILEYS"
     };
 
-    // Agregar el número desde la creación de la instancia si existe
-    if (phoneNumber) {
+    // Agregar el número desde la creación de la instancia si existe y el método es "code"
+    if (phoneNumber && method === "code") {
       createPayload.number = phoneNumber;
     }
 
@@ -300,9 +290,9 @@ export async function checkEvolutionConnectionState(tempId?: string) {
       headers: { "apikey": EVO_API_KEY as string },
       cache: "no-store"
     })
-    
+
     if (!res.ok) return { connected: false }
-    
+
     const data = await res.json()
     // En evolution, state "open" indica que ya emparejó el número de WhatsApp exitosamente
     return { connected: data?.instance?.state === "open" }
@@ -330,7 +320,7 @@ export async function registerAndFinalizeOnboarding(authData: {
   // 2. FINALIZAR ONBOARDING (CREAR ORG)
   try {
     const businessName = onboardingData.contextData.companyName?.trim() || `NODO_${onboardingData.testPhone.slice(-4).toUpperCase()}`
-    
+
     // El instance name debe coincidir con el usado en setupEvolutionInstance
     const instanceName = `quos_${onboardingData.tempId || userId}`
 
@@ -372,4 +362,5 @@ export async function registerAndFinalizeOnboarding(authData: {
     console.error("[DEFERRED_REG_ERROR]:", error)
     return { error: "FAIL: No se pudo completar el registro final." }
   }
+}
 }

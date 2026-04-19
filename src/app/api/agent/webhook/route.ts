@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   // Esto nos permite ver exactamente qué manda EvolutionAPI
   const event = rawPayload?.event ?? rawPayload?.type ?? "unknown"
   const instance = rawPayload?.instance ?? rawPayload?.data?.instance ?? "?"
-  
+
   console.log(`[WEBHOOK_INGESTOR]: >>> NUEVO EVENTO RECIBIDO: "${event}" <<<`)
   console.log(`[WEBHOOK_INGESTOR]: Instancia Source: "${instance}"`)
   console.log("[WEBHOOK_INGESTOR]: Payload Completo:", JSON.stringify(rawPayload, null, 2))
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
   // ── CRÍTICO: Ejecución del Pipeline ────────────────────────────────
   console.log(`[WEBHOOK_INGESTOR]: Disparando Pipeline para instancia "${instance}"...`)
-  
+
   try {
     const result = await runPipeline(rawPayload)
     console.log(`[WEBHOOK_INGESTOR]: Pipeline Finalizado [${result.status}] result=`, JSON.stringify(result))
@@ -74,7 +74,7 @@ export async function GET() {
       // Intentar un fetch rápido al root de la API interna
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 3000)
-      
+
       const res = await fetch(EVO_URL, { signal: controller.signal as any })
       clearTimeout(timeout)
       evoHealth = res.ok ? "REACHABLE" : `ERROR_${res.status}`
