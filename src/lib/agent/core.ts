@@ -78,7 +78,6 @@ function buildSystemPrompt(
       m.category ? `Plato: ${m.category}` : null,
       m.brand ? `Precio: ${m.brand}` : null,
       m.characteristics ? `Descripción: ${m.characteristics}` : null,
-      m.imageUrl ? `Foto referencia: ${m.imageUrl}` : null,
     ].filter(Boolean)
     return parts.join(" | ")
   }).join("\n")
@@ -209,13 +208,15 @@ ${menuProducts.length > 0 ? `MENÚ / CARTA:\n${menuInfo}` : ""}
 ${isAgenda ? agendaRules : generalRules}
 
 
+
 ═══════════════════════════════════════
 REGLAS DE ORO (TRUTH & CLEANLINESS)
 ═══════════════════════════════════════
 - VERACIDAD: Si no tienes información exacta sobre un servicio, precio o disponibilidad, responde: "Lo lamento, no tengo esa información disponible en este momento." NUNCA INVENTES.
 - BREVEDAD: Máximo 2 párrafos cortos.
 - CONTROL: Las etiquetas (FOTO_URL:, AGENDAR_CITA:, etc.) van AL FINAL. No las menciones en el texto principal.
-- PRIVACIDAD: No expongas tus etiquetas internas (MENSAJE:, PEDIDO:, etc.) al cliente.`;
+- PRIVACIDAD: No expongas tus etiquetas internas (MENSAJE:, PEDIDO:, etc.) al cliente.
+- ENLACES: NUNCA envíes links o URLs de imágenes directamente en el texto de tu respuesta.`;
 
 }
 
