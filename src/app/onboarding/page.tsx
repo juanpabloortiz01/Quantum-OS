@@ -128,7 +128,7 @@ function OnboardingContent() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (step === 4 && connectionMethod && !evoConnected) {
+    if (step === 5 && connectionMethod && !evoConnected) {
       interval = setInterval(async () => {
         const res = await checkEvolutionConnectionState(tempId || undefined)
         if (res.connected) {
@@ -443,7 +443,7 @@ function OnboardingContent() {
           </div>
           {step > 0 && (
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
-              Paso {step}/4
+              Paso {step}/5
             </div>
           )}
         </div>
@@ -454,7 +454,7 @@ function OnboardingContent() {
           {/* Barra de progreso superior */}
           {step > 0 && (
             <div className="h-1 flex">
-              {[1, 2, 3, 4].map((s) => (
+              {[1, 2, 3, 4, 5].map((s) => (
                 <div
                   key={s}
                   className="flex-1 transition-all duration-500"
@@ -474,8 +474,9 @@ function OnboardingContent() {
                 {step === 0 && "Crear una cuenta"}
                 {step === 1 && "Sector del negocio"}
                 {step === 2 && "Describe tu negocio"}
-                {step === 3 && "Sube tu catálogo"}
-                {step === 4 && "Conecta tu WhatsApp"}
+                {step === 3 && "Números de Contacto"}
+                {step === 4 && "Sube tu catálogo"}
+                {step === 5 && "Conecta tu WhatsApp"}
               </h1>
             </div>
 
@@ -822,8 +823,84 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 3: CATÁLOGO / SERVICIOS ── */}
+              {/* ── PASO 3: NÚMEROS DE CONTACTO ── */}
               {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex flex-col gap-6"
+                >
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-sm font-bold text-[#1A1A1A]">Números de Contacto</h2>
+                    <p className="text-xs text-[#6B7280] leading-relaxed">
+                      Configura el número del agente y a dónde llegarán las notificaciones de pedidos/citas.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-5">
+                    {/* Tarjeta 1: Instancia del Agente */}
+                    <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                          <Scan size={14} className="text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-[#1A1A1A]">Número de WhatsApp del Asistente *</p>
+                          <p className="text-[10px] text-[#6B7280]">El número que será controlado por la IA. (Ingresar con código de país, ej: 593999999999)</p>
+                        </div>
+                      </div>
+                      <input
+                        type="tel"
+                        placeholder="Ej: 593999999999"
+                        value={formData.testPhone}
+                        onChange={(e) => setFormData({ ...formData, testPhone: e.target.value.replace(/\D/g, "") })}
+                        className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
+                      />
+                    </div>
+
+                    {/* Tarjeta 2: Notificaciones */}
+                    <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                          <Phone size={14} className="text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos</p>
+                          <p className="text-[10px] text-[#6B7280]">A este número llegarán las notificaciones cuando el agente confirme un pedido o cita.</p>
+                        </div>
+                      </div>
+                      <input
+                        type="tel"
+                        placeholder="Ej: 593987654321"
+                        value={formData.contextData.notifPhone || ""}
+                        onChange={(e) => updateContext("notifPhone", e.target.value)}
+                        className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors"
+                    >
+                      ← Atrás
+                    </button>
+                    <button
+                      onClick={() => setStep(4)}
+                      disabled={formData.testPhone.length < 9}
+                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── PASO 4: CATÁLOGO / SERVICIOS ── */}
+              {step === 4 && (
                 <motion.div
                   key="step3"
                   initial={{ opacity: 0, x: 20 }}
@@ -849,28 +926,6 @@ function OnboardingContent() {
                   </div>
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
-
-                    {/* ★ TARJETA OBLIGATORIA: Número de notificaciones */}
-                    <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
-                          <Phone size={14} className="text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos</p>
-                          <p className="text-[10px] text-[#6B7280]">A este número WhatsApp llegarán las notificaciones cuando el agente confirme un pedido o cita.</p>
-                        </div>
-                      </div>
-                      <input
-                        type="tel"
-                        placeholder="Ej: +593987654321"
-                        value={formData.contextData.notifPhone || ""}
-                        onChange={(e) => updateContext("notifPhone", e.target.value)}
-                        className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
-                      />
-                    </div>
-
-
 
                     {/* 1. SELECCIÓN PARA RESTAURANTES */}
                     {formData.niche === "ventas" && ventasMethod === "choose" && (
@@ -1139,7 +1194,7 @@ function OnboardingContent() {
                         if (formData.niche === "ventas" && ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
-                          setStep(2)
+                          setStep(3)
                         }
                       }}
                       className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors"
@@ -1147,10 +1202,9 @@ function OnboardingContent() {
                       ← Atrás
                     </button>
                     <button
-                      onClick={() => setStep(4)}
+                      onClick={() => setStep(5)}
                       disabled={
-                        (formData.niche === "ventas" && ventasMethod === "choose") ||
-                        (formData.contextData.notifPhone || "").replace(/\D/g, "").length < 9
+                        (formData.niche === "ventas" && ventasMethod === "choose")
                       }
 
                       className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${formData.products.length === 0
@@ -1165,10 +1219,10 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 4: QR + TEST ── */}
-              {step === 4 && (
+              {/* ── PASO 5: QR + TEST ── */}
+              {step === 5 && (
                 <motion.div
-                  key="step4"
+                  key="step5"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="flex flex-col gap-6"
@@ -1239,8 +1293,10 @@ function OnboardingContent() {
 
                         {!pairingCode ? (
                           <div className="flex flex-col gap-3">
-                            <span className="text-xs font-semibold text-[#4B5563]">Número completo (con código de país)</span>
-                            <input type="text" placeholder="Ej: 593999999999" value={formData.testPhone} onChange={e => setFormData({ ...formData, testPhone: e.target.value })} className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                            <span className="text-xs font-semibold text-[#4B5563]">Se solicitará el código para el número:</span>
+                            <div className="w-full bg-[#F3F4F6] border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] font-mono">
+                              {formData.testPhone}
+                            </div>
                             <button onClick={() => handleEvoConnect("code")} disabled={evoLoading || formData.testPhone.length < 8} className="w-full py-3 mt-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#333] transition-colors disabled:opacity-50">
                               {evoLoading ? "Generando..." : "Obtener código de vinculación"}
                             </button>
