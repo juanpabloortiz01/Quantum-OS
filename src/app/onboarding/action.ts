@@ -68,7 +68,7 @@ export async function finalizeOnboarding(data: {
   // Validar que el userId existe
   if (!data.userId) return { error: "AUTH_ERROR: Usuario no identificado." }
 
-  const businessName = data.contextData.companyName?.trim() || `NODO_${data.testPhone.slice(-4).toUpperCase()}`
+  const businessName = data.contextData.companyName?.trim() || (data.testPhone ? `NODO_${data.testPhone.slice(-4).toUpperCase()}` : `NODO_${data.userId.slice(-4).toUpperCase()}`)
 
   try {
     await prisma.organization.create({
@@ -319,7 +319,7 @@ export async function registerAndFinalizeOnboarding(authData: {
 
   // 2. FINALIZAR ONBOARDING (CREAR ORG)
   try {
-    const businessName = onboardingData.contextData.companyName?.trim() || `NODO_${onboardingData.testPhone.slice(-4).toUpperCase()}`
+    const businessName = onboardingData.contextData.companyName?.trim() || (onboardingData.testPhone ? `NODO_${onboardingData.testPhone.slice(-4).toUpperCase()}` : `NODO_${(onboardingData.tempId || userId).slice(-4).toUpperCase()}`)
 
     // El instance name debe coincidir con el usado en setupEvolutionInstance
     const instanceName = `quos_${onboardingData.tempId || userId}`
