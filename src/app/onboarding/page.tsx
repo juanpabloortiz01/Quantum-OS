@@ -688,10 +688,10 @@ function OnboardingContent() {
                     {/* Campos Principales */}
                     <div className="flex flex-col gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre comercial *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre del negocio *</label>
                         <input
                           type="text"
-                          placeholder="Ej: Tienda de ropa ABC"
+                          placeholder="Ej: Parrilladas El Gaucho"
                           value={formData.contextData.companyName}
                           onChange={(e) => updateContext("companyName", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -701,7 +701,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Servicio o producto principal *</label>
                         <input
                           type="text"
-                          placeholder="Ej: Ropa deportiva para mujer"
+                          placeholder="Ej: Cortes de carne y asados"
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -711,7 +711,7 @@ function OnboardingContent() {
 
                     {/* Horarios */}
                     <div className="border border-[#E2E8F0] p-4 bg-[#FBFBFA] rounded-xl flex flex-col gap-4">
-                      <label className="block text-xs font-semibold text-[#4B5563]">Horarios de atención</label>
+                      <label className="block text-xs font-semibold text-[#4B5563]">Horarios de atención *</label>
                       <div className="flex gap-1.5">
                         {["LU", "MA", "MI", "JU", "VI", "SA", "DO"].map(day => (
                           <button
@@ -728,7 +728,7 @@ function OnboardingContent() {
                       </div>
                       <div className="flex gap-3">
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora apertura</label>
+                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora apertura *</label>
                           <input
                             type="time"
                             value={formData.contextData.openTime}
@@ -737,7 +737,7 @@ function OnboardingContent() {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora cierre</label>
+                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora cierre *</label>
                           <input
                             type="time"
                             value={formData.contextData.closeTime}
@@ -754,7 +754,7 @@ function OnboardingContent() {
                           <Phone size={14} className="text-white" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos</p>
+                          <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos *</p>
                           <p className="text-[10px] text-[#6B7280]">Indica a qué número llegarán las notificaciones de pedidos o citas.</p>
                         </div>
                       </div>
@@ -774,7 +774,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-                          placeholder="Ej: Somos revendedores de iPhones Open Box..."
+                          placeholder="Ej: Restaurante familiar especializado en carnes al carbón y cocina tradicional."
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
@@ -783,7 +783,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-                          placeholder="Ej: Av. Principal 123, Local 4"
+                          placeholder="Ej: Calle Larga 4-56 y Benigno Malo (esquina)"
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
@@ -843,7 +843,15 @@ function OnboardingContent() {
                     </button>
                     <button
                       onClick={() => setStep(3)}
-                      disabled={!formData.contextData.companyName || !formData.contextData.description}
+                      disabled={
+                        !formData.contextData.companyName || 
+                        !formData.contextData.description ||
+                        !formData.contextData.service ||
+                        formData.contextData.scheduleDays.length === 0 ||
+                        !formData.contextData.openTime ||
+                        !formData.contextData.closeTime ||
+                        !formData.contextData.notifPhone
+                      }
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
                     >
                       Continuar al catálogo
