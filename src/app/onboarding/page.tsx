@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock } from "lucide-react"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock, Check, Pencil } from "lucide-react"
 
 import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState, registerAndFinalizeOnboarding } from "./action"
 
@@ -116,7 +116,7 @@ function OnboardingContent() {
 
   // States for Conditional Step 3
   const [ventasMethod, setVentasMethod] = useState<"choose" | "ai" | "manual">("choose")
-  const [manualItem, setManualItem] = useState({ name: "", price: "" })
+  const [manualItem, setManualItem] = useState({ name: "", price: "", info: "" })
 
   // Cuenta cuántas imágenes distintas han sido escaneadas con IA
   // (aplica a ventas, agenda Y showroom)
@@ -292,12 +292,12 @@ function OnboardingContent() {
           marca: manualItem.price,
           color_principal: "Manual",
           color_secundario: "",
-          caracteristicas: "Entrada manual",
+          caracteristicas: manualItem.info || "Entrada manual",
           estilo: "",
         },
       ],
     }))
-    setManualItem({ name: "", price: "" })
+    setManualItem({ name: "", price: "", info: "" })
   }
 
 
@@ -945,25 +945,38 @@ function OnboardingContent() {
                     {/* 2. ENTRADA MANUAL (Agenda o Ventas Manual) */}
                     {(formData.niche === "agenda" || (formData.niche === "ventas" && ventasMethod === "manual")) && (
                       <div className="flex flex-col gap-4">
-                        <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
-                          <div className="col-span-3">
-                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
-                            <input
-                              type="text"
-                              placeholder={formData.niche === "agenda" ? "Ej: Limpieza profunda" : "Ej: Hamburguesa clásica"}
-                              value={manualItem.name}
-                              onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
-                              className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
-                            />
+                        <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
+                          <div className="flex gap-2">
+                            <div className="flex-[3]">
+                              <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
+                              <input
+                                type="text"
+                                placeholder={formData.niche === "agenda" ? "Ej: Limpieza profunda" : "Ej: Hamburguesa clásica"}
+                                value={manualItem.name}
+                                onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
+                                className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                              />
+                            </div>
+                            <div className="flex-[2]">
+                              <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                              <input
+                                type="text"
+                                placeholder="$5.00"
+                                value={manualItem.price}
+                                onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
+                              />
+                            </div>
                           </div>
-                          <div className="col-span-2">
-                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                          <div>
+                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Info complementaria (opcional)</label>
                             <div className="flex gap-2">
                               <input
                                 type="text"
-                                placeholder="$45.00"
-                                value={manualItem.price}
-                                onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                placeholder="Ej: Con papas fritas y bebida"
+                                value={manualItem.info}
+                                onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                 className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
                               />
@@ -971,7 +984,7 @@ function OnboardingContent() {
                                 onClick={handleAddManualItem}
                                 className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
                               >
-                                <Zap size={16} fill="white" />
+                                <Check size={16} />
                               </button>
                             </div>
                           </div>
@@ -979,7 +992,9 @@ function OnboardingContent() {
 
                         {/* LISTA DE ITEMS MANUALES */}
                         <div className="flex flex-col gap-2">
-                          {formData.products.filter(p => !p.url_foto).map((prod, idx) => (
+                          {formData.products.filter(p => !p.url_foto).map((prod, idx) => {
+                            const actualIdx = formData.products.indexOf(prod);
+                            return (
                             <motion.div
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -991,16 +1006,20 @@ function OnboardingContent() {
                                 <span className="text-[10px] text-[#6B7280] font-medium">{formData.niche === "agenda" ? "Servicio" : "Platillo"}</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold text-[#1A1A1A] bg-[#F3F4F6] px-2 py-1 rounded-md">{prod.marca}</span>
+                                <span className="text-xs font-bold text-[#1A1A1A] bg-[#F3F4F6] px-2 py-1 rounded-md">{prod.marca.includes('$') ? prod.marca : `$${prod.marca}`}</span>
                                 <button
-                                  onClick={() => setFormData({ ...formData, products: formData.products.filter((_, i) => i !== idx) })}
-                                  className="text-[#94A3B8] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                  onClick={() => {
+                                    setManualItem({ name: prod.categoria, price: prod.marca, info: prod.caracteristicas !== "Entrada manual" ? prod.caracteristicas : "" });
+                                    setFormData({ ...formData, products: formData.products.filter((_, i) => i !== actualIdx) });
+                                  }}
+                                  className="text-[#94A3B8] hover:text-[#1A1A1A] opacity-0 group-hover:opacity-100 transition-all"
                                 >
-                                  <RefreshCw size={14} />
+                                  <Pencil size={14} />
                                 </button>
                               </div>
                             </motion.div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -1058,26 +1077,39 @@ function OnboardingContent() {
                               <span className="text-[10px] font-semibold text-white">Límite de 2 imágenes alcanzado. Añade items adicionales manualmente.</span>
                             </div>
                             {/* ENTRADA MANUAL INTEGRADA */}
-                            <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
-                              <div className="col-span-3">
-                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
-                                <input
-                                  type="text"
-                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Hamburguesa clásica"}
+                            <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
+                              <div className="flex gap-2">
+                                <div className="flex-[3]">
+                                  <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
+                                  <input
+                                    type="text"
+                                    placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Hamburguesa clásica"}
 
-                                  value={manualItem.name}
-                                  onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
-                                  className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
-                                />
+                                    value={manualItem.name}
+                                    onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
+                                    className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                  />
+                                </div>
+                                <div className="flex-[2]">
+                                  <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                                  <input
+                                    type="text"
+                                    placeholder="$5.00"
+                                    value={manualItem.price}
+                                    onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                    className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
+                                  />
+                                </div>
                               </div>
-                              <div className="col-span-2">
-                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                              <div>
+                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Info complementaria (opcional)</label>
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
-                                    placeholder="$45.00"
-                                    value={manualItem.price}
-                                    onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                    placeholder="Ej: Con papas fritas y bebida"
+                                    value={manualItem.info}
+                                    onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                     className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
                                   />
@@ -1085,7 +1117,7 @@ function OnboardingContent() {
                                     onClick={handleAddManualItem}
                                     className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
                                   >
-                                    <Zap size={16} fill="white" />
+                                    <Check size={16} />
                                   </button>
                                 </div>
                               </div>
