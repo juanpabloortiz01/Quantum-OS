@@ -242,6 +242,23 @@ function OnboardingContent() {
           }))
           setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
           setAnalyzingStep("COMPLETADO")
+        } else if (result.isAgenda && result.data.servicios && Array.isArray(result.data.servicios)) {
+          // AGENDA: añadir cada servicio como un producto independiente
+          const newProducts = result.data.servicios.map((servicio: any) => ({
+            url_foto: imageUrl,
+            categoria: servicio.nombre || "",
+            marca: servicio.precio || "",
+            color_principal: "Servicio",
+            color_secundario: "",
+            caracteristicas: servicio.descripcion || "",
+            estilo: "",
+          }))
+          setFormData((prev: any) => ({
+            ...prev,
+            products: [...prev.products, ...newProducts].slice(0, 20),
+          }))
+          setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
+          setAnalyzingStep("COMPLETADO")
         } else {
           // SHOWROOM / AGENDA: flujo normal de un solo producto
           setCurrentProduct((prev: any) => ({
@@ -896,24 +913,23 @@ function OnboardingContent() {
                   {/* TÍTULO DINÁMICO */}
                   <div className="flex flex-col gap-1">
                     <h2 className="text-sm font-bold text-[#1A1A1A]">
-                      {formData.niche === "agenda" && "Enlista los servicios que el agente ofrecerá"}
-                      {(formData.niche === "ventas" || formData.niche === "showroom") && (
-                        ventasMethod === "choose" ? (formData.niche === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : "¿Cómo prefieres subir tu menú?") :
-                          ventasMethod === "ai" ? (formData.niche === "showroom" ? "Sube tu catálogo de productos" : "Sube fotos de tu menú") : (formData.niche === "showroom" ? "Enlista tus productos y precios" : "Enlista tus platos y precios")
-                      )}
+                      {ventasMethod === "choose" ? 
+                        ((formData.niche as string) === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : (formData.niche as string) === "agenda" ? "¿Cómo prefieres subir tus servicios?" : "¿Cómo prefieres subir tu menú?") :
+                        ventasMethod === "ai" ? 
+                        ((formData.niche as string) === "showroom" ? "Sube tu catálogo de productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios" : "Sube fotos de tu menú") : 
+                        ((formData.niche as string) === "showroom" ? "Enlista tus productos y precios" : (formData.niche as string) === "agenda" ? "Enlista tus servicios y precios" : "Enlista tus platos y precios")
+                      }
                     </h2>
                     <p className="text-xs text-[#6B7280] leading-relaxed">
-                      {formData.niche === "agenda" && "Agregaremos nombre y precio para que el agente pueda informar a tus clientes."}
-                      {formData.niche === "showroom" && ventasMethod === "ai" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
-                      {formData.niche === "showroom" && ventasMethod !== "choose" && ventasMethod !== "ai" && "Define los productos que tu agente digital ofrecerá."}
-                      {formData.niche === "ventas" && ventasMethod !== "choose" && "Define los productos que tu mesero digital ofrecerá."}
+                      {ventasMethod === "ai" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
+                      {ventasMethod !== "choose" && ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.") }
                     </p>
                   </div>
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
                     {/* 1. SELECCIÓN PARA CATÁLOGOS */}
-                    {(formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "choose" && (
+                    {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
                       <div className="flex flex-col gap-3">
                         <button
                           onClick={() => setVentasMethod("ai")}
@@ -924,7 +940,7 @@ function OnboardingContent() {
                           </div>
                           <div className="flex flex-col text-left">
                             <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
-                            <span className="text-[10px] text-[#6B7280]">{formData.niche === "showroom" ? "Sube fotos de tus productos" : "Sube una foto de tu menú físico"}</span>
+                            <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios o folletos" : "Sube una foto de tu menú físico"}</span>
                           </div>
                         </button>
                         <button
@@ -936,14 +952,14 @@ function OnboardingContent() {
                           </div>
                           <div className="flex flex-col text-left">
                             <span className="text-sm font-bold text-[#1A1A1A]">Lista Manual</span>
-                            <span className="text-[10px] text-[#6B7280]">{formData.niche === "showroom" ? "Escribe los productos uno a uno" : "Escribe los platillos uno a uno"}</span>
+                            <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Escribe los productos uno a uno" : (formData.niche as string) === "agenda" ? "Escribe los servicios uno a uno" : "Escribe los platillos uno a uno"}</span>
                           </div>
                         </button>
                       </div>
                     )}
 
-                    {/* 2. ENTRADA MANUAL (Agenda, Ventas Manual o Showroom Manual) */}
-                    {(formData.niche === "agenda" || ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "manual")) && (
+                    {/* 2. ENTRADA MANUAL */}
+                    {ventasMethod === "manual" && (
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
                           <div className="flex gap-2">
@@ -1024,8 +1040,8 @@ function OnboardingContent() {
                       </div>
                     )}
 
-                    {/* 3. CATÁLOGO IA (Showroom o Ventas IA) */}
-                    {((formData.niche === "showroom" || formData.niche === "ventas") && ventasMethod === "ai") && (
+                    {/* 3. CATÁLOGO IA */}
+                    {ventasMethod === "ai" && (
                       <div className="flex flex-col gap-5">
 
 
@@ -1138,17 +1154,27 @@ function OnboardingContent() {
                                   <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({ ...currentProduct, categoria: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Marca</label>
+                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">{(formData.niche as string) === "showroom" ? "Marca" : "Precio"}</label>
                                   <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({ ...currentProduct, marca: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                                 </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Color</label>
-                                  <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Estilo</label>
-                                  <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                                </div>
+                                { (formData.niche as string) === "showroom" && (
+                                  <>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Color</label>
+                                      <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Estilo</label>
+                                      <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                    </div>
+                                  </>
+                                )}
+                                { (formData.niche as string) !== "showroom" && (
+                                  <div className="flex flex-col gap-1.5 col-span-2">
+                                    <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Tipo / Categoría</label>
+                                    <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} placeholder="Ej: Servicio, Masaje, Combo..." className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div className="flex flex-col gap-1.5 pt-1">
@@ -1156,7 +1182,7 @@ function OnboardingContent() {
                               <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none leading-relaxed" />
                             </div>
                             <button onClick={handleAddProduct} className="bg-[#F3F4F6] border border-[#E2E8F0] text-[#1A1A1A] font-semibold text-xs py-3 mt-1 rounded-lg hover:bg-[#E5E7EB] transition-colors">
-                              Añadir producto a la base de datos
+                              
                             </button>
                           </div>
                         )}
@@ -1184,7 +1210,7 @@ function OnboardingContent() {
                   <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => {
-                        if ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod !== "choose") {
+                        if (ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
                           setStep(2)
@@ -1197,9 +1223,8 @@ function OnboardingContent() {
                     <button
                       onClick={() => setStep(4)}
                       disabled={
-                        ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "choose") || formData.products.length === 0
+                        ventasMethod === "choose" || formData.products.length === 0
                       }
-
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
                     >
                       Continuar

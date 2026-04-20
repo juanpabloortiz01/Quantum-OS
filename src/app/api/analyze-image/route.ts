@@ -13,6 +13,7 @@ export async function POST(req: Request) {
 
     const isMenu = niche === "ventas"
     const isShowroom = niche === "showroom"
+    const isAgenda = niche === "agenda"
 
     // ── PROMPT PARA MENÚ DE RESTAURANTE (VENTAS) ─────────────────────────────
     const menuPrompt = `Eres un sistema experto en reconocimiento óptico y análisis gastronómico.
@@ -39,6 +40,30 @@ Devuelve ÚNICAMENTE un JSON válido:
 
 REGLA DE ORO: Si hay 20 platos en la imagen, DEBES devolver 20 objetos. Sé extremadamente meticuloso.`
 
+    // ── PROMPT PARA AGENDA (SERVICIOS) ─────────────────────────────────────
+    const servicePrompt = `Eres un experto en extracción de datos para centros de servicios (clínicas, spas, barberías).
+Analiza esta imagen e identifica cada servicio, tratamiento o paquete ofrecido.
+
+INSTRUCCIONES:
+1. Identifica cada servicio individualmente.
+2. Extrae:
+   - "nombre": El nombre del servicio (ej: Limpieza Facial profunda, Corte de Cabello).
+   - "descripcion": Detalle breve de qué incluye o para qué sirve. Máximo 15 palabras.
+   - "precio": El valor con su moneda (ej: $35.00). Si no hay, usa null.
+
+Devuelve ÚNICAMENTE un JSON válido:
+{
+  "servicios": [
+    {
+      "nombre": "string",
+      "descripcion": "string",
+      "precio": "string o null"
+    }
+  ]
+}
+
+REGLA DE ORO: Si hay una lista de servicios, extrae todos los que sean claramente visibles.`
+
     // ── PROMPT PARA SHOWROOM / MODA (MULTI-PRODUCTO SIMPLIFICADO) ────────────
     const fashionPromptMulti = `Eres un experto en extracción de datos de productos.
 Analiza esta imagen e identifica cada producto individual de moda o accesorio.
@@ -61,7 +86,7 @@ Devuelve ÚNICAMENTE un JSON válido:
 
 REGLA DE ORO: No inventes datos. Si no ves el precio, pon null.`
 
-    const prompt = isMenu ? menuPrompt : fashionPromptMulti
+    const prompt = isMenu ? menuPrompt : (isAgenda ? servicePrompt : fashionPromptMulti)
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Cambiado a modelo más económico
@@ -88,7 +113,7 @@ REGLA DE ORO: No inventes datos. Si no ves el precio, pon null.`
     const cleanText = text.replace(/```json|```/g, "").trim()
     const parsed = JSON.parse(cleanText)
 
-    return NextResponse.json({ success: true, data: parsed, isMenu, isShowroom })
+    return NextResponse.json({ success: true, data: parsed, isMenu, isShowroom, isAgenda })
   } catch (error: any) {
     console.error("[ANALYZE_IMAGE_ERROR]:", error)
     return NextResponse.json(
