@@ -1027,11 +1027,7 @@ function OnboardingContent() {
                     {/* 3. CATÁLOGO IA (Showroom o Ventas IA) */}
                     {((formData.niche === "showroom" || formData.niche === "ventas") && ventasMethod === "ai") && (
                       <div className="flex flex-col gap-5">
-                        {(formData.niche === "ventas" || formData.niche === "showroom") && (
-                          <button onClick={() => setVentasMethod("choose")} className="text-[10px] font-bold text-[#6B7280] hover:text-[#1A1A1A] transition-colors self-start underline">
-                            ← Cambiar a lista manual
-                          </button>
-                        )}
+
 
                         {/* Contador de imágenes escaneadas — ventas, agenda y showroom */}
                         {(["ventas", "agenda", "showroom"] as string[]).includes(formData.niche) && (
