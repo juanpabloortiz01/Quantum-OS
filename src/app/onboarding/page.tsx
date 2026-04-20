@@ -951,7 +951,7 @@ function OnboardingContent() {
                               <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
                               <input
                                 type="text"
-                                placeholder={formData.niche === "agenda" ? "Ej: Limpieza profunda" : "Ej: Hamburguesa clásica"}
+                                placeholder={formData.niche === "agenda" ? "Ej: Limpieza profunda" : formData.niche === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Hamburguesa clásica"}
                                 value={manualItem.name}
                                 onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
                                 className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -1077,15 +1077,14 @@ function OnboardingContent() {
                               <span className="text-[10px] font-semibold text-white">Límite de 2 imágenes alcanzado. Añade items adicionales manualmente.</span>
                             </div>
                             {/* ENTRADA MANUAL INTEGRADA */}
-<<<<<<< HEAD
+
                             <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
                               <div className="flex gap-2">
                                 <div className="flex-[3]">
                                   <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
                                   <input
                                     type="text"
-                                    placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Hamburguesa clásica"}
-
+                                    placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : (formData.niche as string) === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Hamburguesa clásica"}
                                     value={manualItem.name}
                                     onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
                                     className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -1102,18 +1101,8 @@ function OnboardingContent() {
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
                                   />
                                 </div>
-=======
-                            <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
-                              <div className="col-span-3">
-                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
-                                <input
-                                  type="text"
-                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : (formData.niche as string) === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Hamburguesa clásica"}
-                                  value={manualItem.name}
-                                  onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
-                                  className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
-                                />
->>>>>>> 848292fac036bd6eb34040deb0cdc3bb52ec3b50
+
+
                               </div>
                               <div>
                                 <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Info complementaria (opcional)</label>
