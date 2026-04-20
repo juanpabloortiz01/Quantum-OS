@@ -1063,12 +1063,7 @@ function OnboardingContent() {
                                 <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
                                 <input
                                   type="text"
-<<<<<<< HEAD
-                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : (formData.niche as string) === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Lomo saltado"}
-=======
-                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Hamburguesa clásica"}
->>>>>>> 81551033ba67504764294b1f2873cb264109ddb3
-
+                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : (formData.niche as string) === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Hamburguesa clásica"}
                                   value={manualItem.name}
                                   onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
                                   className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -1171,11 +1166,7 @@ function OnboardingContent() {
                     <button
                       onClick={() => setStep(4)}
                       disabled={
-<<<<<<< HEAD
-                        ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "choose")
-=======
-                        (formData.niche === "ventas" && ventasMethod === "choose") || formData.products.length === 0
->>>>>>> 81551033ba67504764294b1f2873cb264109ddb3
+                        ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "choose") || formData.products.length === 0
                       }
 
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
