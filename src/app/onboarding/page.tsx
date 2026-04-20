@@ -897,23 +897,23 @@ function OnboardingContent() {
                   <div className="flex flex-col gap-1">
                     <h2 className="text-sm font-bold text-[#1A1A1A]">
                       {formData.niche === "agenda" && "Enlista los servicios que el agente ofrecerá"}
-                      {formData.niche === "showroom" && "Sube tu catálogo de productos"}
-                      {formData.niche === "ventas" && (
-                        ventasMethod === "choose" ? "¿Cómo prefieres subir tu menú?" :
-                          ventasMethod === "ai" ? "Sube fotos de tu menú" : "Enlista tus platos y precios"
+                      {(formData.niche === "ventas" || formData.niche === "showroom") && (
+                        ventasMethod === "choose" ? (formData.niche === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : "¿Cómo prefieres subir tu menú?") :
+                          ventasMethod === "ai" ? (formData.niche === "showroom" ? "Sube tu catálogo de productos" : "Sube fotos de tu menú") : (formData.niche === "showroom" ? "Enlista tus productos y precios" : "Enlista tus platos y precios")
                       )}
                     </h2>
                     <p className="text-xs text-[#6B7280] leading-relaxed">
                       {formData.niche === "agenda" && "Agregaremos nombre y precio para que el agente pueda informar a tus clientes."}
-                      {formData.niche === "showroom" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
+                      {formData.niche === "showroom" && ventasMethod === "ai" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
+                      {formData.niche === "showroom" && ventasMethod !== "choose" && ventasMethod !== "ai" && "Define los productos que tu agente digital ofrecerá."}
                       {formData.niche === "ventas" && ventasMethod !== "choose" && "Define los productos que tu mesero digital ofrecerá."}
                     </p>
                   </div>
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
-                    {/* 1. SELECCIÓN PARA RESTAURANTES */}
-                    {formData.niche === "ventas" && ventasMethod === "choose" && (
+                    {/* 1. SELECCIÓN PARA CATÁLOGOS */}
+                    {(formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "choose" && (
                       <div className="flex flex-col gap-3">
                         <button
                           onClick={() => setVentasMethod("ai")}
@@ -924,7 +924,7 @@ function OnboardingContent() {
                           </div>
                           <div className="flex flex-col text-left">
                             <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
-                            <span className="text-[10px] text-[#6B7280]">Sube una foto de tu menú físico</span>
+                            <span className="text-[10px] text-[#6B7280]">{formData.niche === "showroom" ? "Sube fotos de tus productos" : "Sube una foto de tu menú físico"}</span>
                           </div>
                         </button>
                         <button
@@ -936,14 +936,14 @@ function OnboardingContent() {
                           </div>
                           <div className="flex flex-col text-left">
                             <span className="text-sm font-bold text-[#1A1A1A]">Lista Manual</span>
-                            <span className="text-[10px] text-[#6B7280]">Escribe los platillos uno a uno</span>
+                            <span className="text-[10px] text-[#6B7280]">{formData.niche === "showroom" ? "Escribe los productos uno a uno" : "Escribe los platillos uno a uno"}</span>
                           </div>
                         </button>
                       </div>
                     )}
 
-                    {/* 2. ENTRADA MANUAL (Agenda o Ventas Manual) */}
-                    {(formData.niche === "agenda" || (formData.niche === "ventas" && ventasMethod === "manual")) && (
+                    {/* 2. ENTRADA MANUAL (Agenda, Ventas Manual o Showroom Manual) */}
+                    {(formData.niche === "agenda" || ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "manual")) && (
                       <div className="flex flex-col gap-4">
                         <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
                           <div className="col-span-3">
@@ -988,7 +988,7 @@ function OnboardingContent() {
                             >
                               <div className="flex flex-col">
                                 <span className="text-xs font-bold text-[#1A1A1A]">{prod.categoria}</span>
-                                <span className="text-[10px] text-[#6B7280] font-medium">{formData.niche === "agenda" ? "Servicio" : "Platillo"}</span>
+                                <span className="text-[10px] text-[#6B7280] font-medium">{formData.niche === "agenda" ? "Servicio" : formData.niche === "showroom" ? "Producto" : "Platillo"}</span>
                               </div>
                               <div className="flex items-center gap-3">
                                 <span className="text-xs font-bold text-[#1A1A1A] bg-[#F3F4F6] px-2 py-1 rounded-md">{prod.marca}</span>
@@ -1006,9 +1006,9 @@ function OnboardingContent() {
                     )}
 
                     {/* 3. CATÁLOGO IA (Showroom o Ventas IA) */}
-                    {(formData.niche === "showroom" || (formData.niche === "ventas" && ventasMethod === "ai")) && (
+                    {((formData.niche === "showroom" || formData.niche === "ventas") && ventasMethod === "ai") && (
                       <div className="flex flex-col gap-5">
-                        {formData.niche === "ventas" && (
+                        {(formData.niche === "ventas" || formData.niche === "showroom") && (
                           <button onClick={() => setVentasMethod("choose")} className="text-[10px] font-bold text-[#6B7280] hover:text-[#1A1A1A] transition-colors self-start underline">
                             ← Cambiar a lista manual
                           </button>
@@ -1063,7 +1063,7 @@ function OnboardingContent() {
                                 <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
                                 <input
                                   type="text"
-                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Lomo saltado"}
+                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : (formData.niche as string) === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Lomo saltado"}
 
                                   value={manualItem.name}
                                   onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
@@ -1154,7 +1154,7 @@ function OnboardingContent() {
                   <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => {
-                        if (formData.niche === "ventas" && ventasMethod !== "choose") {
+                        if ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
                           setStep(2)
@@ -1167,7 +1167,7 @@ function OnboardingContent() {
                     <button
                       onClick={() => setStep(4)}
                       disabled={
-                        (formData.niche === "ventas" && ventasMethod === "choose")
+                        ((formData.niche === "ventas" || formData.niche === "showroom") && ventasMethod === "choose")
                       }
 
                       className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${formData.products.length === 0
