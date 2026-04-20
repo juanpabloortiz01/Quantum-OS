@@ -691,7 +691,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre del negocio *</label>
                         <input
                           type="text"
-                          placeholder={formData.niche === "showroom" ? "Ej: Urban Style" : formData.niche === "agenda" ? "Ej: Spa Relax" : "Ej: El Gaucho"}
+                          placeholder={formData.niche === "showroom" ? "Urban Style" : formData.niche === "agenda" ? "Spa Relax" : "El Gaucho"}
                           value={formData.contextData.companyName}
                           onChange={(e) => updateContext("companyName", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -701,7 +701,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Servicio o producto principal *</label>
                         <input
                           type="text"
-                          placeholder={formData.niche === "showroom" ? "Ej: Ropa y accesorios" : formData.niche === "agenda" ? "Ej: Masajes faciales" : "Ej: Cortes de carne"}
+                          placeholder={formData.niche === "showroom" ? "Ropa y accesorios" : formData.niche === "agenda" ? "Masajes faciales" : "Cortes de carne"}
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -760,7 +760,7 @@ function OnboardingContent() {
                       </div>
                       <input
                         type="tel"
-                        placeholder="Ej: 593987654321"
+                        placeholder="593987654321"
                         value={formData.contextData.notifPhone || ""}
                         onChange={(e) => updateContext("notifPhone", e.target.value)}
                         className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
@@ -780,7 +780,7 @@ function OnboardingContent() {
                           </div>
                         </div>
                         <textarea
-                          placeholder="Ej: Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
+                          placeholder="Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
                           value={formData.contextData.shippingZones || ""}
                           onChange={(e) => updateContext("shippingZones", e.target.value)}
                           rows={3}
@@ -796,7 +796,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-                          placeholder={formData.niche === "showroom" ? "Ej: Moda urbana con envíos nacionales." : formData.niche === "agenda" ? "Ej: Centro de bienestar integral." : "Ej: Especialistas en carnes al carbón."}
+                          placeholder={formData.niche === "showroom" ? "Moda urbana con envíos nacionales." : formData.niche === "agenda" ? "Centro de bienestar integral." : "Especialistas en carnes al carbón."}
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
@@ -805,7 +805,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-                          placeholder={formData.niche === "showroom" ? "Ej: Av. Amazonas y NNUU (Opcional si es online)" : formData.niche === "agenda" ? "Ej: Av. Mariana de Jesús" : "Ej: Calle Larga 4-56"}
+                          placeholder={formData.niche === "showroom" ? "Av. Amazonas y NNUU (Opcional si es online)" : formData.niche === "agenda" ? "Av. Mariana de Jesús" : "Calle Larga 4-56"}
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
@@ -951,7 +951,7 @@ function OnboardingContent() {
                               <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
                               <input
                                 type="text"
-                                placeholder={formData.niche === "agenda" ? "Ej: Limpieza profunda" : formData.niche === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Hamburguesa clásica"}
+                                placeholder={formData.niche === "agenda" ? "Limpieza profunda" : formData.niche === "showroom" ? "Zapatillas Urban" : "Hamburguesa clásica"}
                                 value={manualItem.name}
                                 onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
                                 className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -974,7 +974,7 @@ function OnboardingContent() {
                             <div className="flex gap-2">
                               <input
                                 type="text"
-                                placeholder={(formData.niche as string) === "showroom" ? "Ej: Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Ej: Incluye lavado y secado." : "Ej: Con papas fritas y bebida."}
+                                placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye lavado y secado." : "Con papas fritas y bebida."}
                                 value={manualItem.info}
                                 onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                 className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -1080,7 +1080,7 @@ function OnboardingContent() {
                                   <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
                                   <input
                                     type="text"
-                                    placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : (formData.niche as string) === "showroom" ? "Ej: Zapatillas Urban" : "Ej: Hamburguesa clásica"}
+                                    placeholder={(formData.niche as string) === "agenda" ? "Limpieza profunda" : (formData.niche as string) === "showroom" ? "Zapatillas Urban" : "Hamburguesa clásica"}
                                     value={manualItem.name}
                                     onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
                                     className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -1105,7 +1105,7 @@ function OnboardingContent() {
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
-                                    placeholder={(formData.niche as string) === "showroom" ? "Ej: Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Ej: Incluye lavado y secado." : "Ej: Con papas fritas y bebida."}
+                                    placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye lavado y secado." : "Con papas fritas y bebida."}
                                     value={manualItem.info}
                                     onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                     className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -1286,7 +1286,7 @@ function OnboardingContent() {
                             <span className="text-xs font-semibold text-[#4B5563]">Número para vincular:</span>
                             <input
                               type="tel"
-                              placeholder="Ej: 593999999999"
+                              placeholder="593999999999"
                               value={formData.testPhone}
                               onChange={(e) => setFormData({ ...formData, testPhone: e.target.value.replace(/\D/g, "") })}
                               className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] font-mono focus:border-[#1A1A1A] outline-none transition-colors"
