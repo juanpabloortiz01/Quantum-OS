@@ -691,7 +691,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre del negocio *</label>
                         <input
                           type="text"
-                          placeholder="Ej: Parrilladas El Gaucho"
+                          placeholder={formData.niche === "showroom" ? "Ej: Urban Style E-commerce" : formData.niche === "agenda" ? "Ej: Spa Renacer" : "Ej: Parrilladas El Gaucho"}
                           value={formData.contextData.companyName}
                           onChange={(e) => updateContext("companyName", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -701,7 +701,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Servicio o producto principal *</label>
                         <input
                           type="text"
-                          placeholder="Ej: Cortes de carne y asados"
+                          placeholder={formData.niche === "showroom" ? "Ej: Venta de ropa y accesorios" : formData.niche === "agenda" ? "Ej: Masajes y limpieza facial" : "Ej: Cortes de carne y asados"}
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -767,6 +767,28 @@ function OnboardingContent() {
                       />
                     </div>
 
+                    {/* Caja de zonas de envío — solo Showroom (Movido aquí desde el paso 3) */}
+                    {formData.niche === "showroom" && (
+                      <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl shadow-sm mt-0">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                            <ArrowRight size={14} className="text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-[#1A1A1A]">Zonas de envío</p>
+                            <p className="text-[10px] text-[#6B7280]">Indica a qué ciudades, barrios o regiones realizas envíos. El agente informará a los clientes.</p>
+                          </div>
+                        </div>
+                        <textarea
+                          placeholder="Ej: Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
+                          value={formData.contextData.shippingZones || ""}
+                          onChange={(e) => updateContext("shippingZones", e.target.value)}
+                          rows={3}
+                          className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 resize-none leading-relaxed"
+                        />
+                      </div>
+                    )}
+
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
                       <div>
@@ -774,7 +796,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-                          placeholder="Ej: Restaurante familiar especializado en carnes al carbón y cocina tradicional."
+                          placeholder={formData.niche === "showroom" ? "Ej: Tienda de moda urbana y accesorios con estilo único. Envíos a todo el país." : formData.niche === "agenda" ? "Ej: Centro estético enfocado en tu bienestar integral." : "Ej: Restaurante familiar especializado en carnes al carbón y cocina tradicional."}
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
@@ -783,7 +805,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-                          placeholder="Ej: Calle Larga 4-56 y Benigno Malo (esquina)"
+                          placeholder={formData.niche === "showroom" ? "Ej: Centro Comercial Iñaquito, Local 45 (Opcional si es 100% online)" : formData.niche === "agenda" ? "Ej: Av. Mariana de Jesús y Nuño de Valderrama" : "Ej: Calle Larga 4-56 y Benigno Malo (esquina)"}
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
@@ -990,28 +1012,6 @@ function OnboardingContent() {
                           <button onClick={() => setVentasMethod("choose")} className="text-[10px] font-bold text-[#6B7280] hover:text-[#1A1A1A] transition-colors self-start underline">
                             ← Cambiar a lista manual
                           </button>
-                        )}
-
-                        {/* Caja de zonas de envío — solo Showroom */}
-                        {formData.niche === "showroom" && (
-                          <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
-                                <ArrowRight size={14} className="text-white" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-[#1A1A1A]">Zonas de envío</p>
-                                <p className="text-[10px] text-[#6B7280]">Indica a qué ciudades, barrios o regiones realizas envíos. El agente informará a los clientes.</p>
-                              </div>
-                            </div>
-                            <textarea
-                              placeholder="Ej: Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
-                              value={formData.contextData.shippingZones || ""}
-                              onChange={(e) => updateContext("shippingZones", e.target.value)}
-                              rows={3}
-                              className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 resize-none leading-relaxed"
-                            />
-                          </div>
                         )}
 
                         {/* Contador de imágenes escaneadas — ventas, agenda y showroom */}
