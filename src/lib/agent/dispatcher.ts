@@ -180,8 +180,7 @@ export async function runDispatcher(
       console.log(`[DISPATCHER]: Payload Text -> "${coreResult.cleanText.substring(0, 50)}..."`)
       await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
 
-      // ── NOTIFICACIÓN AL ENCARGADO DE PEDIDOS ─────────────────────
-      // Solo para nicho VENTAS, cuando el pedido está confirmado y hay un número de notificación configurado
+      // ── NOTIFICACIÓN AL ENCARGADO DE PEDIDOS (VENTAS) ────────────
       if (
         coreResult.isPedidoConfirmado &&
         ctx.niche?.toUpperCase() === "VENTAS" &&
@@ -201,19 +200,43 @@ export async function runDispatcher(
         ].join("\n")
 
         try {
-          // Normalizar al formato internacional requerido por EvolutionAPI: 593XXXXXXXXX
-          // Acepta: 968743698 | 0968743698 | +593968743698 | 593968743698
-          const rawDigits = ctx.notifPhone.replace(/\D/g, "")       // quitar todo excepto dígitos
+          const rawDigits = ctx.notifPhone.replace(/\D/g, "")
+          const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+          const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
+          await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
+          console.log(`[DISPATCHER]: Notificación de pedido enviada a ${normalizedPhone}`)
+        } catch (notifErr: any) {
+          console.error(`[DISPATCHER_PEDIDO_NOTIF_ERROR]:`, notifErr.message)
+        }
+      }
+      
+      // ── NOTIFICACIÓN DE CITA AGENDADA (AGENDA) ───────────────────
+      if (coreResult.agendarCita && ctx.notifPhone) {
+        const cita = coreResult.agendarCita
+        const notifMsg = [
+          `📅 *NUEVA CITA AGENDADA — ${ctx.companyName}*`,
+          ``,
+          `👤 *Cliente:* ${cita.customerName || "No especificado"}`,
+          `📝 *Servicio:* ${cita.service || "No especificado"}`,
+          `🗓 *Fecha:* ${cita.date}`,
+          `⏰ *Hora:* ${cita.time}`,
+          `🆔 *Cédula:* ${cita.cedula || "No proporcionada"}`,
+          `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
+          ``,
+          `⏰ ${new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" })}`,
+          `_Generado automáticamente por Quantum OS_`,
+        ].join("\n")
+
+        try {
+          const rawDigits = ctx.notifPhone.replace(/\D/g, "")
           const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
           const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
 
           await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
-          console.log(`[DISPATCHER]: Notificación enviada a ${normalizedPhone}`)
+          console.log(`[DISPATCHER]: Notificación de cita enviada a ${normalizedPhone}`)
         } catch (notifErr: any) {
-          console.error(`[DISPATCHER_NOTIF_ERROR]: No se pudo notificar al encargado:`, notifErr.message)
+          console.error(`[DISPATCHER_CITA_NOTIF_ERROR]:`, notifErr.message)
         }
-
-
       }
       
       // ── NOTIFICACIÓN DE ESCALADO A SOPORTE / ATENCIÓN HUMANA ─────

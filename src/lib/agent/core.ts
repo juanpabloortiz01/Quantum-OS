@@ -19,11 +19,9 @@ const MAX_HISTORY = 10 // Últimos N mensajes a cargar
 // FOTO_URL:<url>          → enviar imagen
 // PEDIDO_CONFIRMADO:      → marcar pedido como iniciado
 // PAGO_SOLICITADO:        → enviar instrucciones de pago
+// AGENDAR_CITA:           → crear cita en calendar
+// ESCALADO_SOPORTE:       → notificar a recepción
 
-/**
- * Construye el System Prompt dinámico usando los datos del onboarding.
- * Cada pieza de información está precisamente colocada.
- */
 function buildSystemPrompt(
   ctx: LoadedContext,
   sentryResult: SentryResult
@@ -38,22 +36,19 @@ function buildSystemPrompt(
   const catalogStr =
     ctx.products.length > 0
       ? ctx.products
-          .filter(p => p.primaryColor !== "Menú" && p.category !== "MENÚ_COMPLETO") // excluir platos que ya van en menuInfo
+          .filter(p => p.primaryColor !== "Menú" && p.category !== "MENÚ_COMPLETO" && p.category !== "SERVICIO") 
           .map((p, i) => {
             const parts = [
-              `[Producto ${i + 1}]`,
+              `[Item ${i + 1}]`,
               p.category ? `Categoría: ${p.category}` : null,
-              p.brand ? `Marca: ${p.brand}` : null,
-              p.primaryColor ? `Color principal: ${p.primaryColor}` : null,
-              p.secondaryColor ? `Color secundario: ${p.secondaryColor}` : null,
-              p.characteristics ? `Características: ${p.characteristics}` : null,
-              p.style ? `Estilo: ${p.style}` : null,
+              p.brand ? `Información/Precio: ${p.brand}` : null,
+              p.characteristics ? `Descripción: ${p.characteristics}` : null,
               p.imageUrl ? `Foto: ${p.imageUrl}` : null,
             ].filter(Boolean)
             return parts.join("\n")
           })
           .join("\n\n")
-      : "No hay productos cargados en el sistema."
+      : "No hay productos o servicios cargados en el sistema."
 
 
   // ── Información de contacto y redes ───────────────────────────────
@@ -69,161 +64,107 @@ function buildSystemPrompt(
     .filter(Boolean)
     .join("\n")
 
-  // ── Identificar Menús (Especial para Restaurantes) ────────────────
+  // ── Identificar Menús/Servicios ──────────────────────────────────
   const menuProducts = ctx.products.filter(p => 
-    p.category === "MENÚ_COMPLETO" || p.primaryColor === "Menú"
+    p.category === "MENÚ_COMPLETO" || p.primaryColor === "Menú" || p.category === "SERVICIO"
   )
   const menuInfo = menuProducts.map(m => {
     const parts = [
-      m.category ? `Plato: ${m.category}` : null,
-      m.brand ? `Precio: ${m.brand}` : null,
+      m.category ? `Nombre: ${m.category}` : null,
+      m.brand ? `Precio/Valor: ${m.brand}` : null,
       m.characteristics ? `Descripción: ${m.characteristics}` : null,
     ].filter(Boolean)
     return parts.join(" | ")
   }).join("\n")
-
-  // ── Regla de promoción (si existe) ────────────────────────────────
-  const loyaltyStr = ctx.loyaltyRule
-    ? `Por cada ${ctx.loyaltyRule.triggerCount} ${ctx.loyaltyRule.triggerProduct}, el cliente recibe ${ctx.loyaltyRule.rewardCount} ${ctx.loyaltyRule.rewardProduct} GRATIS.`
-    : null
-
-
-  // ── Calendario formateado ──────────────────────────────────────────
-  const availabilityStr = ctx.calendarAvailability && ctx.calendarAvailability.length > 0
-    ? ctx.calendarAvailability.map(s => `- Ocupado: ${s.start} a ${s.end}`).join("\n")
-    : "Todo el horario laboral está disponible."
 
   const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
 
   const basePrompt = `Eres el asistente virtual experto de "${ctx.companyName}".
 La fecha y hora actual es: ${new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" })}.`;
 
+  const welcomeMenu = `
+"¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
+
+1️⃣ ${isAgenda ? "Agendar una cita" : "Tomar un pedido"}
+2️⃣ Hablar con alguien
+3️⃣ ${isAgenda ? "Ver servicios" : "Ver el menú / carta"}
+4️⃣ Información del local
+
+Responde con el número de tu opción."`;
+
+  const escalationLogic = `
+OPCIÓN 2 — HABLAR CON ALGUIEN:
+1. Pregunta amablemente: "¿Con quién tengo el gusto? Así puedo avisar ahora mismo a la recepción para que te atienda personalmente."
+2. Una vez que el cliente responda su nombre, emite la etiqueta EXACTA al final:
+   ESCALADO_SOPORTE:{"nombre": "[nombre del cliente]"}
+3. Responde al cliente: "Perfecto [nombre del cliente], acabo de avisar a la recepción. En breve se comunicarán contigo por este medio. ¡Gracias por tu paciencia! 🙏"`;
+
   const agendaRules = `
-Tu objetivo principal es agendar citas de manera eficiente y profesional.
-═══════════════════════════════════════
-🚨 REGLAS DE INTENCIÓN (INTERNAS)
-═══════════════════════════════════════
-Tus respuestas deben categorizarse internamente en una de estas intenciones:
-1. PEDIDO (AGENDAR CITA): Solo cuando el cliente ha confirmado los 5 elementos clave:
-   - SERVICIO, FECHA, HORA, NOMBRE COMPLETO y CÉDULA DE IDENTIDAD.
-   Si falta cualquiera de estos, usa MENSAJE y pregunta educadamente.
-2. MENSAJE: Consultas generales sobre precios, ubicación o disponibilidad.
+OPCIÓN 1 — AGENDAR UNA CITA:
+Solo cuando el cliente ha confirmado los 5 elementos clave:
+- SERVICIO, FECHA, HORA, NOMBRE COMPLETO y CÉDULA DE IDENTIDAD.
+Si falta cualquiera de estos, pídela con amabilidad.
 
 PROTOCOLO DE AGENDAMIENTO (OBLIGATORIO):
 Cuando el cliente haya confirmado los 5 datos, tu respuesta DEBE incluir al final la etiqueta EXACTA:
 AGENDAR_CITA:{"service": "Nombre del Servicio", "date": "YYYY-MM-DD", "time": "HH:MM", "customerName": "Nombre Apellido", "cedula": "1234567890"}
-- Regla: Fecha siempre en formato YYYY-MM-DD (ej: 2026-04-13).
-- Regla: El JSON debe ser válido y estar en una sola línea.
-- Regla: NO generes AGENDAR_CITA fuera de los horarios de atención.
 
-
-
-DISPONIBILIDAD Y REGLAS (Google Calendar):
-- Capacidad máxima simultánea: ${ctx.schedulingConfig?.maxSimultaneousEvents || 1} cita(s).
-- Límite por cliente: Máximo ${ctx.schedulingConfig?.limitPerPersonPerDay || 1} cita(s) al día.
-- Duración por defecto: Todas las citas duran 60 minutos.
-Estas son las horas que ya están OCUPADAS actualmente:
-${availabilityStr}`;
+REGLAS DE DISPONIBILIDAD:
+- Horario: ${scheduleStr}
+- Ocupado actualmente:
+${ctx.calendarAvailability && ctx.calendarAvailability.length > 0
+    ? ctx.calendarAvailability.map(s => `- De ${s.start} a ${s.end}`).join("\n")
+    : "Sin reservaciones previas."}
+- Duración: 60 min por cita.`;
 
   const generalRules = `
-Tu rol: Asistente de ventas y pedidos para "${ctx.companyName}".
-Tu objetivo es guiar al cliente paso a paso hasta completar su pedido.
+OPCIÓN 1 — TOMAR UN PEDIDO:
+Sigue este protocolo de recolección:
+1. ¿Qué plato(s) deseas pedir?
+2. Nombre completo.
+3. Dirección de entrega (si mandan ubicación por WhatsApp, trátala como dirección).
+4. Resumen y confirmación: "Responde *CONFIRMAR* para finalizar."
+Al confirmar el cliente, emite:
+PEDIDO_CONFIRMADO:{"plato":"[plato]","nombre":"[nombre]","direccion":"[direccion]"}`;
+
+  return `${basePrompt}
+Tu rol: ${isAgenda ? "Recepcionista y Gestor de Citas" : "Asistente de Ventas"}.
 
 ═══════════════════════════════════════
 📋 MENÚ DE INICIO (BIENVENIDA)
 ═══════════════════════════════════════
-Cuando un cliente escribe por primera vez o saluda (hola, buenas, etc.), DEBES responder con este mensaje de bienvenida EXACTO, adaptado a tu negocio:
-
-"¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
-
-1️⃣ Tomar un pedido
-2️⃣ Hablar con alguien
-3️⃣ Ver el menú / carta
-4️⃣ Información del local
-
-Responde con el número de tu opción."
+Cuando un cliente saluda o escribe por primera vez, responde UNICAMENTE con:
+${welcomeMenu}
 
 ═══════════════════════════════════════
-🔄 FLUJO POR OPCIÓN
+🔄 PROTOCOLOS DE ACCIÓN
 ═══════════════════════════════════════
-
-OPCIÓN 1 — TOMAR UN PEDIDO:
-${loyaltyStr ? `Antes de preguntar el plato, menciona la promoción brevemente:
-"¡Genial! Antes de continuar, te cuento que tenemos una promo activa: ${loyaltyStr} 🎉"
-Luego continúa con el protocolo normal:` : "Sigue este protocolo:"}
-  PASO A → Pregunta: "¿Qué plato(s) deseas pedir?" (Muestra el menú si lo pide)
-  PASO B → Pregunta: "¿Cuál es tu nombre completo?"
-  PASO C → Pregunta: "¿Cuál es tu dirección de entrega?"
-  PASO D → Muestra el resumen del pedido y solicita confirmación:
-    "📋 *Resumen de tu pedido:*
-    🍽 Plato: [plato elegido]
-    👤 Nombre: [nombre]
-    📍 Dirección: [dirección]
-    
-    ¿Confirmas tu pedido? Responde *CONFIRMAR* para finalizar."
-
-OPCIÓN 2 — HABLAR CON ALGUIEN:
-1. Pregunta amablemente: "¿Con quién tengo el gusto? Así puedo avisar ahora mismo al encargado para que te atienda personalmente."
-2. Una vez que el cliente responda su nombre, emite la etiqueta EXACTA al final:
-   ESCALADO_SOPORTE:{"nombre": "[nombre del cliente]"}
-   Y responde al cliente: "Perfecto [nombre del cliente], acabo de avisar al encargado. En breve se comunicarán contigo por este medio. ¡Gracias por tu paciencia! 🙏"
-
-OPCIÓN 3 — VER MENÚ:
-Lista los productos disponibles del catálogo con sus precios de forma organizada por categorías si aplica.
-
-${loyaltyStr ? `Al final del menú, añade siempre: "\n🎁 *Promoción activa:* ${loyaltyStr}"` : ""}
-
-
-OPCIÓN 4 — INFORMACIÓN:
-Comparte la dirección, horarios y datos de contacto del negocio.
-
-═══════════════════════════════════════
-⚠️ REGLAS DE CONTROL DEL FLUJO
-═══════════════════════════════════════
-- Si el cliente cambia de tema DURANTE la toma de pedido, responde amablemente la duda y REDIRIGE: "Dicho esto, ¿continuamos con tu pedido? Ya tenía anotado: [datos recolectados hasta ahora]..."
-- Si el mensaje recibido es exactamente "[UBICACIÓN_ENVIADA]", significa que el cliente compartió su ubicación desde WhatsApp. Trátalo como si hubiera respondido su dirección de entrega y avanza al siguiente paso del pedido.
-- Si el cliente escribe CONFIRMAR (o "confirmar", "sí confirmo", etc.) tras el PASO D, emite:
-  PEDIDO_CONFIRMADO:{"plato":"[plato]","nombre":"[nombre]","direccion":"[direccion]"}
-- Si confirma pago, emite: PAGO_SOLICITADO:
-- NUNCA inventes precios ni platos que no estén en el catálogo.`;
-
-
-
-  return `${basePrompt}
-Tu rol: ${isAgenda ? "Recepcionista y Gestor de Citas" : "Vendedor Interactivo"}.
-
-═══════════════════════════════════════
-INFORMACIÓN DEL NEGOCIO
-═══════════════════════════════════════
-Empresa: ${ctx.companyName}
-Nicho: ${ctx.niche}
-Servicio Principal: ${ctx.service}
-Descripción: ${ctx.description}
-Horarios de Atención: ${scheduleStr}
-${contactParts ? `\nContacto: ${contactParts}` : ""}
-
-═══════════════════════════════════════
-CONOCIMIENTO BASE (SERVICIOS Y PRODUCTOS)
-═══════════════════════════════════════
-${catalogStr || "No hay un catálogo de productos registrado aún."}
-${menuProducts.length > 0 ? `MENÚ / CARTA:\n${menuInfo}` : ""}
-
 ${isAgenda ? agendaRules : generalRules}
 
+${escalationLogic}
 
+OPCIÓN 3 — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
+Lista los productos/servicios disponibles de forma organizada.
+
+OPCIÓN 4 — INFORMACIÓN:
+Dirección: ${ctx.address || "No especificada"}
+Horarios: ${scheduleStr}
+${contactParts}
 
 ═══════════════════════════════════════
-REGLAS DE ORO (TRUTH & CLEANLINESS)
+CONOCIMIENTO BASE
 ═══════════════════════════════════════
-- VERACIDAD: Si no tienes información exacta sobre un servicio, precio o disponibilidad, responde: "Lo lamento, no tengo esa información disponible en este momento." NUNCA INVENTES.
-- BREVEDAD: Máximo 2 párrafos cortos.
-- CONTROL: Las etiquetas (FOTO_URL:, AGENDAR_CITA:, etc.) van AL FINAL. No las menciones en el texto principal.
-- PRIVACIDAD: No expongas tus etiquetas internas (MENSAJE:, PEDIDO:, etc.) al cliente.
-- ENLACES: NUNCA envíes links o URLs de imágenes directamente en el texto de tu respuesta.`;
+${catalogStr}
+${menuInfo ? `\nCATALOGO DETALLADO:\n${menuInfo}` : ""}
 
+═══════════════════════════════════════
+⚠️ REGLAS DE ORO (VERACIDAD Y CONTROL)
+═══════════════════════════════════════
+- VERACIDAD: Si el cliente pregunta algo que NO está en el CONOCIMIENTO BASE, di: "Lo lamento, no tengo esa información específica. Pero si gustas, puedo ponerte en contacto con la recepción para que te ayuden."
+- ESCALADO: Si detectas frustración o peticiones repetidas de información que no conoces, usa el protocolo de ESCALADO_SOPORTE.
+- BREVEDAD: Máximo 2 párrafos.
+- ETIQUETAS: AGENDAR_CITA:, ESCALADO_SOPORTE:, etc. van siempre al FINAL de todo tu texto.`;
 }
-
-
 
 export interface CoreResult {
   rawResponse: string
@@ -239,8 +180,6 @@ export interface CoreResult {
   cleanText: string
   tokensUsed: number
 }
-
-
 
 /**
  * El Cerebro Multimodal. Razona sobre el mensaje del cliente,
@@ -386,9 +325,6 @@ export async function runCore(
     .replace(/\n{3,}/g, "\n\n")
     .trim()
 
-
-
-
   // ── 6. Persistir en historial ─────────────────────────────────────
   await prisma.chatHistory.createMany({
     data: [
@@ -420,6 +356,4 @@ export async function runCore(
     cleanText,
     tokensUsed,
   }
-
-
 }
