@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock } from "lucide-react"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock, Check, Pencil } from "lucide-react"
 
 import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState, registerAndFinalizeOnboarding } from "./action"
 
@@ -15,7 +15,7 @@ const NICHES = [
     id: "agenda",
     label: "Quantum [Agenda]",
     target: "Clínicas, estéticas, spas o barberías",
-    desc: "Es como tener una recepcionista de élite que nunca duerme. Se encarga de tus citas mientras tú te concentras en atender. La IA llena tu día.",
+    desc: "Recepcionista de élite. Gestiona tus citas 24/7 mientras tú te concentras en atender.",
     icon: Calendar,
     color: "from-blue-500/20 to-indigo-500/20",
     accent: "text-blue-600",
@@ -25,7 +25,7 @@ const NICHES = [
     id: "ventas",
     label: "Quantum [Ventas]",
     target: "Restaurantes, cafeterías o negocios de comida",
-    desc: "Un mesero digital que no comete errores. Toma pedidos, organiza comandas y atiende a 20 personas al mismo tiempo sin equivocarse.",
+    desc: "Mesero digital infalible. Toma pedidos y organiza tu cocina sin errores.",
     icon: Coffee,
     color: "from-orange-500/20 to-red-500/20",
     accent: "text-orange-600",
@@ -35,7 +35,7 @@ const NICHES = [
     id: "showroom",
     label: "Quantum [Showroom]",
     target: "Tiendas de ropa, tecnología o e-commerce",
-    desc: "Convierte tu WhatsApp en una vitrina inteligente. La IA conoce tu stock y vende por ti sugiriendo lo que el cliente busca.",
+    desc: "Vitrina inteligente. Tu IA conoce el stock y vende por ti sugiriendo lo ideal.",
     icon: ShoppingBag,
     color: "from-purple-500/20 to-pink-500/20",
     accent: "text-purple-600",
@@ -116,7 +116,7 @@ function OnboardingContent() {
 
   // States for Conditional Step 3
   const [ventasMethod, setVentasMethod] = useState<"choose" | "ai" | "manual">("choose")
-  const [manualItem, setManualItem] = useState({ name: "", price: "" })
+  const [manualItem, setManualItem] = useState({ name: "", price: "", info: "" })
 
   // Cuenta cuántas imágenes distintas han sido escaneadas con IA
   // (aplica a ventas, agenda Y showroom)
@@ -242,6 +242,23 @@ function OnboardingContent() {
           }))
           setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
           setAnalyzingStep("COMPLETADO")
+        } else if (result.isAgenda && result.data.servicios && Array.isArray(result.data.servicios)) {
+          // AGENDA: añadir cada servicio como un producto independiente
+          const newProducts = result.data.servicios.map((servicio: any) => ({
+            url_foto: imageUrl,
+            categoria: servicio.nombre || "",
+            marca: servicio.precio || "",
+            color_principal: "Servicio",
+            color_secundario: "",
+            caracteristicas: servicio.descripcion || "",
+            estilo: "",
+          }))
+          setFormData((prev: any) => ({
+            ...prev,
+            products: [...prev.products, ...newProducts].slice(0, 20),
+          }))
+          setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
+          setAnalyzingStep("COMPLETADO")
         } else {
           // SHOWROOM / AGENDA: flujo normal de un solo producto
           setCurrentProduct((prev: any) => ({
@@ -292,12 +309,12 @@ function OnboardingContent() {
           marca: manualItem.price,
           color_principal: "Manual",
           color_secundario: "",
-          caracteristicas: "Entrada manual",
+          caracteristicas: manualItem.info || "Entrada manual",
           estilo: "",
         },
       ],
     }))
-    setManualItem({ name: "", price: "" })
+    setManualItem({ name: "", price: "", info: "" })
   }
 
 
@@ -691,7 +708,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre del negocio *</label>
                         <input
                           type="text"
-                          placeholder="Ej: Parrilladas El Gaucho"
+                          placeholder={formData.niche === "showroom" ? "Urban Style" : formData.niche === "agenda" ? "Spa Relax" : "El Gaucho"}
                           value={formData.contextData.companyName}
                           onChange={(e) => updateContext("companyName", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -701,7 +718,11 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Servicio principal o especialidad' : 'Servicio o producto principal'} *</label>
                         <input
                           type="text"
+<<<<<<< HEAD
                           placeholder={formData.niche === 'agenda' ? 'Ej: Consulta dental o Corte de cabello' : 'Ej: Cortes de carne y asados'}
+=======
+                          placeholder={formData.niche === "showroom" ? "Ropa y accesorios" : formData.niche === "agenda" ? "Masajes faciales" : "Cortes de carne"}
+>>>>>>> 653b808468fddc1292add33bdb6cf10b429cbced
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -760,12 +781,34 @@ function OnboardingContent() {
                       </div>
                       <input
                         type="tel"
-                        placeholder="Ej: 593987654321"
+                        placeholder="593987654321"
                         value={formData.contextData.notifPhone || ""}
                         onChange={(e) => updateContext("notifPhone", e.target.value)}
                         className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
                       />
                     </div>
+
+                    {/* Caja de zonas de envío — solo Showroom (Movido aquí desde el paso 3) */}
+                    {formData.niche === "showroom" && (
+                      <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl shadow-sm mt-0">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                            <ArrowRight size={14} className="text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-[#1A1A1A]">Zonas de envío</p>
+                            <p className="text-[10px] text-[#6B7280]">Indica a qué ciudades, barrios o regiones realizas envíos. El agente informará a los clientes.</p>
+                          </div>
+                        </div>
+                        <textarea
+                          placeholder="Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
+                          value={formData.contextData.shippingZones || ""}
+                          onChange={(e) => updateContext("shippingZones", e.target.value)}
+                          rows={3}
+                          className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 resize-none leading-relaxed"
+                        />
+                      </div>
+                    )}
 
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
@@ -774,7 +817,11 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
+<<<<<<< HEAD
                           placeholder={formData.niche === 'agenda' ? 'Ej: Clínica odontológica con 10 años de experiencia en ortodoncia.' : 'Ej: Restaurante familiar especializado en carnes al carbón y cocina tradicional.'}
+=======
+                          placeholder={formData.niche === "showroom" ? "Moda urbana con envíos nacionales." : formData.niche === "agenda" ? "Centro de bienestar integral." : "Especialistas en carnes al carbón."}
+>>>>>>> 653b808468fddc1292add33bdb6cf10b429cbced
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
@@ -783,7 +830,11 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
+<<<<<<< HEAD
                           placeholder={formData.niche === 'agenda' ? 'Ej: Av. Amazonas y República, Edificio Las Cámaras' : 'Ej: Calle Larga 4-56 y Benigno Malo (esquina)'}
+=======
+                          placeholder={formData.niche === "showroom" ? "Av. Amazonas y NNUU (Opcional si es online)" : formData.niche === "agenda" ? "Av. Mariana de Jesús" : "Calle Larga 4-56"}
+>>>>>>> 653b808468fddc1292add33bdb6cf10b429cbced
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
@@ -874,24 +925,23 @@ function OnboardingContent() {
                   {/* TÍTULO DINÁMICO */}
                   <div className="flex flex-col gap-1">
                     <h2 className="text-sm font-bold text-[#1A1A1A]">
-                      {formData.niche === "agenda" && "Enlista los servicios que el agente ofrecerá"}
-                      {formData.niche === "showroom" && "Sube tu catálogo de productos"}
-                      {formData.niche === "ventas" && (
-                        ventasMethod === "choose" ? "¿Cómo prefieres subir tu menú?" :
-                          ventasMethod === "ai" ? "Sube fotos de tu menú" : "Enlista tus platos y precios"
-                      )}
+                      {ventasMethod === "choose" ? 
+                        ((formData.niche as string) === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : (formData.niche as string) === "agenda" ? "¿Cómo prefieres subir tus servicios?" : "¿Cómo prefieres subir tu menú?") :
+                        ventasMethod === "ai" ? 
+                        ((formData.niche as string) === "showroom" ? "Sube tu catálogo de productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios" : "Sube fotos de tu menú") : 
+                        ((formData.niche as string) === "showroom" ? "Enlista tus productos y precios" : (formData.niche as string) === "agenda" ? "Enlista tus servicios y precios" : "Enlista tus platos y precios")
+                      }
                     </h2>
                     <p className="text-xs text-[#6B7280] leading-relaxed">
-                      {formData.niche === "agenda" && "Agregaremos nombre y precio para que el agente pueda informar a tus clientes."}
-                      {formData.niche === "showroom" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
-                      {formData.niche === "ventas" && ventasMethod !== "choose" && "Define los productos que tu mesero digital ofrecerá."}
+                      {ventasMethod === "ai" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
+                      {ventasMethod !== "choose" && ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.") }
                     </p>
                   </div>
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
-                    {/* 1. SELECCIÓN PARA RESTAURANTES */}
-                    {formData.niche === "ventas" && ventasMethod === "choose" && (
+                    {/* 1. SELECCIÓN PARA CATÁLOGOS */}
+                    {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
                       <div className="flex flex-col gap-3">
                         <button
                           onClick={() => setVentasMethod("ai")}
@@ -902,7 +952,7 @@ function OnboardingContent() {
                           </div>
                           <div className="flex flex-col text-left">
                             <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
-                            <span className="text-[10px] text-[#6B7280]">Sube una foto de tu menú físico</span>
+                            <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios o folletos" : "Sube una foto de tu menú físico"}</span>
                           </div>
                         </button>
                         <button
@@ -914,34 +964,47 @@ function OnboardingContent() {
                           </div>
                           <div className="flex flex-col text-left">
                             <span className="text-sm font-bold text-[#1A1A1A]">Lista Manual</span>
-                            <span className="text-[10px] text-[#6B7280]">Escribe los platillos uno a uno</span>
+                            <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Escribe los productos uno a uno" : (formData.niche as string) === "agenda" ? "Escribe los servicios uno a uno" : "Escribe los platillos uno a uno"}</span>
                           </div>
                         </button>
                       </div>
                     )}
 
-                    {/* 2. ENTRADA MANUAL (Agenda o Ventas Manual) */}
-                    {(formData.niche === "agenda" || (formData.niche === "ventas" && ventasMethod === "manual")) && (
+                    {/* 2. ENTRADA MANUAL */}
+                    {ventasMethod === "manual" && (
                       <div className="flex flex-col gap-4">
-                        <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
-                          <div className="col-span-3">
-                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
-                            <input
-                              type="text"
-                              placeholder="Ej: Limpieza profunda"
-                              value={manualItem.name}
-                              onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
-                              className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
-                            />
+                        <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
+                          <div className="flex gap-2">
+                            <div className="flex-[3]">
+                              <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
+                              <input
+                                type="text"
+                                placeholder={formData.niche === "agenda" ? "Limpieza profunda" : formData.niche === "showroom" ? "Zapatillas Urban" : "Hamburguesa clásica"}
+                                value={manualItem.name}
+                                onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
+                                className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                              />
+                            </div>
+                            <div className="flex-[2]">
+                              <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                              <input
+                                type="text"
+                                placeholder="$5.00"
+                                value={manualItem.price}
+                                onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
+                              />
+                            </div>
                           </div>
-                          <div className="col-span-2">
-                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                          <div>
+                            <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Info complementaria (opcional)</label>
                             <div className="flex gap-2">
                               <input
                                 type="text"
-                                placeholder="$45.00"
-                                value={manualItem.price}
-                                onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye lavado y secado." : "Con papas fritas y bebida."}
+                                value={manualItem.info}
+                                onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                 className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
                               />
@@ -949,7 +1012,7 @@ function OnboardingContent() {
                                 onClick={handleAddManualItem}
                                 className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
                               >
-                                <Zap size={16} fill="white" />
+                                <Check size={16} />
                               </button>
                             </div>
                           </div>
@@ -957,7 +1020,9 @@ function OnboardingContent() {
 
                         {/* LISTA DE ITEMS MANUALES */}
                         <div className="flex flex-col gap-2">
-                          {formData.products.filter(p => !p.url_foto).map((prod, idx) => (
+                          {formData.products.filter(p => !p.url_foto).map((prod, idx) => {
+                            const actualIdx = formData.products.indexOf(prod);
+                            return (
                             <motion.div
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -966,53 +1031,31 @@ function OnboardingContent() {
                             >
                               <div className="flex flex-col">
                                 <span className="text-xs font-bold text-[#1A1A1A]">{prod.categoria}</span>
-                                <span className="text-[10px] text-[#6B7280] font-medium">{formData.niche === "agenda" ? "Servicio" : "Platillo"}</span>
+                                <span className="text-[10px] text-[#6B7280] font-medium">{formData.niche === "agenda" ? "Servicio" : formData.niche === "showroom" ? "Producto" : "Platillo"}</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold text-[#1A1A1A] bg-[#F3F4F6] px-2 py-1 rounded-md">{prod.marca}</span>
+                                <span className="text-xs font-bold text-[#1A1A1A] bg-[#F3F4F6] px-2 py-1 rounded-md">{prod.marca.includes('$') ? prod.marca : `$${prod.marca}`}</span>
                                 <button
-                                  onClick={() => setFormData({ ...formData, products: formData.products.filter((_, i) => i !== idx) })}
-                                  className="text-[#94A3B8] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                  onClick={() => {
+                                    setManualItem({ name: prod.categoria, price: prod.marca, info: prod.caracteristicas !== "Entrada manual" ? prod.caracteristicas : "" });
+                                    setFormData({ ...formData, products: formData.products.filter((_, i) => i !== actualIdx) });
+                                  }}
+                                  className="text-[#94A3B8] hover:text-[#1A1A1A] opacity-0 group-hover:opacity-100 transition-all"
                                 >
-                                  <RefreshCw size={14} />
+                                  <Pencil size={14} />
                                 </button>
                               </div>
                             </motion.div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}
 
-                    {/* 3. CATÁLOGO IA (Showroom o Ventas IA) */}
-                    {(formData.niche === "showroom" || (formData.niche === "ventas" && ventasMethod === "ai")) && (
+                    {/* 3. CATÁLOGO IA */}
+                    {ventasMethod === "ai" && (
                       <div className="flex flex-col gap-5">
-                        {formData.niche === "ventas" && (
-                          <button onClick={() => setVentasMethod("choose")} className="text-[10px] font-bold text-[#6B7280] hover:text-[#1A1A1A] transition-colors self-start underline">
-                            ← Cambiar a lista manual
-                          </button>
-                        )}
 
-                        {/* Caja de zonas de envío — solo Showroom */}
-                        {formData.niche === "showroom" && (
-                          <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-2xl shadow-sm">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
-                                <ArrowRight size={14} className="text-white" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-[#1A1A1A]">Zonas de envío</p>
-                                <p className="text-[10px] text-[#6B7280]">Indica a qué ciudades, barrios o regiones realizas envíos. El agente informará a los clientes.</p>
-                              </div>
-                            </div>
-                            <textarea
-                              placeholder="Ej: Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
-                              value={formData.contextData.shippingZones || ""}
-                              onChange={(e) => updateContext("shippingZones", e.target.value)}
-                              rows={3}
-                              className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 resize-none leading-relaxed"
-                            />
-                          </div>
-                        )}
 
                         {/* Contador de imágenes escaneadas — ventas, agenda y showroom */}
                         {(["ventas", "agenda", "showroom"] as string[]).includes(formData.niche) && (
@@ -1058,26 +1101,41 @@ function OnboardingContent() {
                               <span className="text-[10px] font-semibold text-white">Límite de 2 imágenes alcanzado. Añade items adicionales manualmente.</span>
                             </div>
                             {/* ENTRADA MANUAL INTEGRADA */}
-                            <div className="grid grid-cols-5 gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
-                              <div className="col-span-3">
-                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
-                                <input
-                                  type="text"
-                                  placeholder={(formData.niche as string) === "agenda" ? "Ej: Limpieza profunda" : "Ej: Lomo saltado"}
 
-                                  value={manualItem.name}
-                                  onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
-                                  className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
-                                />
+                            <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
+                              <div className="flex gap-2">
+                                <div className="flex-[3]">
+                                  <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Nombre</label>
+                                  <input
+                                    type="text"
+                                    placeholder={(formData.niche as string) === "agenda" ? "Limpieza profunda" : (formData.niche as string) === "showroom" ? "Zapatillas Urban" : "Hamburguesa clásica"}
+                                    value={manualItem.name}
+                                    onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
+                                    className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                  />
+                                </div>
+                                <div className="flex-[2]">
+                                  <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                                  <input
+                                    type="text"
+                                    placeholder="$5.00"
+                                    value={manualItem.price}
+                                    onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                    className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
+                                  />
+                                </div>
+
+
                               </div>
-                              <div className="col-span-2">
-                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Precio</label>
+                              <div>
+                                <label className="text-[10px] font-bold text-[#94A3B8] uppercase block mb-1 ml-1">Info complementaria (opcional)</label>
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
-                                    placeholder="$45.00"
-                                    value={manualItem.price}
-                                    onChange={(e) => setManualItem({ ...manualItem, price: e.target.value })}
+                                    placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye lavado y secado." : "Con papas fritas y bebida."}
+                                    value={manualItem.info}
+                                    onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                     className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddManualItem()}
                                   />
@@ -1085,7 +1143,7 @@ function OnboardingContent() {
                                     onClick={handleAddManualItem}
                                     className="bg-[#1A1A1A] text-white p-2.5 rounded-lg hover:bg-[#333] transition-colors flex-shrink-0"
                                   >
-                                    <Zap size={16} fill="white" />
+                                    <Check size={16} />
                                   </button>
                                 </div>
                               </div>
@@ -1108,17 +1166,27 @@ function OnboardingContent() {
                                   <input type="text" value={currentProduct.categoria} onChange={(e) => setCurrentProduct({ ...currentProduct, categoria: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Marca</label>
+                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">{(formData.niche as string) === "showroom" ? "Marca" : "Precio"}</label>
                                   <input type="text" value={currentProduct.marca} onChange={(e) => setCurrentProduct({ ...currentProduct, marca: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
                                 </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Color</label>
-                                  <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Estilo</label>
-                                  <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
-                                </div>
+                                { (formData.niche as string) === "showroom" && (
+                                  <>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Color</label>
+                                      <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Estilo</label>
+                                      <input type="text" value={currentProduct.estilo} onChange={(e) => setCurrentProduct({ ...currentProduct, estilo: e.target.value })} className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                    </div>
+                                  </>
+                                )}
+                                { (formData.niche as string) !== "showroom" && (
+                                  <div className="flex flex-col gap-1.5 col-span-2">
+                                    <label className="text-[10px] font-semibold text-[#6B7280] uppercase">Tipo / Categoría</label>
+                                    <input type="text" value={currentProduct.color_principal} onChange={(e) => setCurrentProduct({ ...currentProduct, color_principal: e.target.value })} placeholder="Ej: Servicio, Masaje, Combo..." className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none" />
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div className="flex flex-col gap-1.5 pt-1">
@@ -1126,7 +1194,7 @@ function OnboardingContent() {
                               <input type="text" value={currentProduct.caracteristicas} onChange={(e) => setCurrentProduct({ ...currentProduct, caracteristicas: e.target.value })} className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none leading-relaxed" />
                             </div>
                             <button onClick={handleAddProduct} className="bg-[#F3F4F6] border border-[#E2E8F0] text-[#1A1A1A] font-semibold text-xs py-3 mt-1 rounded-lg hover:bg-[#E5E7EB] transition-colors">
-                              Añadir producto a la base de datos
+                              
                             </button>
                           </div>
                         )}
@@ -1154,7 +1222,7 @@ function OnboardingContent() {
                   <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => {
-                        if (formData.niche === "ventas" && ventasMethod !== "choose") {
+                        if (ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
                           setStep(2)
@@ -1167,15 +1235,11 @@ function OnboardingContent() {
                     <button
                       onClick={() => setStep(4)}
                       disabled={
-                        (formData.niche === "ventas" && ventasMethod === "choose")
+                        ventasMethod === "choose" || formData.products.length === 0
                       }
-
-                      className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${formData.products.length === 0
-                          ? "bg-white border border-[#E2E8F0] text-[#1A1A1A] hover:bg-[#F9FAFB]"
-                          : "bg-[#1A1A1A] text-white hover:bg-[#333]"
-                        }`}
+                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
                     >
-                      {formData.products.length === 0 ? "Omitir por ahora" : "Continuar"}
+                      Continuar
                     </button>
 
                   </div>
@@ -1259,7 +1323,7 @@ function OnboardingContent() {
                             <span className="text-xs font-semibold text-[#4B5563]">Número para vincular:</span>
                             <input
                               type="tel"
-                              placeholder="Ej: 593999999999"
+                              placeholder="593999999999"
                               value={formData.testPhone}
                               onChange={(e) => setFormData({ ...formData, testPhone: e.target.value.replace(/\D/g, "") })}
                               className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] font-mono focus:border-[#1A1A1A] outline-none transition-colors"
