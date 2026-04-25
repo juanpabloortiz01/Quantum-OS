@@ -698,10 +698,10 @@ function OnboardingContent() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Servicio o producto principal *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Servicio principal o especialidad' : 'Servicio o producto principal'} *</label>
                         <input
                           type="text"
-                          placeholder="Ej: Cortes de carne y asados"
+                          placeholder={formData.niche === 'agenda' ? 'Ej: Consulta dental o Corte de cabello' : 'Ej: Cortes de carne y asados'}
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -754,8 +754,8 @@ function OnboardingContent() {
                           <Phone size={14} className="text-white" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-[#1A1A1A]">Número del encargado de pedidos *</p>
-                          <p className="text-[10px] text-[#6B7280]">Indica a qué número llegarán las notificaciones de pedidos o citas.</p>
+                          <p className="text-xs font-bold text-[#1A1A1A]">{formData.niche === 'agenda' ? 'Número del encargado de las citas' : 'Número del encargado de pedidos'} *</p>
+                          <p className="text-[10px] text-[#6B7280]">{formData.niche === 'agenda' ? 'Indica a qué número llegarán las notificaciones de las citas.' : 'Indica a qué número llegarán las notificaciones de pedidos o citas.'}</p>
                         </div>
                       </div>
                       <input
@@ -770,20 +770,20 @@ function OnboardingContent() {
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Descripción de perfil o biografía *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Descripción del negocio' : 'Descripción de perfil o biografía'} *</label>
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-                          placeholder="Ej: Restaurante familiar especializado en carnes al carbón y cocina tradicional."
+                          placeholder={formData.niche === 'agenda' ? 'Ej: Clínica odontológica con 10 años de experiencia en ortodoncia.' : 'Ej: Restaurante familiar especializado en carnes al carbón y cocina tradicional.'}
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Dirección física (Opcional)</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Ubicación' : 'Dirección física (Opcional)'}</label>
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-                          placeholder="Ej: Calle Larga 4-56 y Benigno Malo (esquina)"
+                          placeholder={formData.niche === 'agenda' ? 'Ej: Av. Amazonas y República, Edificio Las Cámaras' : 'Ej: Calle Larga 4-56 y Benigno Malo (esquina)'}
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
