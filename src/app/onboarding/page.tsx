@@ -46,7 +46,41 @@ const NICHES = [
 
 
 
-function OnboardingContent() {
+const iosCubic = [0.32, 0.72, 0, 1];
+
+const containerVariants = {
+  hidden: { opacity: 0, x: 20 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: { 
+      duration: 0.6, 
+      ease: iosCubic,
+      staggerChildren: 0.08,
+      delayChildren: 0.1
+    } 
+  },
+  exit: { 
+    opacity: 0, 
+    x: -20, 
+    transition: { duration: 0.4, ease: "easeInOut" } 
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.5, ease: iosCubic } 
+  }
+};
+
+const titleVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: iosCubic } }
+};
+
   const sessionResult = useSession()
   const session = sessionResult?.data
   const status = sessionResult?.status ?? "loading"
@@ -479,30 +513,42 @@ function OnboardingContent() {
 
           {/* Barra de progreso superior */}
           {step > 0 && (
-            <div className="h-1 flex">
-              {[1, 2, 3, 4].map((s) => (
-                <div
-                  key={s}
-                  className="flex-1 transition-all duration-500"
-                  style={{ background: s <= step ? "#1A1A1A" : "#F3F4F6" }}
-                />
-              ))}
+            <div className="h-1 flex bg-[#F3F4F6] overflow-hidden">
+              <motion.div 
+                className="h-full bg-[#1A1A1A]"
+                initial={{ width: "25%" }}
+                animate={{ width: `${(step / 4) * 100}%` }}
+                transition={{ duration: 0.6, ease: iosCubic }}
+              />
             </div>
           )}
 
           <div className="p-8">
             {/* Título */}
-            <div className="mb-8 text-center flex flex-col gap-1">
-              <span className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
+            <div className="mb-8 text-center flex flex-col gap-1 overflow-hidden">
+              <motion.span 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider"
+              >
                 Configuración del Asistente
-              </span>
-              <h1 className="text-2xl font-bold tracking-tight text-[#1A1A1A]">
-                {step === 0 && "Crear una cuenta"}
-                {step === 1 && "Sector del negocio"}
-                {step === 2 && "Describe tu negocio"}
-                {step === 3 && "Sube tu catálogo"}
-                {step === 4 && "Conecta tu WhatsApp"}
-              </h1>
+              </motion.span>
+              <AnimatePresence mode="wait">
+                <motion.h1 
+                  key={step}
+                  variants={titleVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  className="text-2xl font-bold tracking-tight text-[#1A1A1A]"
+                >
+                  {step === 0 && "Crear una cuenta"}
+                  {step === 1 && "Sector del negocio"}
+                  {step === 2 && "Describe tu negocio"}
+                  {step === 3 && "Sube tu catálogo"}
+                  {step === 4 && "Conecta tu WhatsApp"}
+                </motion.h1>
+              </AnimatePresence>
             </div>
 
             <AnimatePresence mode="wait">
@@ -510,12 +556,13 @@ function OnboardingContent() {
               {step === 0 && (
                 <motion.div
                   key="step0"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-4"
                 >
-                  <div>
+                  <motion.div variants={itemVariants}>
                     <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
                       Correo electrónico
                     </label>
@@ -526,7 +573,7 @@ function OnboardingContent() {
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
                     />
-                  </div>
+                  </motion.div>
 
                   <AnimatePresence>
                     {email.length > 2 && (
@@ -570,13 +617,15 @@ function OnboardingContent() {
                     </p>
                   )}
 
-                  <button
+                  <motion.button
+                    variants={itemVariants}
+                    whileTap={{ scale: 0.96 }}
                     onClick={handleContinue}
                     disabled={isLoading}
                     className="w-full bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors disabled:opacity-50 mt-2 shadow-sm"
                   >
                     {isLoading ? "Procesando..." : "Crear cuenta y continuar"}
-                  </button>
+                  </motion.button>
 
                   <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
@@ -614,23 +663,26 @@ function OnboardingContent() {
               {step === 1 && (
                 <motion.div
                   key="step1"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-5"
                 >
-                  <div className="text-center mb-2">
+                  <motion.div variants={itemVariants} className="text-center mb-2">
                     <p className="text-sm text-[#6B7280]">
                       Selecciona la especialidad de tu agente
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-4">
-                    {NICHES.map((niche) => {
+                    {NICHES.map((niche, idx) => {
                       const active = formData.niche === niche.id;
                       const Icon = niche.icon;
                       return (
-                        <button
+                        <motion.button
+                          variants={itemVariants}
+                          whileTap={{ scale: 0.98 }}
                           key={niche.id}
                           onClick={() => setFormData({
                             ...formData,
@@ -638,7 +690,7 @@ function OnboardingContent() {
                             needs: niche.needs
                           })}
                           className={`group relative p-5 text-left transition-all border rounded-2xl overflow-hidden ${active
-                              ? "border-[#1A1A1A] bg-white shadow-md scale-[1.02]"
+                              ? "border-[#1A1A1A] bg-white shadow-md"
                               : "border-[#E2E8F0] bg-white hover:border-[#94A3B8] hover:shadow-sm"
                             }`}
                         >
@@ -674,14 +726,16 @@ function OnboardingContent() {
                     })}
                   </div>
 
-                  <button
+                  <motion.button
+                    variants={itemVariants}
+                    whileTap={{ scale: 0.96 }}
                     onClick={() => setStep(2)}
                     disabled={!formData.niche}
                     className="w-full py-4 text-sm font-bold transition-all rounded-xl mt-4 disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] shadow-lg shadow-black/10 flex items-center justify-center gap-2 group"
                   >
                     Activar Protocolo
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  </motion.button>
                 </motion.div>
               )}
 
@@ -690,12 +744,13 @@ function OnboardingContent() {
               {step === 2 && (
                 <motion.div
                   key="step2"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-6"
                 >
-                  <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800 leading-relaxed">
+                  <motion.div variants={itemVariants} className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800 leading-relaxed">
                     <strong>Agrega información clave a tu agente.</strong><br />
                     Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
                   </div>
@@ -873,10 +928,10 @@ function OnboardingContent() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                  <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => setStep(1)}
-                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors"
+                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                     >
                       ← Atrás
                     </button>
@@ -891,11 +946,11 @@ function OnboardingContent() {
                         !formData.contextData.closeTime ||
                         !formData.contextData.notifPhone
                       }
-                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
+                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
                     >
                       Continuar al catálogo
                     </button>
-                  </div>
+                  </motion.div>
                 </motion.div>
               )}
 
@@ -905,13 +960,14 @@ function OnboardingContent() {
               {step === 3 && (
                 <motion.div
                   key="step3"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-6"
                 >
                   {/* TÍTULO DINÁMICO */}
-                  <div className="flex flex-col gap-1">
+                  <motion.div variants={itemVariants} className="flex flex-col gap-1">
                     <h2 className="text-sm font-bold text-[#1A1A1A]">
                       {ventasMethod === "choose" ? 
                         ((formData.niche as string) === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : (formData.niche as string) === "agenda" ? "¿Cómo prefieres subir tus servicios?" : "¿Cómo prefieres subir tu menú?") :
@@ -931,7 +987,9 @@ function OnboardingContent() {
                     {/* 1. SELECCIÓN PARA CATÁLOGOS */}
                     {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
                       <div className="flex flex-col gap-3">
-                        <button
+                        <motion.button
+                          variants={itemVariants}
+                          whileTap={{ scale: 0.97 }}
                           onClick={() => setVentasMethod("ai")}
                           className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
                         >
@@ -943,7 +1001,9 @@ function OnboardingContent() {
                             <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios o folletos" : "Sube una foto de tu menú físico"}</span>
                           </div>
                         </button>
-                        <button
+                        <motion.button
+                          variants={itemVariants}
+                          whileTap={{ scale: 0.97 }}
                           onClick={() => setVentasMethod("manual")}
                           className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
                         >
@@ -1207,7 +1267,7 @@ function OnboardingContent() {
                     )}
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                  <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => {
                         if (ventasMethod !== "choose") {
@@ -1216,7 +1276,7 @@ function OnboardingContent() {
                           setStep(2)
                         }
                       }}
-                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors"
+                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                     >
                       ← Atrás
                     </button>
@@ -1225,12 +1285,12 @@ function OnboardingContent() {
                       disabled={
                         ventasMethod === "choose" || formData.products.length === 0
                       }
-                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333]"
+                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
                     >
                       Continuar
                     </button>
 
-                  </div>
+                  </motion.div>
                 </motion.div>
               )}
 
@@ -1238,31 +1298,43 @@ function OnboardingContent() {
               {step === 4 && (
                 <motion.div
                   key="step5"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-6"
                 >
-                  <p className="text-sm text-[#4B5563] leading-relaxed text-center">
+                  <motion.p variants={itemVariants} className="text-sm text-[#4B5563] leading-relaxed text-center">
                     Vincula un número de WhatsApp Business o Normal a tu Agente. Desde este número se atenderá a tus clientes forma automática.
-                  </p>
+                  </motion.p>
 
                   <div className="flex flex-col gap-3">
                     {!connectionMethod && !evoConnected && (
                       <div className="flex flex-col gap-4 mt-2">
                         {evoError && (
-                          <div className="p-3 border border-red-200 bg-red-50 text-red-700 text-xs font-medium rounded-lg text-center">
+                          <motion.div variants={itemVariants} className="p-3 border border-red-200 bg-red-50 text-red-700 text-xs font-medium rounded-lg text-center">
                             Error: {evoError}
-                          </div>
+                          </motion.div>
                         )}
                         <div className="grid grid-cols-2 gap-3">
-                          <button onClick={() => handleEvoConnect("qr")} className="p-6 border border-[#E2E8F0] bg-white rounded-xl shadow-sm hover:border-[#94A3B8] hover:bg-[#FBFBFA] transition-all flex flex-col items-center gap-3">
+                          <motion.button 
+                            variants={itemVariants}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleEvoConnect("qr")} 
+                            className="p-6 border border-[#E2E8F0] bg-white rounded-xl shadow-sm hover:border-[#94A3B8] hover:bg-[#FBFBFA] transition-all flex flex-col items-center gap-3"
+                          >
                             <Scan className="w-8 h-8 text-[#4B5563]" />
                             <span className="text-sm font-semibold text-[#1A1A1A]">Escanear QR</span>
-                          </button>
-                          <button onClick={() => setConnectionMethod("code")} className="p-6 border border-[#E2E8F0] bg-white rounded-xl shadow-sm hover:border-[#94A3B8] hover:bg-[#FBFBFA] transition-all flex flex-col items-center gap-3">
+                          </motion.button>
+                          <motion.button 
+                            variants={itemVariants}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setConnectionMethod("code")} 
+                            className="p-6 border border-[#E2E8F0] bg-white rounded-xl shadow-sm hover:border-[#94A3B8] hover:bg-[#FBFBFA] transition-all flex flex-col items-center gap-3"
+                          >
                             <Phone className="w-8 h-8 text-[#4B5563]" />
                             <span className="text-sm font-semibold text-[#1A1A1A]">Código Numérico</span>
-                          </button>
+                          </motion.button>
                         </div>
                       </div>
                     )}
@@ -1339,15 +1411,25 @@ function OnboardingContent() {
                     )}
 
                     {evoConnected && (
-                      <div className="border border-green-200 bg-green-50 rounded-xl p-8 flex flex-col items-center justify-center gap-4 shadow-sm mt-4">
-                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
+                      <motion.div 
+                        variants={itemVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="border border-green-200 bg-green-50 rounded-xl p-8 flex flex-col items-center justify-center gap-4 shadow-sm mt-4"
+                      >
+                        <motion.div 
+                          className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm"
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                        >
                           <CheckCircle className="w-8 h-8 text-green-500" />
-                        </div>
+                        </motion.div>
                         <span className="text-sm font-bold text-green-800 text-center block mt-2">
                           ¡Conexión Existosa! <br /> Todo está listo.
                         </span>
                         <p className="text-xs text-green-700 text-center font-medium mt-1">El agente ya tiene acceso y control de tu WhatsApp.</p>
-                      </div>
+                      </motion.div>
                     )}
                   </div>
                 </motion.div>
