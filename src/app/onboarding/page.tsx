@@ -65,7 +65,7 @@ const containerVariants = {
     x: -20, 
     transition: { duration: 0.4, ease: "easeInOut" } 
   }
-};
+} as const;
 
 const itemVariants = {
   hidden: { opacity: 0, y: 15 },
@@ -74,12 +74,12 @@ const itemVariants = {
     y: 0, 
     transition: { duration: 0.5, ease: iosCubic } 
   }
-};
+} as const;
 
 const titleVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: iosCubic } }
-};
+} as const;
 
 function OnboardingContent() {
   const sessionResult = useSession()
