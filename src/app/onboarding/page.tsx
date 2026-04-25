@@ -46,7 +46,7 @@ const NICHES = [
 
 
 
-const iosCubic = [0.32, 0.72, 0, 1];
+const iosCubic = [0.32, 0.72, 0, 1] as const;
 
 const containerVariants = {
   hidden: { opacity: 0, x: 20 },
