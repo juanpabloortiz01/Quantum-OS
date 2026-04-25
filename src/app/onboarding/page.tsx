@@ -673,7 +673,7 @@ const titleVariants = {
                     <p className="text-sm text-[#6B7280]">
                       Selecciona la especialidad de tu agente
                     </p>
-                  </div>
+                  </motion.div>
 
                   <div className="flex flex-col gap-4">
                     {NICHES.map((niche, idx) => {
@@ -721,7 +721,7 @@ const titleVariants = {
                               </p>
                             </div>
                           </div>
-                        </button>
+                        </motion.button>
                       )
                     })}
                   </div>
@@ -753,7 +753,7 @@ const titleVariants = {
                   <motion.div variants={itemVariants} className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800 leading-relaxed">
                     <strong>Agrega información clave a tu agente.</strong><br />
                     Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
-                  </div>
+                  </motion.div>
 
                   <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
 
@@ -980,7 +980,7 @@ const titleVariants = {
                       {ventasMethod === "ai" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
                       {ventasMethod !== "choose" && ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.") }
                     </p>
-                  </div>
+                  </motion.div>
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
@@ -1000,7 +1000,7 @@ const titleVariants = {
                             <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
                             <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios o folletos" : "Sube una foto de tu menú físico"}</span>
                           </div>
-                        </button>
+                        </motion.button>
                         <motion.button
                           variants={itemVariants}
                           whileTap={{ scale: 0.97 }}
@@ -1014,7 +1014,7 @@ const titleVariants = {
                             <span className="text-sm font-bold text-[#1A1A1A]">Lista Manual</span>
                             <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Escribe los productos uno a uno" : (formData.niche as string) === "agenda" ? "Escribe los servicios uno a uno" : "Escribe los platillos uno a uno"}</span>
                           </div>
-                        </button>
+                        </motion.button>
                       </div>
                     )}
 
