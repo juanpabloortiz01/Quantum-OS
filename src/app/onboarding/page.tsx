@@ -81,6 +81,7 @@ const titleVariants = {
   visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: iosCubic } }
 };
 
+function OnboardingContent() {
   const sessionResult = useSession()
   const session = sessionResult?.data
   const status = sessionResult?.status ?? "loading"
@@ -476,10 +477,9 @@ const titleVariants = {
       })
     }
 
-    setIsLoading(false)
-    router.push("/dashboard")
-  }
-
+    setIsLoading(false);
+    router.push("/dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-[#FBFBFA] text-[#1A1A1A] flex items-center justify-center p-4 selection:bg-slate-200 selection:text-black font-sans">
