@@ -338,7 +338,7 @@ export async function runCore(
         organizationId: ctx.organizationId,
         customerPhone: msg.remoteJid,
         role: "assistant",
-        content: cleanText,
+        content: rawResponse,
       },
     ],
   })

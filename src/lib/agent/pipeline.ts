@@ -14,6 +14,7 @@ import { loadContext } from "./context-loader"
 import { runCore } from "./core"
 import { runDispatcher } from "./dispatcher"
 import { debounceMessage } from "./debouncer"
+import { prisma } from "@/lib/prisma"
 
 
 export interface PipelineResult {
@@ -31,7 +32,6 @@ export interface PipelineResult {
 
 /**
  * Ejecuta el pipeline completo sobre el payload crudo de EvolutionAPI.
- * Nunca lanza excepción — retorna siempre un PipelineResult.
  */
 export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   const t0 = Date.now()
@@ -42,98 +42,101 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   console.log("[PIPELINE]: Inicia NODO 2 (Logic Filter)")
   const filterResult = applyLogicFilter(rawPayload)
 
+  // Manejo de mensajes de nosotros (Human Agent)
+  if (!filterResult.valid && filterResult.reason === "SELF_MSG") {
+    const msg = filterResult.parsed!
+    // Intentar cargar contexto para saber la organización
+    const ctx = await prisma.organization.findFirst({
+        where: { evolutionInstance: msg.instanceName }
+    })
+    if (ctx) {
+        console.log(`[PIPELINE]: Registro de respuesta humana para JID: ${msg.remoteJid}`)
+        await prisma.chatHistory.create({
+            data: {
+                organizationId: ctx.id,
+                customerPhone: msg.remoteJid,
+                role: "assistant", // Los mensajes fromMe cuentan como assistant
+                content: msg.text ?? "[multimedia/human]",
+            }
+        })
+    }
+    return { status: "FILTERED", reason: "SELF_MSG" }
+  }
+
   if (!filterResult.valid) {
     console.log(`[PIPELINE]: >>> FILTERED <<< Razón: ${filterResult.reason}`)
     return { status: "FILTERED", reason: filterResult.reason ?? "Mensaje inválido." }
   }
 
   const msg = filterResult.parsed!
-  console.log(
-    `[PIPELINE]: MSG_OK [${msg.messageType}] from ${msg.remoteJid} | instance: ${msg.instanceName}`
-  )
 
   // ─────────────────────────────────────────────
-  //  NODO 2.5 — DEBOUNCER: El Agón
-  //  Espera que el cliente termine de escribir
-  //  antes de pasar al pipeline costoso.
+  //  PRE-CHECK: Estado de Pausa (Terminal Tags)
+  //  Si la última respuesta fue un agendamiento o escalado,
+  //  nos quedamos en silencio hasta que un humano intervenga.
+  // ─────────────────────────────────────────────
+  const ctxBrief = await prisma.organization.findFirst({
+      where: { evolutionInstance: msg.instanceName }
+  })
+
+  if (ctxBrief) {
+      const lastAiMsg = await prisma.chatHistory.findFirst({
+          where: {
+              organizationId: ctxBrief.id,
+              customerPhone: msg.remoteJid,
+              role: "assistant"
+          },
+          orderBy: { createdAt: "desc" }
+      })
+
+      if (lastAiMsg) {
+          const terminalTags = [/AGENDAR_CITA:/i, /ESCALADO_SOPORTE:/i, /PEDIDO_CONFIRMADO:/i]
+          const isTerminal = terminalTags.some(tag => tag.test(lastAiMsg.content))
+          
+          if (isTerminal) {
+              console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por estado terminal previo.`)
+              return { status: "FILTERED", reason: "CONVERSATION_PAUSED" }
+          }
+      }
+  }
+
+
+  // ─────────────────────────────────────────────
+  //  NODO 2.5 — DEBOUNCER
   // ─────────────────────────────────────────────
   if (msg.messageType === "text") {
-    console.log(`[PIPELINE]: DEBOUNCER activo — esperando silencio de 2.5s para JID: ${msg.remoteJid}`)
     const combinedText = await debounceMessage(msg.remoteJid, msg.text ?? "", msg.messageType)
     msg.text = combinedText
-    console.log(`[PIPELINE]: DEBOUNCER resuelto — texto final: "${combinedText.slice(0, 80)}"`)
   }
 
   // ─────────────────────────────────────────────
-  //  NODO 3 — The Sentry: El Clasificador
+  //  NODO 3 — The Sentry
   // ─────────────────────────────────────────────
-  console.log("[PIPELINE]: Inicia NODO 3 (Sentry)")
   const sentryResult = await runSentry(msg.text ?? "", undefined)
-  console.log(
-    `[SENTRY]: intent=${sentryResult.intent} | needs_inventory=${sentryResult.needs_inventory} | conf=${sentryResult.confidence}`
-  )
-
 
   // ─────────────────────────────────────────────
-  //  NODO 4 — Context Loader: El Bibliotecario
+  //  NODO 4 — Context Loader
   // ─────────────────────────────────────────────
-  console.log("[PIPELINE]: Inicia NODO 4 (Context Loader)")
   const ctx = await loadContext(msg.instanceName, sentryResult)
-
-  if (!ctx) {
-    console.error(`[PIPELINE]: >>> NO_CONTEXT <<< para instancia: ${msg.instanceName}`)
-    return {
-      status: "NO_CONTEXT",
-      reason: `Instancia ${msg.instanceName} no vinculada a ninguna organización en la DB.`,
-    }
-  }
-
-  console.log(
-    `[CONTEXT]: org="${ctx.companyName}" | products=${ctx.products.length}`
-  )
+  if (!ctx) return { status: "NO_CONTEXT" }
 
   // ─────────────────────────────────────────────
-  //  NODO 5 — The Core: El Cerebro Multimodal
+  //  NODO 5 — The Core
   // ─────────────────────────────────────────────
-  console.log("[PIPELINE]: Inicia NODO 5 (Core)")
   let coreResult
   try {
     coreResult = await runCore(msg, ctx, sentryResult)
-    console.log(
-      `[CORE]: tokens=${coreResult.tokensUsed} | hasImage=${coreResult.hasImage} | pedido=${coreResult.isPedidoConfirmado}`
-    )
   } catch (err: any) {
-    console.error("[PIPELINE]: >>> CORE_ERROR <<<:", err?.message ?? err)
-    return {
-      status: "CORE_ERROR",
-      reason: err?.message ?? "Fallo crítico en el Core.",
-    }
+    return { status: "CORE_ERROR", reason: err?.message }
   }
 
   // ─────────────────────────────────────────────
-  //  NODO 6 — Response Dispatcher: El Despachador
+  //  NODO 6 — Response Dispatcher
   // ─────────────────────────────────────────────
-  console.log("[PIPELINE]: Inicia NODO 6 (Dispatcher)")
   const dispatchResult = await runDispatcher(msg.remoteJid, coreResult, ctx)
 
-  const elapsed = Date.now() - t0
-  console.log(
-    `[PIPELINE]: FINALIZADO | METHOD=${dispatchResult.method} | elapsed=${elapsed}ms | success=${dispatchResult.success}`
-  )
-
-  if (!dispatchResult.success) {
-    console.error(`[PIPELINE]: >>> DISPATCH_ERROR <<<: ${dispatchResult.error}`)
-    return {
-      status: "DISPATCH_ERROR",
-      method: dispatchResult.method,
-      reason: dispatchResult.error,
-      intent: sentryResult.intent,
-      tokensUsed: coreResult.tokensUsed,
-    }
-  }
-
   return {
-    status: "SUCCESS",
+    status: dispatchResult.success ? "SUCCESS" : "DISPATCH_ERROR",
     method: dispatchResult.method,
     intent: sentryResult.intent,
     tokensUsed: coreResult.tokensUsed,

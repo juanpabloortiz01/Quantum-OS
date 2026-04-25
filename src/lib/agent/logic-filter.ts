@@ -93,10 +93,9 @@ export function applyLogicFilter(raw: any): FilterResult {
 
   // ── FILTROS DE DESCARTE ────────────────────────────────────────────
 
-  // 1. Anti-loop: nunca responder a mensajes propios
-  if (fromMe) {
-    return { valid: false, reason: "SELF_MSG: fromMe=true → descartado.", parsed: null }
-  }
+  // 1. Anti-loop: nunca responder a mensajes propios de forma automatizada, 
+  // pero los permitimos pasar para registro de historial.
+  const isSelf = fromMe;
 
   // 2. Descartar mensajes de grupos
   if (remoteJid.endsWith("@g.us")) {
@@ -160,7 +159,8 @@ export function applyLogicFilter(raw: any): FilterResult {
 
 
   return {
-    valid: true,
+    valid: !isSelf, // Si es de nosotros, no es válido para que el agente responda
+    reason: isSelf ? "SELF_MSG" : undefined,
     parsed: {
       remoteJid,
       instanceName,
