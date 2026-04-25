@@ -718,11 +718,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Servicio principal o especialidad' : 'Servicio o producto principal'} *</label>
                         <input
                           type="text"
-<<<<<<< HEAD
-                          placeholder={formData.niche === 'agenda' ? 'Ej: Consulta dental o Corte de cabello' : 'Ej: Cortes de carne y asados'}
-=======
-                          placeholder={formData.niche === "showroom" ? "Ropa y accesorios" : formData.niche === "agenda" ? "Masajes faciales" : "Cortes de carne"}
->>>>>>> 653b808468fddc1292add33bdb6cf10b429cbced
+                          placeholder={formData.niche === "showroom" ? "Ropa y accesorios" : formData.niche === "agenda" ? "Consulta dental o Corte de cabello" : "Cortes de carne y asados"}
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -817,11 +813,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-<<<<<<< HEAD
-                          placeholder={formData.niche === 'agenda' ? 'Ej: Clínica odontológica con 10 años de experiencia en ortodoncia.' : 'Ej: Restaurante familiar especializado en carnes al carbón y cocina tradicional.'}
-=======
-                          placeholder={formData.niche === "showroom" ? "Moda urbana con envíos nacionales." : formData.niche === "agenda" ? "Centro de bienestar integral." : "Especialistas en carnes al carbón."}
->>>>>>> 653b808468fddc1292add33bdb6cf10b429cbced
+                          placeholder={formData.niche === "showroom" ? "Moda urbana con envíos nacionales o locales." : formData.niche === "agenda" ? "Centro de bienestar integral con 10 años de experiencia." : "Especialistas en carnes al carbón y tradición gastronómica."}
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
@@ -830,11 +822,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-<<<<<<< HEAD
-                          placeholder={formData.niche === 'agenda' ? 'Ej: Av. Amazonas y República, Edificio Las Cámaras' : 'Ej: Calle Larga 4-56 y Benigno Malo (esquina)'}
-=======
-                          placeholder={formData.niche === "showroom" ? "Av. Amazonas y NNUU (Opcional si es online)" : formData.niche === "agenda" ? "Av. Mariana de Jesús" : "Calle Larga 4-56"}
->>>>>>> 653b808468fddc1292add33bdb6cf10b429cbced
+                          placeholder={formData.niche === "showroom" ? "Av. Amazonas y NNUU (Opcional si es online)" : formData.niche === "agenda" ? "Ejem: Centro Comercial El Bosque, Local PB-12" : "Calle Larga 4-56 y Benigno Malo"}
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
@@ -1299,8 +1287,7 @@ function OnboardingContent() {
                           </div>
                         )}
                         <span className="text-xs text-[#4B5563] text-center mt-3 leading-relaxed">
-                          Abre WhatsApp en tu teléfono → Dispositivos Vinculados → Vincular dispositivo<br />
-                          <strong className="text-[#1A1A1A] mt-2 block">Se redireccionará al panel automáticamente de forma exitosa.</strong>
+                          Abre WhatsApp en tu teléfono → Dispositivos Vinculados → Vincular dispositivo
                         </span>
 
                         <button onClick={() => handleEvoConnect("qr")} className="mt-2 text-[#4B5563] text-xs font-medium flex items-center gap-2 hover:bg-[#F3F4F6] transition-colors px-4 py-2 border border-[#E2E8F0] bg-white rounded-lg shadow-sm">
@@ -1344,8 +1331,7 @@ function OnboardingContent() {
                               </button>
                             </div>
                             <span className="text-xs text-[#4B5563] text-center max-w-sm leading-relaxed mt-2">
-                              Abre WhatsApp → Dispositivos Vinculados → <strong>Vincular con tu número de teléfono.</strong><br />
-                              <strong className="text-[#1A1A1A] mt-3 block py-2 px-3 bg-[#F3F4F6] rounded-md">Al conectar serás redirigido a tu panel de control.</strong>
+                              Abre WhatsApp → Dispositivos Vinculados → <strong>Vincular con tu número de teléfono.</strong>
                             </span>
                           </div>
                         )}

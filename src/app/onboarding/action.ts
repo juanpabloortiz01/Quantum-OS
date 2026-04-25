@@ -173,19 +173,20 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
     }) : null
 
 
-    const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
-    const EVO_API_KEY = process.env.EVOLUTION_API_KEY
+    let rawUrl = (process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL || "").trim();
+    const EVO_API_KEY = (process.env.EVOLUTION_API_KEY || "").trim();
 
-    if (!EVO_URL || !EVO_API_KEY) {
-      throw new Error("Credenciales maestras de Evolution no configuradas en el servidor VPS.")
+    if (!rawUrl || !EVO_API_KEY) {
+      throw new Error("Credenciales maestras de Evolution no configuradas en el servidor VPS (EVO_URL or KEY missing).")
     }
+
+    // Limpiar URL: quitar comillas accidentales y slash final
+    const EVO_URL = rawUrl.replace(/['"]/g, "").replace(/\/$/, "");
 
     const instanceName = org?.evolutionInstance || `quos_${effectiveId}`
     let instanceToken = org?.evolutionToken || instanceName
 
     // ── AUTO-LIMPIEZA DE INSTANCIAS "STUCK" ─────────────────────────────
-    // Si la instancia ya existe pero no está abierta (ej. stuck en connecting),
-    // la borramos para asegurar una sesión Baileys limpia.
     try {
       const stateRes = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, {
         headers: { "apikey": EVO_API_KEY as string }
@@ -204,33 +205,36 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
           await fetch(`${EVO_URL}/instance/delete/${instanceName}`, {
             method: "DELETE",
             headers: { "apikey": EVO_API_KEY as string }
-          });
-          // Esperar a que el sistema de archivos del VPS libere la sesión
+          }).catch(() => null);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
     } catch (e) {
-      // Ignorar errores si la instancia no existe
+      console.warn("[EVO_STUCK_CLEANUP_WARN]:", e);
     }
 
     const createPayload: any = {
       instanceName: instanceName,
-      token: instanceToken, // Forzamos un token seguro y predecible basado en la organización
+      token: instanceToken,
       qrcode: true,
       integration: "WHATSAPP-BAILEYS",
       groupsIgnore: true,
     };
 
-    // Agregar el número desde la creación de la instancia si existe y el método es "code"
     if (phoneNumber && method === "code") {
       createPayload.number = phoneNumber;
     }
 
-    await fetch(`${EVO_URL}/instance/create`, {
+    const createRes = await fetch(`${EVO_URL}/instance/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": EVO_API_KEY },
       body: JSON.stringify(createPayload)
     });
+
+    if (!createRes.ok) {
+        const errTxt = await createRes.text().catch(() => "N/A");
+        throw new Error(`EVO_CREATE_ERROR [${createRes.status}]: ${errTxt}`);
+    }
 
     if (org && !org.evolutionInstance) {
       await prisma.organization.update({
@@ -240,15 +244,13 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
     }
 
     // ── AUTO-REGISTRO DEL WEBHOOK DE QUANTUM ─────────────────────────────
-    // Vinculamos el pipeline de IA al canal de WhatsApp del cliente.
-    // Solo recibimos MESSAGES_UPSERT para no procesar eventos innecesarios.
-    const QUANTUM_URL = process.env.NEXTAUTH_URL ?? "https://quantum.novaautomat.site"
+    const QUANTUM_URL = (process.env.NEXTAUTH_URL || "https://quantum.novaautomat.site").trim().replace(/\/$/, "");
     const webhookPayload = {
       webhook: {
         enabled: true,
         url: `${QUANTUM_URL}/api/agent/webhook`,
         webhookByEvents: false,
-        webhookBase64: true,    // Base64 necesario para procesar imágenes
+        webhookBase64: true,
         events: ["MESSAGES_UPSERT"],
       },
     }
@@ -258,34 +260,35 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
       headers: { "Content-Type": "application/json", "apikey": EVO_API_KEY },
       body: JSON.stringify(webhookPayload),
     }).catch((err) => {
-      // No bloquear el onboarding si falla el registro del webhook
       console.warn("[WEBHOOK_REGISTER_WARN]:", err?.message ?? err)
     })
 
-    console.log(`[WEBHOOK_REGISTERED]: ${QUANTUM_URL}/api/agent/webhook → instancia: ${instanceName}`)
+    await new Promise(resolve => setTimeout(resolve, 800));
 
-    // Retrasar medio segundo más para que Evolution levante Baileys
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    let url = `${EVO_URL}/instance/connect/${instanceName}`
+    let connectUrl = `${EVO_URL}/instance/connect/${instanceName}`
     if (method === "code" && phoneNumber) {
-      url += `?number=${phoneNumber}`
+      connectUrl += `?number=${phoneNumber}`
     }
 
-    const connectRes = await fetch(url, {
+    const connectRes = await fetch(connectUrl, {
       method: "GET",
       headers: { "apikey": EVO_API_KEY }
     })
 
-    const data = await connectRes.json()
-
-    if (method === "code" && data.pairingCode) {
-      return { success: true, pairingCode: data.pairingCode, instanceName }
-    } else if (method === "qr" && data.base64) {
-      return { success: true, base64: data.base64, instanceName }
+    if (!connectRes.ok) {
+        const errTxt = await connectRes.text().catch(() => "N/A");
+        throw new Error(`EVO_CONNECT_ERROR [${connectRes.status}]: ${errTxt}`);
     }
 
-    return { success: false, error: "No se encontró QR o Código en Evolution API.", instanceName }
+    const connectData = await connectRes.json()
+
+    if (method === "code" && connectData.pairingCode) {
+      return { success: true, pairingCode: connectData.pairingCode, instanceName }
+    } else if (method === "qr" && connectData.base64) {
+      return { success: true, base64: connectData.base64, instanceName }
+    }
+
+    return { success: false, error: "No se encontró QR o Código en respuesta de Evolution API.", instanceName }
   } catch (error: any) {
     console.error("[EVO_SETUP_ERROR]", error)
     return { success: false, error: error.message }
