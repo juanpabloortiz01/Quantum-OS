@@ -1,815 +1,450 @@
 "use client";
-import { useState, useEffect, useRef, Suspense } from "react";
 
-
-import { motion, AnimatePresence } from "motion/react";
-import {
-  ScanLine, MessageSquare, ShoppingCart, Calendar, Settings,
-  Wifi, WifiOff, Activity, Smartphone, LogOut, ChevronRight,
-  GripVertical, Inbox, Zap, BarChart3, HelpCircle, User, ArrowLeft,
-  Heart, Gift
-} from "lucide-react";
-
-
-import Link from "next/link";
-import { useSession, signOut, signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion"; // Note: package.json says motion, but onboarding uses motion/react. I'll try motion/react for consistency if possible, but template said framer-motion.
+import { cn } from "@/lib/utils";
 import { 
-  saveSchedulingConfig, 
-  getCalendarConnectionStatus, 
-  saveActiveSkills, 
-  getDashboardLayout,
-  saveLoyaltyRule,
-} from "./action";
+  Settings, Search, Users, CheckSquare, X, Power, 
+  Calendar, Heart, ShoppingBag, Eye, Map, Wifi, WifiOff,
+  LogOut, UserCircle
+} from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus } from "./action";
 
-
-
-
-// ── MOCK WHATSAPP INSTANCES ──────────────────────────────────────────
-const MOCK_INSTANCES = [
-  { id: "inst_1", name: "WhatsApp Principal", status: "CONNECTED", phone: "+593 999 123 456", messages: 1245 },
-  { id: "inst_2", name: "Soporte al Cliente", status: "DISCONNECTED", phone: "+593 999 654 321", messages: 0 },
-];
-
-// ── CAPACIDADES DEL AGENTE ───────────────────────────────────────────
-const ICON_MAP = {
-  calendar: Calendar,
-  loyalty: Heart,
-};
-
-const ALL_CAPABILITIES = [
-  { 
-    id: "calendar", 
-    name: "Agendar citas", 
-    desc: "Sincroniza tu disponibilidad con Google Calendar y permite que tus clientes agenden por WhatsApp.", 
-    icon: "calendar",
-    niches: ["AGENDA"],
-  },
-  { 
-    id: "loyalty", 
-    name: "Promoción de Clientes", 
-    desc: "Sistema de lealtad en WhatsApp. Premia a tus clientes frecuentes automáticamente, sin tarjetas ni apps.", 
-    icon: "loyalty",
-    niches: ["VENTAS"],
-  },
-
-];
-
-
-// ── NAVEGACIÓN LATERAL ───────────────────────────────────────────────
-const NAV_ITEMS = [
-  { icon: Activity,   label: "Panel",       active: true  },
-  { icon: Smartphone, label: "WhatsApp",    active: false },
-  { icon: BarChart3,  label: "Reportes",    active: false },
-  { icon: Settings,   label: "Ajustes",     active: false },
-];
-
-export default function Dashboard() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#FBFBFA] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-[#E2E8F0] border-t-[#1A1A1A] animate-spin" />
-        </div>
-      </div>
-    }>
-      <DashboardContent />
-    </Suspense>
-  );
+interface GlassModule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  description: string;
+  icon: any;
 }
 
-function DashboardContent() {
+interface Lead {
+  name: string;
+  trustScore: number;
+  intent: "VENTAS" | "AGENDAMIENTO" | "SOPORTE";
+  summary: string;
+}
 
+const MODULE_LIBRARY = [
+  { id: "calendar", name: "Agenda", description: "Sincronización con Google Calendar y agendamiento automático.", icon: Calendar, niches: ["AGENDA"] },
+  { id: "ventas", name: "Ventas", description: "Gestión de pedidos y procesamiento de pagos por WhatsApp.", icon: ShoppingBag, niches: ["VENTAS"] },
+  { id: "showroom", name: "Showroom", description: "Exhibición de catálogo visual y consultas de stock.", icon: Eye, niches: ["SHOWROOM"] },
+  { id: "loyalty", name: "Lealtad", description: "Sistema de puntos y premios para clientes recurrentes.", icon: Heart, niches: ["VENTAS"] },
+];
+
+const LiquidGlassDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const [activeView, setActiveView] = React.useState<"modules" | "leads" | "collaborators" | "config">("modules");
+  const [niche, setNiche] = React.useState<string>("AGENDA");
+  const [modules, setModules] = React.useState<GlassModule[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [googleConnected, setGoogleConnected] = React.useState(false);
 
+  // Mock leads
+  const leads: Lead[] = [
+    { name: "Ana Martínez", trustScore: 87, intent: "VENTAS", summary: "Interesada en pack premium" },
+    { name: "Carlos López", trustScore: 92, intent: "AGENDAMIENTO", summary: "Consulta técnica para el martes" },
+    { name: "María Silva", trustScore: 64, intent: "SOPORTE", summary: "Duda sobre envío anterior" },
+    { name: "Jorge Ramírez", trustScore: 78, intent: "VENTAS", summary: "Pregunta por catálogo de temporada" },
+  ];
 
-  useEffect(() => {
-
+  React.useEffect(() => {
     if (status === "unauthenticated") router.push("/");
   }, [status, router]);
 
-  // Drag & drop state
-  const [active, setActive] = useState<any[]>([]);
-  const [library, setLibrary] = useState(ALL_CAPABILITIES);
-  const [dragOver, setDragOver]   = useState<"active" | "library" | null>(null);
-  const [draggingFrom, setDraggingFrom] = useState<"active" | "library" | null>(null);
-  const [selectedCap, setSelectedCap] = useState<string | null>(searchParams.get("cap") || null);
-  
-  const [schedConfig, setSchedConfig] = useState({
-    simultaneous: 1,
-    limitPerDay: 1,
-    isGoogleConnected: false,
-  });
-
-  const [niche, setNiche] = useState<string>("AGENDA")
-
-  const [loyaltyConfig, setLoyaltyConfig] = useState({
-    triggerProduct: "",
-    triggerCount: "10",
-    rewardProduct: "",
-    rewardCount: "1",
-    saved: false,
-  })
-
-
-  const activeRef = useRef<HTMLDivElement>(null);
-  const libraryRef = useRef<HTMLDivElement>(null);
-
-  const onDragEnd = (info: any, id: string, from: "active" | "library") => {
-    setDragOver(null);
-    setDraggingFrom(null);
-    const activeRect = activeRef.current?.getBoundingClientRect();
-
-    const libraryRect = libraryRef.current?.getBoundingClientRect();
-    const point = info.point;
-
-    let to: "active" | "library" | null = null;
-
-    if (activeRect && point.x >= activeRect.left && point.x <= activeRect.right && point.y >= activeRect.top && point.y <= activeRect.bottom) {
-      to = "active";
-    } else if (libraryRect && point.x >= libraryRect.left && point.x <= libraryRect.right && point.y >= libraryRect.top && point.y <= libraryRect.bottom) {
-      to = "library";
+  React.useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      const layout = await getDashboardLayout();
+      const conn = await getCalendarConnectionStatus();
+      
+      if (layout) {
+        setNiche(layout.niche);
+        
+        // Filter modules by niche
+        const availableModules = MODULE_LIBRARY.filter(m => m.niches.includes(layout.niche))
+          .map(m => ({
+            ...m,
+            enabled: layout.activeSkills.includes(m.id)
+          }));
+        
+        setModules(availableModules);
+      }
+      setGoogleConnected(conn.connected);
+      setLoading(false);
     }
+    if (status === "authenticated") loadData();
+  }, [status]);
 
-    if (!to || from === to) return;
-
-    const cap = ALL_CAPABILITIES.find(c => c.id === id)!;
-    let newActive = [...active];
+  const toggleModule = async (id: string) => {
+    const updatedModules = modules.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m);
+    setModules(updatedModules);
     
-    if (to === "active") {
-      setLibrary(p => p.filter(c => c.id !== id));
-      setActive(p => {
-        newActive = [...p, cap];
-        return newActive;
-      });
-    } else {
-      setActive(p => {
-        newActive = p.filter(c => c.id !== id);
-        return newActive;
-      });
-      setLibrary(p => [...p, cap]);
-    }
-
-    // Persistir el cambio en la BD
-    saveActiveSkills(newActive.map(c => c.id));
+    // Persist
+    const activeIds = updatedModules.filter(m => m.enabled).map(m => m.id);
+    await saveActiveSkills(activeIds);
   };
 
+  const menuItems = [
+    { icon: CheckSquare, view: "modules" as const, label: "Módulos" },
+    { icon: Search, view: "leads" as const, label: "Leads" },
+    { icon: Users, view: "collaborators" as const, label: "Equipo" },
+    { icon: Settings, view: "config" as const, label: "Ajustes" },
+  ];
 
-
-   useEffect(() => {
-    async function checkConn() {
-      const res = await getCalendarConnectionStatus()
-      setSchedConfig(prev => ({ ...prev, isGoogleConnected: res.connected }))
-    }
-
-    async function loadLayout() {
-      setIsLoading(true)
-      const layout = await getDashboardLayout()
-      if (layout) {
-        const userNiche = (layout.niche || "AGENDA").toUpperCase()
-        setNiche(userNiche)
-
-        // Filtrar capacidades disponibles según el nicho del negocio
-        const nicheCaps = ALL_CAPABILITIES.filter(c =>
-          c.niches.includes(userNiche)
-        )
-
-        const activeIds = layout.activeSkills || []
-        const newActive = nicheCaps.filter(c => activeIds.includes(c.id))
-        const newLib = nicheCaps.filter(c => !activeIds.includes(c.id))
-        
-        setActive(newActive)
-        setLibrary(newLib)
-
-        // Pre-poblar config de promo si ya fue guardada
-        if (layout.loyaltyRule) {
-          setLoyaltyConfig(p => ({ ...p, ...layout.loyaltyRule!, saved: true }))
-        }
-      }
-
-      setIsLoading(false)
-    }
-
-
-    checkConn()
-    loadLayout()
-  }, [])
-
-
-  const handleSaveConfig = async () => {
-    setIsLoading(true)
-    const res = await saveSchedulingConfig({
-      simultaneous: schedConfig.simultaneous,
-      limitPerDay: schedConfig.limitPerDay,
-    })
-    setIsLoading(false)
-    if (res.success) {
-      setSelectedCap(null); // Cerrar panel
-    } else {
-
-      alert(res.error || "Fallo al guardar")
-    }
-  }
-
-  const handleGoogleSync = async () => {
-    // Usar el proveedor específico de calendario configurado en auth.ts
-    await signIn("google-calendar", {
-      callbackUrl: "/dashboard?cap=calendar",
-    });
-  }
-
-
-  if (status === "loading" || (isLoading && !selectedCap)) {
-
-
+  if (loading || status === "loading") {
     return (
       <div className="min-h-screen bg-[#FBFBFA] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-[#E2E8F0] border-t-[#1A1A1A] animate-spin" />
-          <span className="text-sm text-[#6B7280] font-medium">Cargando tu panel…</span>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-800 rounded-full animate-spin" />
+          <p className="text-sm font-light text-gray-500 italic">Sincronizando Estación...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFBFA] text-[#1A1A1A] flex font-sans selection:bg-slate-200">
-
-      {/* ── SIDEBAR ───────────────────────────────────────────────── */}
-      <aside className="hidden sm:flex w-16 md:w-60 flex-col border-r border-[#E2E8F0] bg-white shrink-0">
-        {/* Logo */}
-        <div className="px-4 md:px-6 h-14 flex items-center border-b border-[#E2E8F0] shrink-0">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="w-6 h-6 rounded-md bg-[#1A1A1A] flex items-center justify-center shrink-0">
-              <Zap size={12} className="text-white" />
-            </span>
-            <span className="hidden md:block text-sm font-semibold text-[#1A1A1A] tracking-tight">Quantum OS</span>
-          </Link>
-        </div>
-
-        {/* Nav items */}
-        <nav className="flex-1 p-3 flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.label}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-sm font-medium ${
-                  item.active
-                    ? "bg-[#F3F4F6] text-[#1A1A1A]"
-                    : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#1A1A1A]"
-                }`}
-              >
-                <Icon size={16} className="shrink-0" />
-                <span className="hidden md:block">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User section */}
-        <div className="p-3 border-t border-[#E2E8F0]">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#F9FAFB] transition-all group cursor-pointer"
-               onClick={() => signOut({ callbackUrl: "/" })}>
-            <div className="w-7 h-7 rounded-full bg-[#E2E8F0] flex items-center justify-center shrink-0">
-              <User size={14} className="text-[#4B5563]" />
-            </div>
-            <div className="hidden md:flex flex-col flex-1 min-w-0">
-              <span className="text-xs font-medium text-[#1A1A1A] truncate">{session?.user?.email}</span>
-              <span className="text-[10px] text-[#9CA3AF]">Plan Gratuito</span>
-            </div>
-            <LogOut size={14} className="hidden md:block text-[#9CA3AF] group-hover:text-[#1A1A1A] transition-colors shrink-0" />
-          </div>
-        </div>
-      </aside>
-
-      {/* ── MAIN ──────────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-        {/* Top bar */}
-        <header className="h-14 border-b border-[#E2E8F0] bg-white flex items-center justify-between px-6 shrink-0">
-          <div>
-            <h1 className="text-sm font-semibold text-[#1A1A1A]">Panel de control</h1>
-            <p className="text-xs text-[#9CA3AF]">Gestiona tu agente de ventas</p>
-          </div>
-          {/* WhatsApp status pills */}
-          <div className="flex items-center gap-2">
-            {MOCK_INSTANCES.map(inst => (
-              <div key={inst.id}
-                   className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                     inst.status === "CONNECTED"
-                       ? "border-[#D1FAE5] bg-[#F0FDF4] text-[#065F46]"
-                       : "border-[#FEE2E2] bg-[#FEF2F2] text-[#991B1B]"
-                   }`}>
-                {inst.status === "CONNECTED"
-                  ? <Wifi size={11} />
-                  : <WifiOff size={11} />}
-                {inst.name}
-              </div>
-            ))}
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col xl:flex-row gap-6">
-
-          {/* LEFT — WhatsApp connections summary + stats */}
-          <div className="w-full xl:w-72 flex flex-col gap-4 shrink-0">
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "Conversaciones", value: "1,245", sub: "este mes" },
-                { label: "Pedidos tomados", value: "84",   sub: "este mes" },
-              ].map(s => (
-                <div key={s.label} className="bg-white border border-[#E2E8F0] rounded-xl p-4">
-                  <p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">{s.label}</p>
-                  <p className="text-2xl font-bold text-[#1A1A1A] mt-1">{s.value}</p>
-                  <p className="text-xs text-[#9CA3AF]">{s.sub}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* WhatsApp connections */}
-            <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-[#1A1A1A]">Conexiones de WhatsApp</span>
-                <button className="text-[10px] font-medium text-[#6B7280] hover:text-[#1A1A1A] transition-colors flex items-center gap-1">
-                  Gestionar <ChevronRight size={10} />
-                </button>
-              </div>
-              {MOCK_INSTANCES.map(inst => (
-                <div key={inst.id} className="flex items-center gap-3 p-3 rounded-lg border border-[#F3F4F6] bg-[#FBFBFA]">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                    inst.status === "CONNECTED" ? "bg-[#F0FDF4]" : "bg-[#FEF2F2]"
-                  }`}>
-                    {inst.status === "CONNECTED"
-                      ? <Wifi size={14} className="text-[#10B981]" />
-                      : <WifiOff size={14} className="text-[#EF4444]" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#1A1A1A] truncate">{inst.name}</p>
-                    <p className="text-[10px] text-[#9CA3AF]">{inst.phone}</p>
-                  </div>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                    inst.status === "CONNECTED"
-                      ? "bg-[#D1FAE5] text-[#065F46]"
-                      : "bg-[#FEE2E2] text-[#991B1B]"
-                  }`}>
-                    {inst.status === "CONNECTED" ? "Activo" : "Inactivo"}
-                  </span>
-                </div>
-              ))}
-              <button className="w-full py-2.5 border border-dashed border-[#E2E8F0] rounded-lg text-xs font-medium text-[#6B7280] hover:border-[#94A3B8] hover:text-[#1A1A1A] hover:bg-[#F9FAFB] transition-all">
-                + Conectar WhatsApp
-              </button>
-            </div>
-
-            {/* Library */}
-            <div
-              ref={libraryRef}
-              className={`relative bg-white border rounded-xl p-4 flex flex-col gap-3 transition-all ${
-                dragOver === "library" ? "border-[#94A3B8] bg-[#F9FAFB]" : "border-[#E2E8F0]"
-              }`}
-              style={{ zIndex: draggingFrom === "library" ? 50 : 1 }}
-            >
-
-              {active.length === 0 && (
-
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="absolute -top-12 -right-4 z-10 hidden xl:block"
-                >
-                  <div className="bg-[#1A1A1A] text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl relative whitespace-nowrap">
-                    Añade tu primera habilidad
-                    <div className="absolute -bottom-1 left-4 w-2 h-2 bg-[#1A1A1A] rotate-45" />
-                  </div>
-                  <motion.div 
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    className="mt-2 ml-4"
-                  >
-                    <ArrowLeft className="w-5 h-5 text-[#1A1A1A] -rotate-45" />
-                  </motion.div>
-                </motion.div>
-              )}
-
-              <div className="flex items-center justify-between">
-
-                <span className="text-xs font-semibold text-[#1A1A1A]">Capacidades disponibles</span>
-                <span className="text-[10px] text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">{library.length}</span>
-              </div>
-              <p className="text-[10px] text-[#9CA3AF] -mt-1">Arrastra las que quieras activar →</p>
-              <div className="flex flex-col gap-2">
-                <AnimatePresence>
-                  {library.length === 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className="py-4 text-center text-xs text-[#D1D5DB] border border-dashed border-[#E2E8F0] rounded-lg"
-                    >
-                      Todas las capacidades están activas
-                    </motion.div>
-                  ) : (
-                     library.map(cap => (
-                      <CapabilityCard
-                        key={cap.id}
-                        cap={cap}
-                        zone="library"
-                        onDragEnd={onDragEnd}
-                        setDragOver={setDragOver}
-                        setDraggingFrom={setDraggingFrom}
-                        isGoogleConnected={schedConfig.isGoogleConnected}
-                      />
-
-                    ))
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT — Active capabilities */}
-          <div
-            ref={activeRef}
-            className={`relative flex-1 bg-white border rounded-xl flex flex-col transition-all ${
-              dragOver === "active" ? "border-[#94A3B8]" : "border-[#E2E8F0]"
-            }`}
-            style={{ zIndex: draggingFrom === "active" ? 50 : 1 }}
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8 overflow-hidden font-sans selection:bg-gray-200">
+      
+      {/* Sidebar Menu */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="fixed top-8 left-8 flex flex-col gap-6 z-50"
+      >
+        {menuItems.map((item, idx) => (
+          <motion.button
+            key={item.view}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            onClick={() => setActiveView(item.view)}
+            className={cn(
+              "w-12 h-12 rounded-xl backdrop-blur-xl bg-white/40 border border-white/60",
+              "hover:bg-white/60 transition-all duration-300",
+              "flex items-center justify-center group relative",
+              "shadow-[0_8px_32px_rgba(0,0,0,0.06)]",
+              activeView === item.view && "bg-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+            )}
           >
-            {/* Header */}
-            <div className="p-5 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-[#1A1A1A]">Capacidades activas</h2>
-                <p className="text-xs text-[#9CA3AF]">Configura el comportamiento de tu agente</p>
-              </div>
-            </div>
+            <item.icon className={cn("w-5 h-5 transition-colors", activeView === item.view ? "text-gray-900" : "text-gray-500")} strokeWidth={1.5} />
+            <span className="absolute left-16 px-3 py-1 bg-gray-900/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
+              {item.label}
+            </span>
+          </motion.button>
+        ))}
 
-            {/* Active grid */}
-            <div className="flex-1 p-5 overflow-y-auto">
+        <div className="h-px bg-gray-200 w-8 mx-auto my-2" />
 
-              {/* Banner de configuración pendiente */}
-              {active.some(c => c.id === "calendar" && !schedConfig.isGoogleConnected) && !selectedCap && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl"
+        <motion.button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="w-12 h-12 rounded-xl backdrop-blur-xl bg-white/40 border border-white/60 hover:bg-rose-50/60 hover:border-rose-200 transition-all duration-300 flex items-center justify-center group relative"
+        >
+          <LogOut className="w-5 h-5 text-gray-400 group-hover:text-rose-500 transition-colors" strokeWidth={1.5} />
+          <span className="absolute left-16 px-3 py-1 bg-rose-600 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
+            Salir
+          </span>
+        </motion.button>
+      </motion.div>
+
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto pt-10">
+        <AnimatePresence mode="wait">
+          {activeView === "modules" && (
+            <motion.div
+              key="modules"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="space-y-8"
+            >
+              {/* Header */}
+              <div className="text-center mb-16">
+                <motion.div 
+                   initial={{ opacity: 0, scale: 0.9 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   className="inline-flex items-center gap-2 px-3 py-1 bg-white/50 backdrop-blur-md border border-white/80 rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6 shadow-sm"
                 >
-                  <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                    <span className="text-sm">⚙️</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-amber-800">Configura tu habilidad</p>
-                    <p className="text-[10px] text-amber-600">Haz clic en la tarjeta "Agendar citas" para terminar la configuración</p>
-                  </div>
-                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                   Estación Operativa • {niche}
                 </motion.div>
-              )}
+                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight">
+                  Quantum Control
+                </h1>
+                <p className="text-gray-500 font-light text-lg">
+                  Activa capacidades y sincroniza el comportamiento de la IA.
+                </p>
+              </div>
 
-
-              {!selectedCap ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-max">
-                  <AnimatePresence>
-                    {active.length === 0 ? (
-                      <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                        className="col-span-full h-48 border-2 border-dashed border-[#E2E8F0] rounded-xl flex flex-col items-center justify-center gap-2 text-[#9CA3AF]"
-                      >
-                        <Inbox size={24} className="opacity-40" />
-                        <span className="text-sm font-medium">Sin capacidades activas</span>
-                        <span className="text-xs">Arrastra desde la lista de la izquierda</span>
-                      </motion.div>
-                    ) : (
-                      active.map(cap => (
-                        <CapabilityCard
-                          key={cap.id}
-                          cap={cap}
-                          zone="active"
-                          onDragEnd={onDragEnd}
-                          setDragOver={setDragOver}
-                          setDraggingFrom={setDraggingFrom}
-                          onClick={() => setSelectedCap(cap.id)}
-                          isGoogleConnected={schedConfig.isGoogleConnected}
-                        />
-                      ))
+              {/* Modules Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
+                {modules.map((module, idx) => (
+                  <motion.div
+                    key={module.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className={cn(
+                      "relative rounded-3xl backdrop-blur-xl border transition-all duration-500 overflow-hidden",
+                      "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)]",
+                      module.enabled
+                        ? "bg-white/70 border-white/90 shadow-xl"
+                        : "bg-white/20 border-white/40"
                     )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className="max-w-xl mx-auto py-4">
-                  <button 
-                    onClick={() => setSelectedCap(null)}
-                    className="flex items-center gap-2 text-xs text-[#6B7280] hover:text-[#1A1A1A] mb-6 transition-colors"
                   >
-                    <ArrowLeft size={14} /> Volver al listado
-                  </button>
-
-                  {/* ── PANEL: AGENDA ──────────────────────── */}
-                  {selectedCap === "calendar" && (<>
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] flex items-center justify-center shadow-inner">
-                      <Calendar size={24} className="text-[#1A1A1A]" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-[#1A1A1A]">Configuración de Agendamiento</h3>
-                      <p className="text-sm text-[#9CA3AF]">Define cómo el agente gestionará las citas físicas.</p>
-                    </div>
-                  </div>
-
-
-                  <div className="space-y-6 bg-[#FBFBFA] p-6 rounded-2xl border border-[#F3F4F6]">
-                    {/* Google Status */}
-                    <div className={`p-4 rounded-xl border ${schedConfig.isGoogleConnected ? "border-[#D1FAE5] bg-[#F0FDF4]" : "border-[#E2E8F0] bg-white"} flex items-center justify-between`}>
-                      <div className="flex items-center gap-3">
-                        {schedConfig.isGoogleConnected ? (
-                          <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-[#F3F4F6] flex items-center justify-center">
-                            <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962l3.007 2.332c.708-2.127 2.692-3.714 5.036-3.714z" fill="#EA4335"/></svg>
-                          </div>
-                        )}
-                        <div>
-                          <span className={`text-sm font-semibold ${schedConfig.isGoogleConnected ? "text-[#065F46]" : "text-[#1A1A1A]"}`}>
-                            {schedConfig.isGoogleConnected ? "Google Calendar Conectado" : "Sincroniza tu calendario"}
-                          </span>
-                          {!schedConfig.isGoogleConnected && <p className="text-[10px] text-[#9CA3AF]">Requiere vincular tu cuenta para agendar</p>}
+                    <div className="p-8">
+                      <div className="flex items-start justify-between mb-8">
+                        <div className={cn(
+                          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
+                          module.enabled ? "bg-gray-900 shadow-lg rotate-0" : "bg-white/40 -rotate-3"
+                        )}>
+                          <module.icon className={cn("w-6 h-6", module.enabled ? "text-white" : "text-gray-400")} strokeWidth={1.5} />
                         </div>
-                      </div>
-                      
-                      {schedConfig.isGoogleConnected ? (
-                        <span className="text-xs text-[#065F46] opacity-70 italic">Sincronizado</span>
-                      ) : (
-                        <button 
-                          onClick={handleGoogleSync}
-                          className="px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-bold hover:bg-[#F9FAFB] transition-all shadow-sm"
+                        <button
+                          onClick={() => toggleModule(module.id)}
+                          className={cn(
+                            "relative w-14 h-7 rounded-full transition-all duration-300",
+                            "shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
+                            module.enabled ? "bg-gray-900" : "bg-gray-300"
+                          )}
                         >
-                          Vincular Google
+                          <motion.div
+                            animate={{ x: module.enabled ? 28 : 2 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            className={cn(
+                              "absolute top-1 w-5 h-5 rounded-full shadow-lg",
+                              module.enabled ? "bg-white" : "bg-gray-100"
+                            )}
+                          />
                         </button>
+                      </div>
+                      <h3 className={cn("text-2xl font-semibold mb-3 tracking-tight", module.enabled ? "text-gray-900" : "text-gray-400")}>
+                        {module.name}
+                      </h3>
+                      <p className="text-sm font-light text-gray-500 leading-relaxed min-h-[4rem]">
+                        {module.description}
+                      </p>
+
+                      {module.id === "calendar" && module.enabled && !googleConnected && (
+                        <motion.button
+                           whileHover={{ scale: 1.02 }}
+                           whileTap={{ scale: 0.98 }}
+                           className="mt-6 w-full py-3 bg-amber-50 text-amber-700 text-xs font-bold rounded-xl border border-amber-200 hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
+                        >
+                           <Power className="w-3 h-3" /> Vincular Google Calendar
+                        </motion.button>
                       )}
                     </div>
-
-
-                    <div className="grid grid-cols-1 gap-5">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-[#374151] uppercase tracking-wide">Citas simultáneas</label>
-                        <p className="text-[11px] text-[#6B7280] mb-2">¿Cuántas citas pueden atenderse al mismo tiempo en tu clínica?</p>
-                        <input 
-                          type="number" 
-                          value={schedConfig.simultaneous}
-                          onChange={(e) => setSchedConfig({...schedConfig, simultaneous: parseInt(e.target.value)})}
-                          className="w-full h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-[#374151] uppercase tracking-wide">Límite por persona al día</label>
-                        <p className="text-[11px] text-[#6B7280] mb-2">Máximo de citas que un mismo cliente puede agendar en un solo día.</p>
-                        <input 
-                          type="number" 
-                          value={schedConfig.limitPerDay}
-                          onChange={(e) => setSchedConfig({...schedConfig, limitPerDay: parseInt(e.target.value)})}
-                          className="w-full h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-2 opacity-60">
-                        <label className="text-xs font-bold text-[#374151] uppercase tracking-wide">Margen entre citas (Buffer)</label>
-                        <p className="text-[11px] text-[#6B7280] mb-2">Tiempo de descanso establecido por defecto.</p>
-                        <div className="h-11 px-4 rounded-xl border border-[#E2E8F0] bg-[#F3F4F6] text-sm flex items-center">
-                          15 minutos
-                        </div>
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={handleSaveConfig}
-                      disabled={isLoading}
-                      className="w-full h-12 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-black transition-all shadow-lg shadow-black/10 mt-4 disabled:opacity-50"
-                    >
-                      {isLoading ? "Guardando..." : "Guardar configuración"}
-                    </button>
-
-                  </div>
-                  </>)}
-
-                  {/* ── PANEL: FIDELIZACIÓN (solo VENTAS) ──── */}
-                  {selectedCap === "loyalty" && (<>
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="w-12 h-12 rounded-xl bg-[#FFF1F2] flex items-center justify-center shadow-inner">
-                      <Heart size={24} className="text-rose-500" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-[#1A1A1A]">Promoción de Clientes</h3>
-                      <p className="text-sm text-[#9CA3AF]">Define tu regla de lealtad. Sin código, sin fricciones.</p>
-                    </div>
-                  </div>
-
-                  {/* Preview animada de la regla */}
-                  {loyaltyConfig.triggerProduct && loyaltyConfig.rewardProduct && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                      className="mb-6 flex items-center gap-3 px-5 py-4 bg-[#1A1A1A] rounded-2xl"
-                    >
-                      <Gift size={18} className="text-white shrink-0" />
-                      <p className="text-sm text-white leading-relaxed">
-                        Cada <strong>{loyaltyConfig.triggerCount} {loyaltyConfig.triggerProduct}</strong>, el cliente gana <strong>{loyaltyConfig.rewardCount} {loyaltyConfig.rewardProduct}</strong> gratis.
-                      </p>
-                    </motion.div>
-                  )}
-
-                  <div className="space-y-5 bg-[#FBFBFA] p-6 rounded-2xl border border-[#F3F4F6]">
-                    <p className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Tu regla de fidelización</p>
-
-                    {/* Fila 1: Acción */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-[#374151]">¿Qué producto cuenta?</label>
-                      <p className="text-[11px] text-[#9CA3AF]">El producto que el cliente debe comprar repetidamente.</p>
-                      <div className="flex gap-2 mt-1">
-                        <input
-                          type="number" min="1"
-                          value={loyaltyConfig.triggerCount}
-                          onChange={e => setLoyaltyConfig(p => ({ ...p, triggerCount: e.target.value }))}
-                          placeholder="10"
-                          className="w-20 h-11 px-3 rounded-xl border border-[#E2E8F0] bg-white text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-black/5"
-                        />
-                        <input
-                          type="text"
-                          value={loyaltyConfig.triggerProduct}
-                          onChange={e => setLoyaltyConfig(p => ({ ...p, triggerProduct: e.target.value }))}
-                          placeholder="Ej: Pizzas Familiares"
-                          className="flex-1 h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Separador visual */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px bg-[#E2E8F0]" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">dan como recompensa</span>
-                      <div className="flex-1 h-px bg-[#E2E8F0]" />
-                    </div>
-
-                    {/* Fila 2: Recompensa */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-[#374151]">¿Qué regalo recibe?</label>
-                      <p className="text-[11px] text-[#9CA3AF]">Lo que el cliente gana una vez que completa el ciclo.</p>
-                      <div className="flex gap-2 mt-1">
-                        <input
-                          type="number" min="1"
-                          value={loyaltyConfig.rewardCount}
-                          onChange={e => setLoyaltyConfig(p => ({ ...p, rewardCount: e.target.value }))}
-                          placeholder="1"
-                          className="w-20 h-11 px-3 rounded-xl border border-[#E2E8F0] bg-white text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-black/5"
-                        />
-                        <input
-                          type="text"
-                          value={loyaltyConfig.rewardProduct}
-                          onChange={e => setLoyaltyConfig(p => ({ ...p, rewardProduct: e.target.value }))}
-                          placeholder="Ej: Porción de Papas"
-                          className="flex-1 h-11 px-4 rounded-xl border border-[#E2E8F0] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Plan info */}
-                    <div className="pt-2 border-t border-[#E2E8F0] flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-[#F3F4F6] flex items-center justify-center shrink-0 mt-0.5">
-                        <Zap size={11} className="text-[#6B7280]" />
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-bold text-[#374151]">Plan Gratuito — 1 regla activa, máx. 20 clientes/mes</p>
-                        <p className="text-[10px] text-[#9CA3AF] mt-0.5 leading-relaxed">El agente lleva la cuenta automáticamente y avisa al cliente cuando gana su premio por WhatsApp.</p>
-                      </div>
-                    </div>
-
-                    <button
-                      disabled={!loyaltyConfig.triggerProduct || !loyaltyConfig.rewardProduct || isLoading}
-                      onClick={async () => {
-                        setIsLoading(true)
-                        await saveLoyaltyRule({
-                          triggerCount: loyaltyConfig.triggerCount,
-                          triggerProduct: loyaltyConfig.triggerProduct,
-                          rewardCount: loyaltyConfig.rewardCount,
-                          rewardProduct: loyaltyConfig.rewardProduct,
-                        })
-                        setLoyaltyConfig(p => ({ ...p, saved: true }))
-                        setIsLoading(false)
-                      }}
-                      className="w-full h-12 bg-[#1A1A1A] text-white rounded-xl text-sm font-semibold hover:bg-black transition-all shadow-lg shadow-black/10 mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? "Guardando..." : loyaltyConfig.saved ? "✓ Promoción activa" : "Activar promoción"}
-                    </button>
-
-                  </div>
-                  </>)}
-
-                </div>
-              )}
-            </div>
-
-            {/* Footer status */}
-
-            <div className="px-5 py-3 border-t border-[#E2E8F0] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-sm" />
-                <span className="text-[11px] text-[#6B7280] font-medium">
-                  {active.length} capacidad{active.length !== 1 ? "es" : ""} activa{active.length !== 1 ? "s" : ""}
-                </span>
+                    {module.enabled && (
+                      <motion.div
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-300 via-gray-800 to-gray-300"
+                        style={{ transformOrigin: "left" }}
+                      />
+                    )}
+                  </motion.div>
+                ))}
               </div>
-              <button className="flex items-center gap-1 text-[11px] text-[#9CA3AF] hover:text-[#1A1A1A] transition-colors">
-                <HelpCircle size={12} />
-                ¿Cómo funciona?
-              </button>
-            </div>
-          </div>
+            </motion.div>
+          )}
 
-        </div>
-      </main>
+          {activeView === "leads" && (
+            <motion.div
+              key="leads"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="space-y-8 max-w-4xl mx-auto"
+            >
+              <div className="text-center mb-16">
+                <h1 className="text-5xl font-semibold text-gray-900 mb-3 tracking-tight">
+                  Directorio
+                </h1>
+                <p className="text-gray-500 font-light text-lg">
+                  Clientes detectados por la IA en tiempo real.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {leads.map((lead, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className={cn(
+                      "rounded-3xl backdrop-blur-xl bg-white/60 border border-white/80 p-6",
+                      "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)]",
+                      "hover:bg-white/90 transition-all duration-300 hover:shadow-lg group"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-6">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-gray-900 group-hover:text-white transition-all duration-500">
+                         <UserCircle className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-1">
+                          <span className="text-xl font-semibold text-gray-900">
+                            {lead.name}
+                          </span>
+                          <span className={cn(
+                            "px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase",
+                            lead.intent === "VENTAS" && "bg-gray-900 text-white",
+                            lead.intent === "AGENDAMIENTO" && "bg-gray-100 text-gray-700",
+                            lead.intent === "SOPORTE" && "bg-gray-300 text-gray-800"
+                          )}>
+                            {lead.intent}
+                          </span>
+                        </div>
+                        <p className="text-sm font-light text-gray-500 italic">
+                          "{lead.summary}"
+                        </p>
+                      </div>
+                      <div className="text-right">
+                         <div className="text-sm font-bold text-gray-900">{lead.trustScore}%</div>
+                         <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">Trust Score</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {activeView === "collaborators" && (
+            <motion.div
+              key="collaborators"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="space-y-8 max-w-4xl mx-auto"
+            >
+              <div className="text-center mb-16">
+                <h1 className="text-5xl font-semibold text-gray-900 mb-3 tracking-tight">
+                  Equipo Quantum
+                </h1>
+                <p className="text-gray-500 font-light text-lg">
+                  Conexiones activas y escalamiento.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "rounded-3xl backdrop-blur-xl bg-white/70 border border-white/90 p-8",
+                    "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)] shadow-sm"
+                  )}
+                >
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center text-green-600">
+                           <Wifi className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Mi Agente</span>
+                            <div className="text-xl font-semibold text-gray-900">+52 555 1234</div>
+                         </div>
+                      </div>
+                      <div className="px-3 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-lg border border-green-100">ONLINE</div>
+                    </div>
+                    <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                    <p className="text-xs font-light text-gray-500 italic">
+                      Número principal procesando mensajes.
+                    </p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className={cn(
+                    "rounded-3xl backdrop-blur-xl bg-white/70 border border-white/90 p-8",
+                    "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)] shadow-sm"
+                  )}
+                >
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400">
+                           <UserCircle className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Humano Encargado</span>
+                            <div className="text-xl font-semibold text-gray-900">+52 555 5678</div>
+                         </div>
+                      </div>
+                      <div className="px-3 py-1 bg-gray-50 text-gray-400 text-[10px] font-bold rounded-lg border border-gray-100">LISTO</div>
+                    </div>
+                    <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                    <p className="text-xs font-light text-gray-500 italic">
+                      Receptor de notificaciones y tickets de soporte.
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeView === "config" && (
+            <motion.div
+              key="config"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="space-y-8 max-w-2xl mx-auto"
+            >
+              <div className="text-center mb-16">
+                <h1 className="text-5xl font-semibold text-gray-900 mb-3 tracking-tight">
+                  Ajustes
+                </h1>
+                <p className="text-gray-500 font-light text-lg">
+                  Parámetros técnicos de la organización.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-8 shadow-sm">
+                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Información General</h4>
+                   <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                         <span className="text-sm text-gray-500">Nicho Operativo</span>
+                         <span className="text-sm font-semibold text-gray-900">{niche}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                         <span className="text-sm text-gray-500">Usuario Activo</span>
+                         <span className="text-sm font-semibold text-gray-900">{session?.user?.email}</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-8 shadow-sm">
+                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Seguridad y API</h4>
+                   <div className="space-y-6">
+                      <div className="flex items-center justify-between gap-8">
+                         <span className="text-sm text-gray-500">Quantum API Key</span>
+                         <span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded select-all truncate">sk_quantum_{session?.user?.id?.slice(0, 8)}...</span>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
-}
+};
 
-// ── CAPABILITY CARD ──────────────────────────────────────────────────
-function CapabilityCard({
-  cap,
-  zone,
-  onDragEnd,
-  setDragOver,
-  setDraggingFrom,
-  onClick,
-  isGoogleConnected,
-}: {
-
-  cap: typeof ALL_CAPABILITIES[0];
-  zone: "active" | "library";
-  onDragEnd: (info: any, id: string, from: "active" | "library") => void;
-  setDragOver: (zone: "active" | "library" | null) => void;
-  setDraggingFrom: (zone: "active" | "library" | null) => void;
-  onClick?: () => void;
-  isGoogleConnected?: boolean;
-}) {
-
-
-
-  const Icon = ICON_MAP[cap.icon as keyof typeof ICON_MAP];
-  const isActive = zone === "active";
-
-  return (
-    <motion.div
-      layout
-      layoutId={cap.id}
-      onClick={onClick}
-      drag
-
-      dragSnapToOrigin
-      dragElastic={0.05}
-      onDragStart={() => {
-        setDraggingFrom(zone);
-        setDragOver(zone === "active" ? "library" : "active");
-      }}
-      onDragEnd={(_, info) => onDragEnd(info, cap.id, zone)}
-
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      whileHover={{ y: -2, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
-      whileDrag={{ 
-        scale: 1.05, 
-        zIndex: 999,
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)"
-      }}
-      className={`p-4 rounded-xl border cursor-grab active:cursor-grabbing transition-colors select-none ${
-        isActive
-          ? "border-[#E2E8F0] bg-white shadow-sm hover:border-[#94A3B8] hover:shadow-md"
-          : "border-[#F3F4F6] bg-[#FBFBFA] hover:border-[#E2E8F0] hover:bg-white"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-          isActive ? "bg-[#F3F4F6]" : "bg-[#EFEFEF]"
-        }`}>
-          <Icon size={15} className={isActive ? "text-[#1A1A1A]" : "text-[#9CA3AF]"} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-xs font-semibold truncate ${isActive ? "text-[#1A1A1A]" : "text-[#6B7280]"}`}>
-            {cap.name}
-          </p>
-          <p className="text-[10px] text-[#9CA3AF] mt-0.5 leading-relaxed line-clamp-2">{cap.desc}</p>
-        </div>
-        <GripVertical size={13} className="text-[#D1D5DB] shrink-0 mt-0.5" />
-      </div>
-      {isActive && (
-        <div className="mt-3 flex items-center gap-1.5">
-          <div className={`w-1.5 h-1.5 rounded-full ${(cap.id === 'calendar' && !isGoogleConnected) ? "bg-[#EF4444]" : "bg-[#10B981]"} animate-pulse`} />
-          <span className={`text-[10px] font-bold tracking-tight uppercase ${(cap.id === 'calendar' && !isGoogleConnected) ? "text-[#EF4444]" : "text-[#10B981]"}`}>
-            {(cap.id === 'calendar' && !isGoogleConnected) ? "Inactiva" : "Activa"}
-          </span>
-        </div>
-      )}
-
-    </motion.div>
-  );
-}
+export default LiquidGlassDashboard;
