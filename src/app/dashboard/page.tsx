@@ -8,7 +8,7 @@ import {
   Calendar, Heart, ShoppingBag, Eye, Map, Wifi, WifiOff,
   LogOut, UserCircle
 } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus } from "./action";
 
@@ -79,6 +79,12 @@ const LiquidGlassDashboard = () => {
     }
     if (status === "authenticated") loadData();
   }, [status]);
+
+  const handleGoogleSync = async () => {
+    await signIn("google-calendar", {
+      callbackUrl: "/dashboard",
+    });
+  };
 
   const toggleModule = async (id: string) => {
     const updatedModules = modules.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m);
@@ -233,6 +239,7 @@ const LiquidGlassDashboard = () => {
                         <motion.button
                            whileHover={{ scale: 1.02 }}
                            whileTap={{ scale: 0.98 }}
+                           onClick={handleGoogleSync}
                            className="mt-6 w-full py-3 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 hover:bg-rose-100 transition-colors flex items-center justify-center gap-2"
                         >
                            <Power className="w-3 h-3" /> Vincular Google Calendar
