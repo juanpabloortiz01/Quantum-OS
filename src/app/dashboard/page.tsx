@@ -172,8 +172,8 @@ const LiquidGlassDashboard = () => {
                 >
                    Estación Operativa • {niche}
                 </motion.div>
-                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight">
-                  Quantum Control
+                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+                  Dashboard
                 </h1>
                 <p className="text-gray-500 font-light text-lg">
                   Activa capacidades y sincroniza el comportamiento de la IA.
@@ -233,7 +233,7 @@ const LiquidGlassDashboard = () => {
                         <motion.button
                            whileHover={{ scale: 1.02 }}
                            whileTap={{ scale: 0.98 }}
-                           className="mt-6 w-full py-3 bg-amber-50 text-amber-700 text-xs font-bold rounded-xl border border-amber-200 hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
+                           className="mt-6 w-full py-3 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 hover:bg-rose-100 transition-colors flex items-center justify-center gap-2"
                         >
                            <Power className="w-3 h-3" /> Vincular Google Calendar
                         </motion.button>
