@@ -32,7 +32,6 @@ interface Lead {
 const MODULE_LIBRARY = [
   { id: "calendar", name: "Agenda", description: "Sincronización con Google Calendar y agendamiento automático.", icon: Calendar, niches: ["AGENDA"] },
   { id: "ventas", name: "Ventas", description: "Gestión de pedidos y procesamiento de pagos por WhatsApp.", icon: ShoppingBag, niches: ["VENTAS"] },
-  { id: "showroom", name: "Showroom", description: "Exhibición de catálogo visual y consultas de stock.", icon: Eye, niches: ["SHOWROOM"] },
   { id: "loyalty", name: "Lealtad", description: "Sistema de puntos y premios para clientes recurrentes.", icon: Heart, niches: ["VENTAS"] },
 ];
 

@@ -31,16 +31,6 @@ const NICHES = [
     accent: "text-orange-600",
     needs: ["orders", "crm"]
   },
-  {
-    id: "showroom",
-    label: "Quantum [Showroom]",
-    target: "Tiendas de ropa, tecnología o e-commerce",
-    desc: "Vitrina inteligente. Tu IA conoce el stock y vende por ti sugiriendo lo ideal.",
-    icon: ShoppingBag,
-    color: "from-purple-500/20 to-pink-500/20",
-    accent: "text-purple-600",
-    needs: ["catalog", "crm"]
-  },
 ]
 
 
@@ -253,23 +243,6 @@ function OnboardingContent() {
             color_secundario: "",
             caracteristicas: plato.descripcion || "",
             estilo: "",
-          }))
-          setFormData((prev: any) => ({
-            ...prev,
-            products: [...prev.products, ...newProducts].slice(0, 20),
-          }))
-          setCurrentProduct({ url_foto: "", categoria: "", color_principal: "", color_secundario: "", marca: "", caracteristicas: "", estilo: "" })
-          setAnalyzingStep("COMPLETADO")
-        } else if (result.isShowroom && result.data.productos && Array.isArray(result.data.productos)) {
-          // SHOWROOM: añadir cada producto de la imagen de forma independiente
-          const newProducts = result.data.productos.map((prod: any) => ({
-            url_foto: imageUrl,
-            categoria: prod.categoria || "",
-            color_principal: prod.color_principal || "",
-            color_secundario: prod.color_secundario || "",
-            marca: prod.marca || "",
-            caracteristicas: prod.caracteristicas || "",
-            estilo: prod.estilo || "",
           }))
           setFormData((prev: any) => ({
             ...prev,
@@ -763,7 +736,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre del negocio *</label>
                         <input
                           type="text"
-                          placeholder={formData.niche === "showroom" ? "Urban Style" : formData.niche === "agenda" ? "Spa Relax" : "El Gaucho"}
+                          placeholder={formData.niche === "agenda" ? "Spa Relax" : "El Gaucho"}
                           value={formData.contextData.companyName}
                           onChange={(e) => updateContext("companyName", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -773,7 +746,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Servicio principal o especialidad' : 'Servicio o producto principal'} *</label>
                         <input
                           type="text"
-                          placeholder={formData.niche === "showroom" ? "Ropa y accesorios" : formData.niche === "agenda" ? "Consulta dental o Corte de cabello" : "Cortes de carne y asados"}
+                          placeholder={formData.niche === "agenda" ? "Consulta dental o Corte de cabello" : "Cortes de carne y asados"}
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -839,25 +812,7 @@ function OnboardingContent() {
                       />
                     </div>
 
-                    {/* Caja de zonas de envío — solo Showroom (Movido aquí desde el paso 3) */}
-                    {formData.niche === "showroom" && (
-                      <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl shadow-sm mt-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
-                            <ArrowRight size={14} className="text-white" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-[#1A1A1A]">Zonas de envío</p>
-                            <p className="text-[10px] text-[#6B7280]">Indica a qué ciudades, barrios o regiones realizas envíos. El agente informará a los clientes.</p>
-                          </div>
-                        </div>
-                        <textarea
-                          placeholder="Quito, Guayaquil, Cuenca. Envíos nacionales a través de Servientrega..."
-                          value={formData.contextData.shippingZones || ""}
-                          onChange={(e) => updateContext("shippingZones", e.target.value)}
-                          rows={3}
-                          className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 resize-none leading-relaxed"
-                        />
+                    </div>
                       </div>
                     )}
 

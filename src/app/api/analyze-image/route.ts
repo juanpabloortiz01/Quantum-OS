@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     }
 
     const isMenu = niche === "ventas"
-    const isShowroom = niche === "showroom"
     const isAgenda = niche === "agenda"
 
     // ── PROMPT PARA MENÚ DE RESTAURANTE (VENTAS) ─────────────────────────────
@@ -64,29 +63,7 @@ Devuelve ÚNICAMENTE un JSON válido:
 
 REGLA DE ORO: Si hay una lista de servicios, extrae todos los que sean claramente visibles.`
 
-    // ── PROMPT PARA SHOWROOM / MODA (MULTI-PRODUCTO SIMPLIFICADO) ────────────
-    const fashionPromptMulti = `Eres un experto en extracción de datos de productos.
-Analiza esta imagen e identifica cada producto individual de moda o accesorio.
-
-Para cada producto extrae únicamente:
-- "nombre": Qué es el producto (ej: Gorra de Cuero, Camisa de Seda).
-- "especificacion": Detalle breve que lo hace único (color, material o patrón). Máximo 10 palabras.
-- "precio": Si hay un precio visible, extráelo con su moneda (ej: $45.00). Si no, usa null.
-
-Devuelve ÚNICAMENTE un JSON válido:
-{
-  "productos": [
-    {
-      "nombre": "string",
-      "especificacion": "string",
-      "precio": "string o null"
-    }
-  ]
-}
-
-REGLA DE ORO: No inventes datos. Si no ves el precio, pon null.`
-
-    const prompt = isMenu ? menuPrompt : (isAgenda ? servicePrompt : fashionPromptMulti)
+    const prompt = isMenu ? menuPrompt : servicePrompt
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Cambiado a modelo más económico
@@ -113,7 +90,7 @@ REGLA DE ORO: No inventes datos. Si no ves el precio, pon null.`
     const cleanText = text.replace(/```json|```/g, "").trim()
     const parsed = JSON.parse(cleanText)
 
-    return NextResponse.json({ success: true, data: parsed, isMenu, isShowroom, isAgenda })
+    return NextResponse.json({ success: true, data: parsed, isMenu, isAgenda })
   } catch (error: any) {
     console.error("[ANALYZE_IMAGE_ERROR]:", error)
     return NextResponse.json(
