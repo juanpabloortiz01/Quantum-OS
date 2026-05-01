@@ -35,7 +35,7 @@ const MODULE_LIBRARY = [
   { id: "loyalty", name: "Lealtad", description: "Sistema de puntos y premios para clientes recurrentes.", icon: Heart, niches: ["VENTAS"] },
 ];
 
-const LiquidGlassDashboard = () => {
+const DashboardContent = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -688,4 +688,17 @@ const LiquidGlassDashboard = () => {
   );
 };
 
-export default LiquidGlassDashboard;
+export default function LiquidGlassDashboard() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-screen bg-[#FBFBFA] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-800 rounded-full animate-spin" />
+          <p className="text-sm font-light text-gray-500 italic">Cargando dashboard...</p>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </React.Suspense>
+  );
+}
