@@ -100,7 +100,7 @@ const LiquidGlassDashboard = () => {
     
     // Update local state optimistic
     setLeads(prev => prev.map(l => l.phone === lead.phone ? { ...l, agentActive: newState } : l));
-    if (selectedLead?.phone === lead.phone) {
+    if (selectedLead && selectedLead.phone === lead.phone) {
       setSelectedLead({ ...selectedLead, agentActive: newState });
     }
     
