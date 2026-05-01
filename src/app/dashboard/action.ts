@@ -164,10 +164,39 @@ export async function getLeads() {
       trustScore: l.trustScore,
       intent: l.intent,
       summary: l.summary || "Sin contexto",
-      phone: l.customerPhone
+      phone: l.customerPhone,
+      agentActive: l.agentActive
     }))
   } catch (err) {
     console.error("[GET_LEADS_ERROR]:", err)
     return []
+  }
+}
+
+export async function toggleAgent(phone: string, active: boolean) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "No autorizado" }
+
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { userId: session.user.id }
+    })
+    if (!org) return { error: "Organización no encontrada" }
+
+    await prisma.lead.update({
+      where: {
+        organizationId_customerPhone: {
+          organizationId: org.id,
+          customerPhone: phone
+        }
+      },
+      data: { agentActive: active }
+    })
+    
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (err) {
+    console.error("[TOGGLE_AGENT_ERROR]:", err)
+    return { error: "No se pudo actualizar el estado" }
   }
 }

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads } from "./action";
+import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent } from "./action";
 
 interface GlassModule {
   id: string;
@@ -26,6 +26,7 @@ interface Lead {
   intent: string;
   summary: string;
   phone?: string;
+  agentActive?: boolean;
 }
 
 const MODULE_LIBRARY = [
@@ -46,6 +47,7 @@ const LiquidGlassDashboard = () => {
   const [googleConnected, setGoogleConnected] = React.useState(false);
 
   const [leads, setLeads] = React.useState<Lead[]>([]);
+  const [selectedLead, setSelectedLead] = React.useState<Lead | null>(null);
 
   React.useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -90,6 +92,22 @@ const LiquidGlassDashboard = () => {
     // Persist
     const activeIds = updatedModules.filter(m => m.enabled).map(m => m.id);
     await saveActiveSkills(activeIds);
+  };
+
+  const handleToggleAgent = async (e: React.MouseEvent, lead: Lead) => {
+    e.stopPropagation(); // Evitar abrir el modal
+    const newState = !(lead.agentActive ?? true);
+    
+    // Update local state optimistic
+    setLeads(prev => prev.map(l => l.phone === lead.phone ? { ...l, agentActive: newState } : l));
+    if (selectedLead?.phone === lead.phone) {
+      setSelectedLead({ ...selectedLead, agentActive: newState });
+    }
+    
+    // Update server
+    if (lead.phone) {
+      await toggleAgent(lead.phone, newState);
+    }
   };
 
   const menuItems = [
@@ -282,8 +300,9 @@ const LiquidGlassDashboard = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}
+                    onClick={() => setSelectedLead(lead)}
                     className={cn(
-                      "rounded-3xl backdrop-blur-xl bg-white/60 border border-white/80 p-6",
+                      "rounded-3xl backdrop-blur-xl bg-white/60 border border-white/80 p-6 cursor-pointer",
                       "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)]",
                       "hover:bg-white/90 transition-all duration-300 hover:shadow-lg group"
                     )}
@@ -297,20 +316,33 @@ const LiquidGlassDashboard = () => {
                           <span className="text-xl font-semibold text-gray-900">
                             {lead.name} {lead.phone && <span className="text-sm font-light text-gray-400">({lead.phone})</span>}
                           </span>
-                          <span className={cn(
-                            "px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase",
-                            ["VENTAS", "CONSULTA_PRODUCTO", "PAGO"].includes(lead.intent) && "bg-gray-900 text-white",
-                            ["INFO_NEGOCIO", "AGENDAMIENTO"].includes(lead.intent) && "bg-gray-100 text-gray-700",
-                            ["SOPORTE", "UNKNOWN", "SALUDO"].includes(lead.intent) && "bg-gray-300 text-gray-800"
-                          )}>
-                            {lead.intent}
-                          </span>
                         </div>
-                        <p className="text-sm font-light text-gray-500 italic">
+                        <p className="text-sm font-light text-gray-500 italic truncate max-w-md">
                           "{lead.summary}"
                         </p>
                       </div>
-                      <div className="text-right">
+                      
+                      {/* Agent Switch Toggle */}
+                      <div className="flex flex-col items-center mr-4" onClick={(e) => handleToggleAgent(e, lead)}>
+                        <div className={cn(
+                          "relative w-12 h-6 rounded-full transition-all duration-300 cursor-pointer shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
+                          (lead.agentActive ?? true) ? "bg-gray-900" : "bg-gray-300"
+                        )}>
+                          <motion.div
+                            animate={{ x: (lead.agentActive ?? true) ? 24 : 2 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            className={cn(
+                              "absolute top-1 w-4 h-4 rounded-full shadow-md",
+                              (lead.agentActive ?? true) ? "bg-white" : "bg-gray-100"
+                            )}
+                          />
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase mt-2">
+                          {(lead.agentActive ?? true) ? "IA ACTIVA" : "SOPORTE"}
+                        </span>
+                      </div>
+
+                      <div className="text-right border-l border-gray-200 pl-6">
                          <div className="text-sm font-bold text-gray-900">{lead.trustScore}%</div>
                          <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">Trust Score</div>
                       </div>
@@ -446,6 +478,166 @@ const LiquidGlassDashboard = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Selected Lead Modal */}
+        <AnimatePresence>
+          {selectedLead && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setSelectedLead(null)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-4xl bg-white/90 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl relative"
+              >
+                {/* Header */}
+                <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400">
+                      <UserCircle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-semibold text-gray-900 leading-tight">
+                        {selectedLead.name}
+                      </h3>
+                      <p className="text-sm font-light text-gray-500">
+                        {selectedLead.phone}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-6">
+                    <span className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase shadow-sm border",
+                      ["VENTAS", "CONSULTA_PRODUCTO", "PAGO"].includes(selectedLead.intent) && "bg-gray-900 text-white border-gray-900",
+                      ["INFO_NEGOCIO", "AGENDAMIENTO"].includes(selectedLead.intent) && "bg-white text-gray-700 border-gray-200",
+                      ["SOPORTE", "UNKNOWN", "SALUDO"].includes(selectedLead.intent) && "bg-gray-100 text-gray-800 border-gray-300"
+                    )}>
+                      {selectedLead.intent}
+                    </span>
+                    
+                    <button
+                      onClick={() => setSelectedLead(null)}
+                      className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="w-6 h-6 text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content: Two columns */}
+                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 bg-gradient-to-br from-white/40 to-gray-50/40">
+                  {/* Left Column: Histórico */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <Search className="w-3 h-3" /> Resumen Histórico
+                    </h4>
+                    <div className="bg-white/80 border border-gray-100 rounded-2xl p-6 shadow-sm min-h-[12rem]">
+                      <p className="text-gray-600 font-light leading-relaxed italic">
+                        "{selectedLead.summary}"
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 pt-2">
+                      <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-100 flex-1">
+                        <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Nivel de Interés / Trust Score</div>
+                        <div className="text-2xl font-semibold text-gray-900">{selectedLead.trustScore}%</div>
+                      </div>
+                      <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-100 flex-1">
+                        <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Estado de la IA</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className={cn("w-2 h-2 rounded-full", (selectedLead.agentActive ?? true) ? "bg-green-500" : "bg-red-500")} />
+                          <span className="text-sm font-medium text-gray-700">
+                            {(selectedLead.agentActive ?? true) ? "Atendiendo" : "En Espera (Soporte)"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Acciones & Agente */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <Settings className="w-3 h-3" /> Acciones Tomadas
+                    </h4>
+                    
+                    <div className="bg-white/80 border border-gray-100 rounded-2xl p-6 shadow-sm space-y-4 min-h-[12rem]">
+                      {/* Derivar acciones según el intent/summary de forma básica */}
+                      <ul className="space-y-3">
+                        {["VENTAS", "CONSULTA_PRODUCTO"].includes(selectedLead.intent) && (
+                          <li className="flex items-start gap-3 text-sm text-gray-600">
+                            <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <ShoppingBag className="w-3 h-3 text-gray-500" />
+                            </div>
+                            El cliente ha solicitado información sobre productos o catálogo.
+                          </li>
+                        )}
+                        {selectedLead.intent === "AGENDAMIENTO" && (
+                          <li className="flex items-start gap-3 text-sm text-gray-600">
+                            <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Calendar className="w-3 h-3 text-blue-500" />
+                            </div>
+                            El cliente intentó o agendó una cita.
+                          </li>
+                        )}
+                        {selectedLead.intent === "SOPORTE" && (
+                          <li className="flex items-start gap-3 text-sm text-gray-600">
+                            <div className="w-5 h-5 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <UserCircle className="w-3 h-3 text-rose-500" />
+                            </div>
+                            El cliente solicitó ayuda, presentó un problema o pidió contactar con un humano.
+                          </li>
+                        )}
+                        {selectedLead.intent === "PAGO" && (
+                          <li className="flex items-start gap-3 text-sm text-gray-600">
+                            <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <CheckSquare className="w-3 h-3 text-green-500" />
+                            </div>
+                            El cliente proporcionó información de pago o comprobantes.
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+
+                    {/* Agent Control Area in Modal */}
+                    <div className="bg-gray-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-2xl" />
+                      <div className="relative z-10 flex items-center justify-between">
+                        <div>
+                          <h5 className="font-semibold text-lg">IA Autónoma</h5>
+                          <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
+                            Al desactivar, la IA dejará de responderle automáticamente.
+                          </p>
+                        </div>
+                        <div 
+                          className={cn(
+                            "relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer shadow-inner",
+                            (selectedLead.agentActive ?? true) ? "bg-green-500" : "bg-white/20"
+                          )}
+                          onClick={(e) => handleToggleAgent(e, selectedLead)}
+                        >
+                          <motion.div
+                            animate={{ x: (selectedLead.agentActive ?? true) ? 28 : 2 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            className="absolute top-1 w-5 h-5 rounded-full bg-white shadow-md"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </div>
     </div>
   );

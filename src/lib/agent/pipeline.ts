@@ -89,13 +89,45 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
           orderBy: { createdAt: "desc" }
       })
 
+      // NUEVO: Verificamos si el switch desde el Dashboard desactivó el agente
+      const lead = await prisma.lead.findUnique({
+          where: {
+              organizationId_customerPhone: {
+                  organizationId: ctxBrief.id,
+                  customerPhone: msg.remoteJid
+              }
+          }
+      })
+
+      if (lead && lead.agentActive === false) {
+          console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por desactivación manual desde Dashboard.`)
+          return { status: "FILTERED", reason: "AGENT_DISABLED_BY_USER" }
+      }
+
       if (lastAiMsg) {
           const terminalTags = [/AGENDAR_CITA:/i, /ESCALADO_SOPORTE:/i, /PEDIDO_CONFIRMADO:/i]
           const isTerminal = terminalTags.some(tag => tag.test(lastAiMsg.content))
           
           if (isTerminal) {
-              console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por estado terminal previo.`)
-              return { status: "FILTERED", reason: "CONVERSATION_PAUSED" }
+              // Si el usuario lo activó manualmente en el dashboard, lead.agentActive será true.
+              // En ese caso, ignoramos el tag terminal para permitir que el agente responda.
+              if (!lead || lead.agentActive === false) {
+                  console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por estado terminal previo.`)
+                  
+                  // Opcional: Actualizar Lead.agentActive = false para que el dashboard lo refleje
+                  await prisma.lead.updateMany({
+                      where: {
+                          organizationId: ctxBrief.id,
+                          customerPhone: msg.remoteJid,
+                          agentActive: true
+                      },
+                      data: { agentActive: false }
+                  }).catch(() => {})
+
+                  return { status: "FILTERED", reason: "CONVERSATION_PAUSED" }
+              } else {
+                  console.log(`[PIPELINE]: Agente reactivado manualmente para ${msg.remoteJid}, ignorando tag terminal.`)
+              }
           }
       }
   }
