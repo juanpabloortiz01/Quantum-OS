@@ -812,9 +812,7 @@ function OnboardingContent() {
                       />
                     </div>
 
-                    </div>
-                      </div>
-                    )}
+
 
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
@@ -823,7 +821,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-                          placeholder={formData.niche === "showroom" ? "Moda urbana con envíos nacionales o locales." : formData.niche === "agenda" ? "Centro de bienestar integral con 10 años de experiencia." : "Especialistas en carnes al carbón y tradición gastronómica."}
+                          placeholder={formData.niche === "agenda" ? "Centro de bienestar integral con 10 años de experiencia." : "Especialistas en carnes al carbón y tradición gastronómica."}
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
@@ -832,7 +830,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-                          placeholder={formData.niche === "showroom" ? "Av. Amazonas y NNUU (Opcional si es online)" : formData.niche === "agenda" ? "Ejem: Centro Comercial El Bosque, Local PB-12" : "Calle Larga 4-56 y Benigno Malo"}
+                          placeholder={formData.niche === "agenda" ? "Ejem: Centro Comercial El Bosque, Local PB-12" : "Calle Larga 4-56 y Benigno Malo"}
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
