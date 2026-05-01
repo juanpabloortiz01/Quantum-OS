@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus } from "./action";
+import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads } from "./action";
 
 interface GlassModule {
   id: string;
@@ -23,8 +23,9 @@ interface GlassModule {
 interface Lead {
   name: string;
   trustScore: number;
-  intent: "VENTAS" | "AGENDAMIENTO" | "SOPORTE";
+  intent: string;
   summary: string;
+  phone?: string;
 }
 
 const MODULE_LIBRARY = [
@@ -44,13 +45,7 @@ const LiquidGlassDashboard = () => {
   const [loading, setLoading] = React.useState(true);
   const [googleConnected, setGoogleConnected] = React.useState(false);
 
-  // Mock leads
-  const leads: Lead[] = [
-    { name: "Ana Martínez", trustScore: 87, intent: "VENTAS", summary: "Interesada en pack premium" },
-    { name: "Carlos López", trustScore: 92, intent: "AGENDAMIENTO", summary: "Consulta técnica para el martes" },
-    { name: "María Silva", trustScore: 64, intent: "SOPORTE", summary: "Duda sobre envío anterior" },
-    { name: "Jorge Ramírez", trustScore: 78, intent: "VENTAS", summary: "Pregunta por catálogo de temporada" },
-  ];
+  const [leads, setLeads] = React.useState<Lead[]>([]);
 
   React.useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -61,7 +56,9 @@ const LiquidGlassDashboard = () => {
       setLoading(true);
       const layout = await getDashboardLayout();
       const conn = await getCalendarConnectionStatus();
+      const fetchedLeads = await getLeads();
       
+      setLeads(fetchedLeads);
       if (layout) {
         setNiche(layout.niche);
         
@@ -298,13 +295,13 @@ const LiquidGlassDashboard = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-4 mb-1">
                           <span className="text-xl font-semibold text-gray-900">
-                            {lead.name}
+                            {lead.name} {lead.phone && <span className="text-sm font-light text-gray-400">({lead.phone})</span>}
                           </span>
                           <span className={cn(
                             "px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase",
-                            lead.intent === "VENTAS" && "bg-gray-900 text-white",
-                            lead.intent === "AGENDAMIENTO" && "bg-gray-100 text-gray-700",
-                            lead.intent === "SOPORTE" && "bg-gray-300 text-gray-800"
+                            ["VENTAS", "CONSULTA_PRODUCTO", "PAGO"].includes(lead.intent) && "bg-gray-900 text-white",
+                            ["INFO_NEGOCIO", "AGENDAMIENTO"].includes(lead.intent) && "bg-gray-100 text-gray-700",
+                            ["SOPORTE", "UNKNOWN", "SALUDO"].includes(lead.intent) && "bg-gray-300 text-gray-800"
                           )}>
                             {lead.intent}
                           </span>

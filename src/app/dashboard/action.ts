@@ -142,3 +142,32 @@ export async function saveLoyaltyRule(rule: {
     return { error: "Fallo al guardar la regla" }
   }
 }
+
+export async function getLeads() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { userId: session.user.id }
+    })
+    if (!org) return []
+
+    const leads = await prisma.lead.findMany({
+      where: { organizationId: org.id },
+      orderBy: { updatedAt: 'desc' },
+      take: 20
+    })
+    
+    return leads.map(l => ({
+      name: l.name,
+      trustScore: l.trustScore,
+      intent: l.intent,
+      summary: l.summary || "Sin contexto",
+      phone: l.customerPhone
+    }))
+  } catch (err) {
+    console.error("[GET_LEADS_ERROR]:", err)
+    return []
+  }
+}

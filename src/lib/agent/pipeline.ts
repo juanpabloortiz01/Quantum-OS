@@ -135,6 +135,38 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   // ─────────────────────────────────────────────
   const dispatchResult = await runDispatcher(msg.remoteJid, coreResult, ctx)
 
+  // ─────────────────────────────────────────────
+  //  NODO 7 — Lead / Conversation Tracking
+  // ─────────────────────────────────────────────
+  try {
+    const trustScore = sentryResult.confidence === "HIGH" ? 95 : sentryResult.confidence === "MED" ? 75 : 50;
+    const summaryText = msg.text ? (msg.text.length > 80 ? msg.text.substring(0, 80) + "..." : msg.text) : "Mensaje multimedia";
+    await prisma.lead.upsert({
+      where: {
+        organizationId_customerPhone: {
+          organizationId: ctx.organizationId,
+          customerPhone: msg.remoteJid
+        }
+      },
+      create: {
+        organizationId: ctx.organizationId,
+        customerPhone: msg.remoteJid,
+        name: msg.pushName || "Desconocido",
+        trustScore: trustScore,
+        intent: sentryResult.intent,
+        summary: summaryText
+      },
+      update: {
+        name: msg.pushName || undefined,
+        trustScore: trustScore,
+        intent: sentryResult.intent,
+        summary: summaryText
+      }
+    });
+  } catch (err: any) {
+    console.error("[PIPELINE_LEAD_UPSERT_ERROR]:", err?.message ?? err);
+  }
+
   return {
     status: dispatchResult.success ? "SUCCESS" : "DISPATCH_ERROR",
     method: dispatchResult.method,
@@ -142,3 +174,4 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
     tokensUsed: coreResult.tokensUsed,
   }
 }
+
