@@ -80,15 +80,6 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   })
 
   if (ctxBrief) {
-      const lastAiMsg = await prisma.chatHistory.findFirst({
-          where: {
-              organizationId: ctxBrief.id,
-              customerPhone: msg.remoteJid,
-              role: "assistant"
-          },
-          orderBy: { createdAt: "desc" }
-      })
-
       // NUEVO: Verificamos si el switch desde el Dashboard desactivó el agente
       const lead = await prisma.lead.findUnique({
           where: {
@@ -100,35 +91,8 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
       })
 
       if (lead && lead.agentActive === false) {
-          console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por desactivación manual desde Dashboard.`)
-          return { status: "FILTERED", reason: "AGENT_DISABLED_BY_USER" }
-      }
-
-      if (lastAiMsg) {
-          const terminalTags = [/AGENDAR_CITA:/i, /ESCALADO_SOPORTE:/i, /PEDIDO_CONFIRMADO:/i]
-          const isTerminal = terminalTags.some(tag => tag.test(lastAiMsg.content))
-          
-          if (isTerminal) {
-              // Si el usuario lo activó manualmente en el dashboard, lead.agentActive será true.
-              // En ese caso, ignoramos el tag terminal para permitir que el agente responda.
-              if (!lead || lead.agentActive === false) {
-                  console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por estado terminal previo.`)
-                  
-                  // Opcional: Actualizar Lead.agentActive = false para que el dashboard lo refleje
-                  await prisma.lead.updateMany({
-                      where: {
-                          organizationId: ctxBrief.id,
-                          customerPhone: msg.remoteJid,
-                          agentActive: true
-                      },
-                      data: { agentActive: false }
-                  }).catch(() => {})
-
-                  return { status: "FILTERED", reason: "CONVERSATION_PAUSED" }
-              } else {
-                  console.log(`[PIPELINE]: Agente reactivado manualmente para ${msg.remoteJid}, ignorando tag terminal.`)
-              }
-          }
+          console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por desactivación manual desde Dashboard o escalado previo.`)
+          return { status: "FILTERED", reason: "AGENT_DISABLED" }
       }
   }
 
@@ -173,6 +137,8 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   try {
     const trustScore = sentryResult.confidence === "HIGH" ? 95 : sentryResult.confidence === "MED" ? 75 : 50;
     const summaryText = msg.text ? (msg.text.length > 80 ? msg.text.substring(0, 80) + "..." : msg.text) : "Mensaje multimedia";
+    const isEscalation = coreResult?.isEscaladoSoporte || coreResult?.isPedidoConfirmado || coreResult?.agendarCita ? true : false;
+    
     await prisma.lead.upsert({
       where: {
         organizationId_customerPhone: {
@@ -186,13 +152,15 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
         name: msg.pushName || "Desconocido",
         trustScore: trustScore,
         intent: sentryResult.intent,
-        summary: summaryText
+        summary: summaryText,
+        agentActive: !isEscalation // Si el agente escaló, lo desactivamos automáticamente
       },
       update: {
         name: msg.pushName || undefined,
         trustScore: trustScore,
         intent: sentryResult.intent,
-        summary: summaryText
+        summary: summaryText,
+        agentActive: isEscalation ? false : undefined // Si escaló, desactivar. Si no, dejar como estaba (por si el usuario lo reactivó)
       }
     });
   } catch (err: any) {
