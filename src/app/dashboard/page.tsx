@@ -9,7 +9,7 @@ import {
   LogOut, UserCircle
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent } from "./action";
 
 interface GlassModule {
@@ -38,12 +38,14 @@ const MODULE_LIBRARY = [
 const LiquidGlassDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   const [activeView, setActiveView] = React.useState<"modules" | "leads" | "collaborators" | "config">("modules");
   const [niche, setNiche] = React.useState<string>("AGENDA");
   const [modules, setModules] = React.useState<GlassModule[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [googleConnected, setGoogleConnected] = React.useState(false);
+  const [teamPhones, setTeamPhones] = React.useState({ agent: "", human: "" });
 
   const [leads, setLeads] = React.useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = React.useState<Lead | null>(null);
@@ -62,6 +64,10 @@ const LiquidGlassDashboard = () => {
       setLeads(fetchedLeads);
       if (layout) {
         setNiche(layout.niche);
+        setTeamPhones({
+          agent: layout.whatsappNumber || "No configurado",
+          human: layout.notifPhone || "No configurado"
+        });
         
         // Filter modules by niche
         const availableModules = MODULE_LIBRARY.filter(m => m.niches.includes(layout.niche))
@@ -70,7 +76,19 @@ const LiquidGlassDashboard = () => {
             enabled: layout.activeSkills.includes(m.id)
           }));
         
-        setModules(availableModules);
+        // Auto-activate calendar if returning from successful Google OAuth
+        const isCalendarSuccess = searchParams.get("calendar_success") === "1";
+        if (isCalendarSuccess && conn.connected && !layout.activeSkills.includes("calendar")) {
+          const autoActivatedModules = availableModules.map(m => m.id === "calendar" ? { ...m, enabled: true } : m);
+          setModules(autoActivatedModules);
+          const activeIds = autoActivatedModules.filter(m => m.enabled).map(m => m.id);
+          await saveActiveSkills(activeIds);
+          
+          // Optionally clean the URL
+          router.replace("/dashboard", { scroll: false });
+        } else {
+          setModules(availableModules);
+        }
       }
       setGoogleConnected(conn.connected);
       setLoading(false);
@@ -80,7 +98,7 @@ const LiquidGlassDashboard = () => {
 
   const handleGoogleSync = async () => {
     await signIn("google-calendar", {
-      callbackUrl: "/dashboard",
+      callbackUrl: "/dashboard?calendar_success=1",
     });
   };
 
@@ -341,7 +359,7 @@ const LiquidGlassDashboard = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-4 mb-1">
                           <span className="text-xl font-semibold text-gray-900">
-                            {lead.name} {lead.phone && <span className="text-sm font-light text-gray-400">({lead.phone})</span>}
+                            {lead.name} {lead.phone && <span className="text-sm font-light text-gray-400">({lead.phone.split('@')[0]})</span>}
                           </span>
                         </div>
                         <p className="text-sm font-light text-gray-500 italic truncate max-w-md">
@@ -415,7 +433,7 @@ const LiquidGlassDashboard = () => {
                          </div>
                          <div>
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Mi Agente</span>
-                            <div className="text-xl font-semibold text-gray-900">+52 555 1234</div>
+                            <div className="text-xl font-semibold text-gray-900">{teamPhones.agent}</div>
                          </div>
                       </div>
                       <div className="px-3 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-lg border border-green-100">ONLINE</div>
@@ -444,7 +462,7 @@ const LiquidGlassDashboard = () => {
                          </div>
                          <div>
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Humano Encargado</span>
-                            <div className="text-xl font-semibold text-gray-900">+52 555 5678</div>
+                            <div className="text-xl font-semibold text-gray-900">{teamPhones.human}</div>
                          </div>
                       </div>
                       <div className="px-3 py-1 bg-gray-50 text-gray-400 text-[10px] font-bold rounded-lg border border-gray-100">LISTO</div>
@@ -534,7 +552,7 @@ const LiquidGlassDashboard = () => {
                         {selectedLead.name}
                       </h3>
                       <p className="text-sm font-light text-gray-500">
-                        {selectedLead.phone}
+                        {selectedLead.phone ? selectedLead.phone.split('@')[0] : "Sin número"}
                       </p>
                     </div>
                   </div>

@@ -136,8 +136,11 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
   // ─────────────────────────────────────────────
   try {
     const trustScore = sentryResult.confidence === "HIGH" ? 95 : sentryResult.confidence === "MED" ? 75 : 50;
-    const summaryText = msg.text ? (msg.text.length > 80 ? msg.text.substring(0, 80) + "..." : msg.text) : "Mensaje multimedia";
+    const summaryText = coreResult?.summary || (msg.text ? (msg.text.length > 80 ? msg.text.substring(0, 80) + "..." : msg.text) : "Mensaje multimedia");
     const isEscalation = coreResult?.isEscaladoSoporte || coreResult?.isPedidoConfirmado || coreResult?.agendarCita ? true : false;
+    
+    // Solo actualizamos la intención si es una de las 3 acciones principales pedidas por el usuario
+    const isRelevantIntent = ["SOPORTE", "AGENDAMIENTO", "CONSULTA_PRODUCTO"].includes(sentryResult.intent);
     
     await prisma.lead.upsert({
       where: {
@@ -149,18 +152,18 @@ export async function runPipeline(rawPayload: any): Promise<PipelineResult> {
       create: {
         organizationId: ctx.organizationId,
         customerPhone: msg.remoteJid,
-        name: msg.pushName || "Desconocido",
+        name: coreResult?.userName || msg.pushName || "Desconocido",
         trustScore: trustScore,
-        intent: sentryResult.intent,
+        intent: sentryResult.intent, // Al crear, guardamos cualquiera
         summary: summaryText,
-        agentActive: !isEscalation // Si el agente escaló, lo desactivamos automáticamente
+        agentActive: !isEscalation
       },
       update: {
-        name: msg.pushName || undefined,
+        name: coreResult?.userName || msg.pushName || undefined,
         trustScore: trustScore,
-        intent: sentryResult.intent,
+        intent: isRelevantIntent ? sentryResult.intent : undefined,
         summary: summaryText,
-        agentActive: isEscalation ? false : undefined // Si escaló, desactivar. Si no, dejar como estaba (por si el usuario lo reactivó)
+        agentActive: isEscalation ? false : undefined
       }
     });
   } catch (err: any) {

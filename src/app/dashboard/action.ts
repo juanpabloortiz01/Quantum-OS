@@ -109,6 +109,8 @@ export async function getDashboardLayout() {
       niche: org.businessConfig?.niche || "AGENDA",
       activeSkills: activeSkills as string[],
       loyaltyRule: config.loyaltyRule || null,
+      whatsappNumber: org.whatsappNumber,
+      notifPhone: config.context?.notifPhone,
     }
   } catch (error) {
     return null

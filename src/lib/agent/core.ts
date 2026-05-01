@@ -24,7 +24,8 @@ const MAX_HISTORY = 10 // Últimos N mensajes a cargar
 
 function buildSystemPrompt(
   ctx: LoadedContext,
-  sentryResult: SentryResult
+  sentryResult: SentryResult,
+  isNewConversation: boolean
 ): string {
   // ── Horarios formateados ───────────────────────────────────────────
   const scheduleStr =
@@ -163,7 +164,13 @@ ${menuInfo ? `\nCATALOGO DETALLADO:\n${menuInfo}` : ""}
 - VERACIDAD: Si el cliente pregunta algo que NO está en el CONOCIMIENTO BASE, di: "Lo lamento, no tengo esa información específica. Pero si gustas, puedo ponerte en contacto con la recepción para que te ayuden."
 - ESCALADO: Si detectas frustración o peticiones repetidas de información que no conoces, usa el protocolo de ESCALADO_SOPORTE.
 - BREVEDAD: Máximo 2 párrafos.
-- ETIQUETAS: AGENDAR_CITA:, ESCALADO_SOPORTE:, etc. van siempre al FINAL de todo tu texto.`;
+- ETIQUETAS ESTRUCTURALES:
+  1. Si en este turno de la conversación descubres o ya sabes el nombre del usuario, incluye una etiqueta oculta en tu respuesta con este formato: [USER_NAME: Nombre del Usuario]. Si no lo sabes aún, no la incluyas.
+  2. SIEMPRE debes incluir una etiqueta oculta al final de tu respuesta con un pequeñísimo resumen de la conversación actual, de máximo 5 palabras. Formato: [SUMMARY: Resumen aquí].
+  3. Las demás etiquetas (AGENDAR_CITA:, ESCALADO_SOPORTE:, etc.) van siempre al FINAL de todo tu texto.
+
+${isNewConversation ? `🚨 IMPORTANTE (PRIMERA VEZ): Como es el primer mensaje del cliente en el historial, debes darle una cordial bienvenida a *${ctx.companyName}* y preguntarle respetuosamente "¿Con quién tengo el gusto?" o similar. NO procedas con ninguna otra tarea ni ofrezcas menú o servicios hasta que el usuario te diga su nombre.` : ""}
+`;
 }
 
 export interface CoreResult {
@@ -176,6 +183,9 @@ export interface CoreResult {
   agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
   isEscaladoSoporte: boolean
   escalationData: { nombre: string } | null
+
+  userName: string | null
+  summary: string | null
 
   cleanText: string
   tokensUsed: number
@@ -248,7 +258,7 @@ export async function runCore(
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: buildSystemPrompt(ctx, sentryResult) },
+      { role: "system", content: buildSystemPrompt(ctx, sentryResult, history.length === 0) },
       ...historyMessages,
       { role: "user", content: userContent },
     ],
@@ -310,6 +320,15 @@ export async function runCore(
   }
 
 
+  let userName = null
+  let summary = null
+
+  const nameMatch = rawResponse.match(/\[USER_NAME:\s*(.+?)\]/i)
+  if (nameMatch) userName = nameMatch[1].trim()
+
+  const summaryMatch = rawResponse.match(/\[SUMMARY:\s*(.+?)\]/i)
+  if (summaryMatch) summary = summaryMatch[1].trim()
+
   // ── 5. Limpiar texto para el cliente ──────────────────────────────
   const cleanText = rawResponse
     .replace(/FOTO_URL:(https?:\/\/\S+)/gi, "")
@@ -319,6 +338,8 @@ export async function runCore(
     .replace(/AGENDAR_CITA:({.+})/gi, "")
     .replace(/AGENDAR_CITA:[^.\n]+/gi, "") // Limpiar formato de texto también
     .replace(/ESCALADO_SOPORTE:({.+})/gi, "")
+    .replace(/\[USER_NAME:\s*(.+?)\]/gi, "")
+    .replace(/\[SUMMARY:\s*(.+?)\]/gi, "")
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "")
  // Limpiar prefijos de intención
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO)\s+/gi, "") // Limpiar palabras sueltas al inicio
@@ -353,6 +374,8 @@ export async function runCore(
     agendarCita,
     isEscaladoSoporte,
     escalationData,
+    userName,
+    summary,
     cleanText,
     tokensUsed,
   }
