@@ -211,13 +211,26 @@ const LiquidGlassDashboard = () => {
               {/* Modules Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
                 {modules.map((module, idx) => (
+                  <div key={module.id} className="relative h-full flex flex-col">
+                    {/* Tooltip exterior señalando al switch */}
+                    {module.id === "calendar" && !module.enabled && !googleConnected && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="absolute -top-14 right-4 bg-blue-600 text-white text-[11px] font-medium px-4 py-2.5 rounded-xl shadow-[0_10px_30px_rgba(37,99,235,0.4)] z-50 w-64 text-right leading-snug"
+                      >
+                        Activa esta habilidad para agendar tus citas automáticamente en el calendario de google
+                        {/* Triángulo apuntando hacia abajo (al switch) */}
+                        <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-blue-600 rotate-45" />
+                      </motion.div>
+                    )}
+
                   <motion.div
-                    key={module.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
                     className={cn(
-                      "relative rounded-3xl backdrop-blur-xl border transition-all duration-500 overflow-hidden",
+                      "relative flex-1 rounded-3xl backdrop-blur-xl border transition-all duration-500 overflow-hidden h-full",
                       "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)]",
                       module.enabled
                         ? "bg-white/70 border-white/90 shadow-xl"
@@ -257,21 +270,7 @@ const LiquidGlassDashboard = () => {
                         {module.description}
                       </p>
                       
-                      {/* Cartel para activar Agenda */}
-                      {module.id === "calendar" && !module.enabled && !googleConnected && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }} 
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-4 p-3 bg-blue-50/80 border border-blue-100 rounded-xl flex items-start gap-3"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex flex-shrink-0 items-center justify-center">
-                            <Calendar className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <p className="text-xs text-blue-800 font-medium leading-relaxed mt-0.5">
-                            Debes vincular tu cuenta de Google Calendar. Enciende el switch para conceder los permisos.
-                          </p>
-                        </motion.div>
-                      )}
+
                       
                       {module.id === "calendar" && module.enabled && googleConnected && (
                         <motion.div 
@@ -297,6 +296,7 @@ const LiquidGlassDashboard = () => {
                       />
                     )}
                   </motion.div>
+                </div>
                 ))}
               </div>
             </motion.div>
