@@ -19,7 +19,7 @@ const NICHES = [
     icon: Calendar,
     color: "from-blue-500/20 to-indigo-500/20",
     accent: "text-blue-600",
-    needs: ["calendar", "crm"]
+    needs: ["crm"]
   },
   {
     id: "ventas",

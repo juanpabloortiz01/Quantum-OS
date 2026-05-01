@@ -85,6 +85,14 @@ const LiquidGlassDashboard = () => {
   };
 
   const toggleModule = async (id: string) => {
+    if (id === "calendar") {
+      const module = modules.find(m => m.id === "calendar");
+      if (!module?.enabled && !googleConnected) {
+        await handleGoogleSync();
+        return;
+      }
+    }
+
     const updatedModules = modules.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m);
     setModules(updatedModules);
     
@@ -245,20 +253,40 @@ const LiquidGlassDashboard = () => {
                       <h3 className={cn("text-2xl font-semibold mb-3 tracking-tight", module.enabled ? "text-gray-900" : "text-gray-400")}>
                         {module.name}
                       </h3>
-                      <p className="text-sm font-light text-gray-500 leading-relaxed min-h-[4rem]">
+                      <p className="text-sm font-light text-gray-500 leading-relaxed min-h-[3rem]">
                         {module.description}
                       </p>
-
-                      {module.id === "calendar" && module.enabled && !googleConnected && (
-                        <motion.button
-                           whileHover={{ scale: 1.02 }}
-                           whileTap={{ scale: 0.98 }}
-                           onClick={handleGoogleSync}
-                           className="mt-6 w-full py-3 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 hover:bg-rose-100 transition-colors flex items-center justify-center gap-2"
+                      
+                      {/* Cartel para activar Agenda */}
+                      {module.id === "calendar" && !module.enabled && !googleConnected && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }} 
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-4 p-3 bg-blue-50/80 border border-blue-100 rounded-xl flex items-start gap-3"
                         >
-                           <Power className="w-3 h-3" /> Vincular Google Calendar
-                        </motion.button>
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex flex-shrink-0 items-center justify-center">
+                            <Calendar className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <p className="text-xs text-blue-800 font-medium leading-relaxed mt-0.5">
+                            Debes vincular tu cuenta de Google Calendar. Enciende el switch para conceder los permisos.
+                          </p>
+                        </motion.div>
                       )}
+                      
+                      {module.id === "calendar" && module.enabled && googleConnected && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }} 
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-4 p-3 bg-emerald-50/80 border border-emerald-100 rounded-xl flex items-center gap-3"
+                        >
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <p className="text-xs text-emerald-700 font-medium">
+                            Calendario Sincronizado
+                          </p>
+                        </motion.div>
+                      )}
+
+
                     </div>
                     {module.enabled && (
                       <motion.div
