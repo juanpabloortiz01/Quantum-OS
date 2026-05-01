@@ -83,6 +83,9 @@ function OnboardingContent() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
+  const [phoneError, setPhoneError] = useState("")
+  const [agentPhoneRaw, setAgentPhoneRaw] = useState("")
+  const [agentPhoneCountry, setAgentPhoneCountry] = useState("593")
   const [isLoading, setIsLoading] = useState(false)
   const [pingStatus, setPingStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
 
@@ -154,7 +157,7 @@ function OnboardingContent() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (step === 4 && connectionMethod && !evoConnected) {
+    if (step === 5 && connectionMethod && !evoConnected) {
       interval = setInterval(async () => {
         const res = await checkEvolutionConnectionState(tempId || undefined, activeInstanceName || undefined)
         if (res.connected) {
@@ -413,6 +416,46 @@ function OnboardingContent() {
     setStep(1)
   }
 
+  const validateAgentPhone = () => {
+    setPhoneError("");
+    const country = agentPhoneCountry;
+    const rawNumber = agentPhoneRaw.trim().replace(/\D/g, ''); // Solo números
+
+    if (!rawNumber) {
+      setPhoneError("Debes ingresar un número.");
+      return false;
+    }
+
+    if (country === "57" && rawNumber.length !== 10) {
+      setPhoneError(`Los números de Colombia deben tener 10 dígitos (ingresaste ${rawNumber.length}).`);
+      return false;
+    }
+    if (country === "51" && rawNumber.length !== 9) {
+      setPhoneError(`Los números de Perú deben tener 9 dígitos (ingresaste ${rawNumber.length}).`);
+      return false;
+    }
+    if (country === "58" && rawNumber.length !== 10) {
+      setPhoneError(`Los números de Venezuela deben tener 10 dígitos (ingresaste ${rawNumber.length}).`);
+      return false;
+    }
+    if (country === "54" && (rawNumber.length < 9 || rawNumber.length > 11)) {
+      setPhoneError(`Los números de Argentina deben tener entre 9 y 11 dígitos (ingresaste ${rawNumber.length}).`);
+      return false;
+    }
+    if (country === "593" && rawNumber.length !== 9) {
+      setPhoneError(`Los números de Ecuador deben tener 9 dígitos (ingresaste ${rawNumber.length}).`);
+      return false;
+    }
+
+    // Normalizamos el testPhone
+    setFormData((prev) => ({
+      ...prev,
+      testPhone: `${country}${rawNumber}`
+    }));
+
+    return true;
+  };
+
   const handleFinalize = async () => {
     setIsLoading(true)
 
@@ -476,7 +519,7 @@ function OnboardingContent() {
           </div>
           {step > 0 && (
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
-              Paso {step}/4
+              Paso {step}/5
             </div>
           )}
         </div>
@@ -1247,8 +1290,78 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 4: QR + TEST ── */}
+              {/* ── PASO 4: NÚMERO DE AGENTE ── */}
               {step === 4 && (
+                <motion.div
+                  key="step4"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="flex flex-col gap-6"
+                >
+                  <motion.div variants={itemVariants} className="text-center mb-2">
+                    <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2 tracking-tight">Conexión del Agente IA</h2>
+                    <p className="text-sm text-[#4B5563] leading-relaxed">
+                      Configura el número de teléfono desde el cual el agente interactuará con tus clientes.
+                    </p>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants} className="flex flex-col gap-4">
+                    <div className="flex gap-3">
+                      <div className="w-1/3">
+                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-1.5 ml-1">
+                          País
+                        </label>
+                        <select
+                          value={agentPhoneCountry}
+                          onChange={(e) => setAgentPhoneCountry(e.target.value)}
+                          className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#1A1A1A] outline-none transition-all text-[#1A1A1A] appearance-none"
+                        >
+                          <option value="57">🇨🇴 Col (+57)</option>
+                          <option value="51">🇵🇪 Per (+51)</option>
+                          <option value="58">🇻🇪 Ven (+58)</option>
+                          <option value="54">🇦🇷 Arg (+54)</option>
+                          <option value="593">🇪🇨 Ecu (+593)</option>
+                        </select>
+                      </div>
+                      <div className="w-2/3">
+                        <label className="block text-xs font-bold text-[#94A3B8] uppercase mb-1.5 ml-1">
+                          Número
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="Ej: 987654321"
+                          value={agentPhoneRaw}
+                          onChange={(e) => setAgentPhoneRaw(e.target.value)}
+                          className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#1A1A1A] outline-none transition-all text-[#1A1A1A]"
+                        />
+                      </div>
+                    </div>
+                    {phoneError && (
+                      <p className="text-xs text-red-600 font-medium bg-red-50 p-2 rounded-md">
+                        {phoneError}
+                      </p>
+                    )}
+                  </motion.div>
+
+                  <motion.button
+                    variants={itemVariants}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      if (validateAgentPhone()) {
+                        setStep(5);
+                      }
+                    }}
+                    className="w-full bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors mt-2 shadow-sm"
+                  >
+                    Continuar a Conexión
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {/* ── PASO 5: QR + TEST ── */}
+              {step === 5 && (
                 <motion.div
                   key="step5"
                   variants={containerVariants}
@@ -1282,7 +1395,7 @@ function OnboardingContent() {
                           <motion.button 
                             variants={itemVariants}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => setConnectionMethod("code")} 
+                            onClick={() => handleEvoConnect("code")} 
                             className="p-6 border border-[#E2E8F0] bg-white rounded-xl shadow-sm hover:border-[#94A3B8] hover:bg-[#FBFBFA] transition-all flex flex-col items-center gap-3"
                           >
                             <Phone className="w-8 h-8 text-[#4B5563]" />
@@ -1331,19 +1444,9 @@ function OnboardingContent() {
                         </div>
 
                         {!pairingCode ? (
-                          <div className="flex flex-col gap-3">
-                            <span className="text-xs font-semibold text-[#4B5563]">Número para vincular:</span>
-                            <input
-                              type="tel"
-                              placeholder="593999999999"
-                              value={formData.testPhone}
-                              onChange={(e) => setFormData({ ...formData, testPhone: e.target.value.replace(/\D/g, "") })}
-                              className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] font-mono focus:border-[#1A1A1A] outline-none transition-colors"
-                            />
-                            <p className="text-[10px] text-[#6B7280]">Ingresa el número con el código de país para obtener el código.</p>
-                            <button onClick={() => handleEvoConnect("code")} disabled={evoLoading || formData.testPhone.length < 8} className="w-full py-3 mt-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#333] transition-colors disabled:opacity-50">
-                              {evoLoading ? "Generando..." : "Obtener código de vinculación"}
-                            </button>
+                          <div className="flex flex-col gap-3 items-center justify-center py-6">
+                             <Loader2 size={24} className="animate-spin text-[#1A1A1A]" />
+                             <span className="text-xs font-medium text-[#4B5563] animate-pulse">Obteniendo código para {formData.testPhone}...</span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-4 mt-2">
