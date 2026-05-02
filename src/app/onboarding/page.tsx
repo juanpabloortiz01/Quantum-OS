@@ -542,13 +542,15 @@ function OnboardingContent() {
           <div className="p-8">
             {/* Título */}
             <div className="mb-8 text-center flex flex-col gap-1 overflow-hidden">
-              <motion.span 
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider"
-              >
-                Configuración del Asistente
-              </motion.span>
+              {step !== 4 && step !== 5 && (
+                <motion.span 
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider"
+                >
+                  Configuración del Asistente
+                </motion.span>
+              )}
               <AnimatePresence mode="wait">
                 <motion.h1 
                   key={step}
@@ -562,8 +564,33 @@ function OnboardingContent() {
                   {step === 1 && "Sector del negocio"}
                   {step === 2 && "Describe tu negocio"}
                   {step === 3 && "Sube tu catálogo"}
-                  {step === 4 && "Conecta tu WhatsApp"}
+                  {step === 4 && "Conexión del Agente IA"}
+                  {step === 5 && "Conecta tu WhatsApp"}
                 </motion.h1>
+              </AnimatePresence>
+              <AnimatePresence mode="wait">
+                {step === 4 && (
+                  <motion.p
+                    key="step4-desc"
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="text-sm text-[#4B5563] leading-relaxed mt-1 px-4"
+                  >
+                    Configura el número de teléfono desde el cual el agente interactuará con tus clientes.
+                  </motion.p>
+                )}
+                {step === 5 && (
+                  <motion.p
+                    key="step5-desc"
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="text-sm text-[#4B5563] leading-relaxed mt-1 px-4"
+                  >
+                    Vincula un número de WhatsApp Business o Normal a tu Agente. Desde este número se atenderá a tus clientes forma automática.
+                  </motion.p>
+                )}
               </AnimatePresence>
             </div>
 
@@ -1300,12 +1327,7 @@ function OnboardingContent() {
                   exit="exit"
                   className="flex flex-col gap-6"
                 >
-                  <motion.div variants={itemVariants} className="text-center mb-2">
-                    <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2 tracking-tight">Conexión del Agente IA</h2>
-                    <p className="text-sm text-[#4B5563] leading-relaxed">
-                      Configura el número de teléfono desde el cual el agente interactuará con tus clientes.
-                    </p>
-                  </motion.div>
+
 
                   <motion.div variants={itemVariants} className="flex flex-col gap-4">
                     <div className="flex gap-3">
@@ -1370,9 +1392,7 @@ function OnboardingContent() {
                   exit="exit"
                   className="flex flex-col gap-6"
                 >
-                  <motion.p variants={itemVariants} className="text-sm text-[#4B5563] leading-relaxed text-center">
-                    Vincula un número de WhatsApp Business o Normal a tu Agente. Desde este número se atenderá a tus clientes forma automática.
-                  </motion.p>
+
 
                   <div className="flex flex-col gap-3">
                     {!connectionMethod && !evoConnected && (
