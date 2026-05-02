@@ -569,6 +569,17 @@ function OnboardingContent() {
                 </motion.h1>
               </AnimatePresence>
               <AnimatePresence mode="wait">
+                {step === 2 && (
+                  <motion.p
+                    key="step2-desc"
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="text-sm text-[#4B5563] leading-relaxed mt-1 px-4"
+                  >
+                    Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
+                  </motion.p>
+                )}
                 {step === 4 && (
                   <motion.p
                     key="step4-desc"
@@ -793,10 +804,6 @@ function OnboardingContent() {
                   exit="exit"
                   className="flex flex-col gap-6"
                 >
-                  <motion.div variants={itemVariants} className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-800 leading-relaxed">
-                    <strong>Agrega información clave a tu agente.</strong><br />
-                    Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
-                  </motion.div>
 
                   <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar">
 
@@ -1340,11 +1347,11 @@ function OnboardingContent() {
                           onChange={(e) => setAgentPhoneCountry(e.target.value)}
                           className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#1A1A1A] outline-none transition-all text-[#1A1A1A] appearance-none"
                         >
-                          <option value="57">🇨🇴 Colombia (+57)</option>
-                          <option value="51">🇵🇪 Perú (+51)</option>
-                          <option value="58">🇻🇪 Venezuela (+58)</option>
-                          <option value="54">🇦🇷 Argentina (+54)</option>
-                          <option value="593">🇪🇨 Ecuador (+593)</option>
+                          <option value="57">🇨🇴 (+57)</option>
+                          <option value="51">🇵🇪 (+51)</option>
+                          <option value="58">🇻🇪 (+58)</option>
+                          <option value="54">🇦🇷 (+54)</option>
+                          <option value="593">🇪🇨 (+593)</option>
                         </select>
                       </div>
                       <div className="w-2/3">
