@@ -510,7 +510,7 @@ function OnboardingContent() {
         }}
       />
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className={`relative z-10 w-full transition-all duration-500 ${step === 2 ? "max-w-2xl" : "max-w-md"}`}>
 
         {/* HEADER MINI */}
         <div className="mb-6 flex items-center justify-between">
@@ -1340,11 +1340,11 @@ function OnboardingContent() {
                           onChange={(e) => setAgentPhoneCountry(e.target.value)}
                           className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#1A1A1A] outline-none transition-all text-[#1A1A1A] appearance-none"
                         >
-                          <option value="57">🇨🇴 Col (+57)</option>
-                          <option value="51">🇵🇪 Per (+51)</option>
-                          <option value="58">🇻🇪 Ven (+58)</option>
-                          <option value="54">🇦🇷 Arg (+54)</option>
-                          <option value="593">🇪🇨 Ecu (+593)</option>
+                          <option value="57">🇨🇴 Colombia (+57)</option>
+                          <option value="51">🇵🇪 Perú (+51)</option>
+                          <option value="58">🇻🇪 Venezuela (+58)</option>
+                          <option value="54">🇦🇷 Argentina (+54)</option>
+                          <option value="593">🇪🇨 Ecuador (+593)</option>
                         </select>
                       </div>
                       <div className="w-2/3">
@@ -1502,9 +1502,8 @@ function OnboardingContent() {
                           <CheckCircle className="w-8 h-8 text-green-500" />
                         </motion.div>
                         <span className="text-sm font-bold text-green-800 text-center block mt-2">
-                          ¡Conexión Existosa! <br /> Todo está listo.
+                          ¡Conexión Exitosa!
                         </span>
-                        <p className="text-xs text-green-700 text-center font-medium mt-1">El agente ya tiene acceso y control de tu WhatsApp.</p>
                       </motion.div>
                     )}
                   </div>

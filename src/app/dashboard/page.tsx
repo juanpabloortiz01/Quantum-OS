@@ -45,6 +45,7 @@ const DashboardContent = () => {
   const [modules, setModules] = React.useState<GlassModule[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [googleConnected, setGoogleConnected] = React.useState(false);
+  const [showCalendarAlert, setShowCalendarAlert] = React.useState(false);
   const [teamPhones, setTeamPhones] = React.useState({ agent: "", human: "" });
 
   const [leads, setLeads] = React.useState<Lead[]>([]);
@@ -85,6 +86,8 @@ const DashboardContent = () => {
           await saveActiveSkills(activeIds);
           
           // Optionally clean the URL
+          setShowCalendarAlert(true);
+          setTimeout(() => setShowCalendarAlert(false), 4000);
           router.replace("/dashboard", { scroll: false });
         } else {
           setModules(availableModules);
@@ -108,6 +111,9 @@ const DashboardContent = () => {
       if (!module?.enabled && !googleConnected) {
         await handleGoogleSync();
         return;
+      } else if (!module?.enabled && googleConnected) {
+        setShowCalendarAlert(true);
+        setTimeout(() => setShowCalendarAlert(false), 4000);
       }
     }
 
@@ -136,10 +142,10 @@ const DashboardContent = () => {
   };
 
   const menuItems = [
-    { icon: CheckSquare, view: "modules" as const, label: "Módulos" },
-    { icon: Search, view: "leads" as const, label: "Leads" },
-    { icon: Users, view: "collaborators" as const, label: "Equipo" },
-    { icon: Settings, view: "config" as const, label: "Ajustes" },
+    { icon: CheckSquare, view: "modules" as const, label: "AGENTE" },
+    { icon: Search, view: "leads" as const, label: "CLIENTES" },
+    { icon: Users, view: "collaborators" as const, label: "EQUIPO" },
+    { icon: Settings, view: "config" as const, label: "AJUSTES" },
   ];
 
   if (loading || status === "loading") {
@@ -219,7 +225,7 @@ const DashboardContent = () => {
                    Estación Operativa • {niche}
                 </motion.div>
                 <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
-                  Dashboard
+                  AGENTE
                 </h1>
                 <p className="text-gray-500 font-light text-lg">
                   Activa capacidades y sincroniza el comportamiento de la IA.
@@ -290,7 +296,7 @@ const DashboardContent = () => {
                       
 
                       
-                      {module.id === "calendar" && module.enabled && googleConnected && (
+                      {module.id === "calendar" && module.enabled && googleConnected && showCalendarAlert && (
                         <motion.div 
                           initial={{ opacity: 0, y: 10 }} 
                           animate={{ opacity: 1, y: 0 }}
@@ -330,8 +336,8 @@ const DashboardContent = () => {
               className="space-y-8 max-w-4xl mx-auto"
             >
               <div className="text-center mb-16">
-                <h1 className="text-5xl font-semibold text-gray-900 mb-3 tracking-tight">
-                  Directorio
+                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+                  CLIENTES
                 </h1>
                 <p className="text-gray-500 font-light text-lg">
                   Clientes detectados por la IA en tiempo real.
@@ -408,8 +414,8 @@ const DashboardContent = () => {
               className="space-y-8 max-w-4xl mx-auto"
             >
               <div className="text-center mb-16">
-                <h1 className="text-5xl font-semibold text-gray-900 mb-3 tracking-tight">
-                  Equipo Quantum
+                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+                  EQUIPO
                 </h1>
                 <p className="text-gray-500 font-light text-lg">
                   Conexiones activas y escalamiento.
