@@ -1448,7 +1448,7 @@ function OnboardingContent() {
                           </div>
                         ) : (
                           <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-sm w-48 h-48">
-                            <img src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR" className="w-full h-full object-contain" />
+                            <img src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR" className="w-full h-full object-contain" style={{ filter: "grayscale(100%) contrast(500%)" }} />
                           </div>
                         )}
                         <span className="text-xs text-[#4B5563] text-center mt-3 leading-relaxed">
