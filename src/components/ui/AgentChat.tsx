@@ -477,7 +477,7 @@ export const AgentChat = memo(function AgentChat({
   return (
     <div className={cn("flex flex-col h-full min-h-0", className)}>
       {isCenteredEmpty ? (
-        <div className="flex-1 min-h-0 flex items-center justify-center px-4 py-4">
+        <div className="flex-1 min-h-0 flex items-center justify-center px-4 py-4 pt-32">
           <div className="w-full max-w-[640px]">{inputBarNode}</div>
         </div>
       ) : (

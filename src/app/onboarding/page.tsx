@@ -1080,7 +1080,7 @@ function OnboardingContent() {
                             <div className="flex gap-2">
                               <input
                                 type="text"
-                                placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye lavado y secado." : "Con papas fritas y bebida."}
+                                placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye revisión gratis" : "Con papas fritas y bebida."}
                                 value={manualItem.info}
                                 onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                 className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
@@ -1211,7 +1211,7 @@ function OnboardingContent() {
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
-                                    placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye lavado y secado." : "Con papas fritas y bebida."}
+                                    placeholder={(formData.niche as string) === "showroom" ? "Tallas S, M, L. Algodón." : (formData.niche as string) === "agenda" ? "Incluye revisión gratis" : "Con papas fritas y bebida."}
                                     value={manualItem.info}
                                     onChange={(e) => setManualItem({ ...manualItem, info: e.target.value })}
                                     className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-xs outline-none focus:border-[#1A1A1A] transition-colors"
