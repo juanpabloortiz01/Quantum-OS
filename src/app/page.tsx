@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import QuantumHero from "@/components/QuantumHero";
-import QuantumAbout from "@/components/QuantumAbout";
 import QuantumPricing from "@/components/QuantumPricing";
 import Footer from "@/components/Footer";
 
@@ -17,7 +16,6 @@ export default function Home() {
       <div className="relative z-10">
         <Header />
         <QuantumHero />
-        <QuantumAbout />
         <QuantumPricing />
         <Footer />
       </div>
