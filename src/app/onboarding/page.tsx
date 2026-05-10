@@ -1070,7 +1070,6 @@ function OnboardingContent() {
                           exit="exit"
                           className="flex flex-col gap-4"
                         >
-                      <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
                           <div className="flex gap-2">
                             <div className="flex-[3]">
