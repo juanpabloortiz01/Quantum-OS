@@ -14,21 +14,17 @@ const NICHES = [
   {
     id: "agenda",
     label: "Quantum [Agenda]",
-    target: "Clínicas, estéticas, spas o barberías",
-    desc: "Recepcionista de élite. Gestiona tus citas 24/7 mientras tú te concentras en atender.",
+    desc: "Perfecto para negocios que venden su tiempo por citas.",
+    tags: ["Clínicas", "Estéticas", "Barberías", "Veterinarias", "Estudios de Tatuajes"],
     icon: Calendar,
-    color: "from-blue-500/20 to-indigo-500/20",
-    accent: "text-blue-600",
     needs: ["crm"]
   },
   {
     id: "ventas",
     label: "Quantum [Ventas]",
-    target: "Restaurantes, cafeterías o negocios de comida",
-    desc: "Mesero digital infalible. Toma pedidos y organiza tu cocina sin errores.",
+    desc: "Perfecto para negocios con alta rotación que toman pedidos por chat. Tú solo cobras y envías.",
+    tags: ["Dropshippers", "Restaurantes", "Farmacias", "Cafeterías", "Floristerías y Tiendas de Regalos", "Tiendas Deliveries 24/7"],
     icon: Coffee,
-    color: "from-orange-500/20 to-red-500/20",
-    accent: "text-orange-600",
     needs: ["orders", "crm"]
   },
 ]
@@ -36,24 +32,24 @@ const NICHES = [
 
 
 
-const iosCubic = [0.32, 0.72, 0, 1] as const;
+const smoothEase = [0.25, 0.1, 0.25, 1] as const;
 
 const containerVariants = {
-  hidden: { opacity: 0, x: 20 },
+  hidden: { opacity: 0, y: 10 },
   visible: { 
     opacity: 1, 
-    x: 0,
+    y: 0,
     transition: { 
-      duration: 0.6, 
-      ease: iosCubic,
+      duration: 0.5, 
+      ease: smoothEase,
       staggerChildren: 0.08,
       delayChildren: 0.1
     } 
   },
   exit: { 
     opacity: 0, 
-    x: -20, 
-    transition: { duration: 0.4, ease: "easeInOut" } 
+    y: -10, 
+    transition: { duration: 0.3, ease: "easeIn" } 
   }
 } as const;
 
@@ -62,13 +58,13 @@ const itemVariants = {
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.5, ease: iosCubic } 
+    transition: { duration: 0.5, ease: smoothEase } 
   }
 } as const;
 
 const titleVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: iosCubic } }
+  hidden: { opacity: 0, scale: 0.98 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: smoothEase } }
 } as const;
 
 function OnboardingContent() {
@@ -78,7 +74,8 @@ function OnboardingContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [step, setStep] = useState(0)
+  const initialStep = searchParams.get("step") ? parseInt(searchParams.get("step") as string, 10) : 0
+  const [step, setStep] = useState(initialStep)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -607,7 +604,7 @@ function OnboardingContent() {
 
             <AnimatePresence mode="wait">
               {/* ── PASO 0: AUTH ── */}
-              {step === 0 && (
+              {step === 0 && status === "unauthenticated" && (
                 <motion.div
                   key="step0"
                   variants={containerVariants}
@@ -748,16 +745,13 @@ function OnboardingContent() {
                               : "border-[#E2E8F0] bg-white hover:border-[#94A3B8] hover:shadow-sm"
                             }`}
                         >
-                          {/* Background gradient hint */}
-                          <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br ${niche.color} pointer-events-none`} />
-
-                          <div className="relative z-10 flex gap-4">
+                          <div className="relative z-10 flex gap-4 w-full">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${active ? "bg-[#1A1A1A] text-white" : "bg-[#F3F4F6] text-[#6B7280]"}`}>
                               <Icon size={24} />
                             </div>
 
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-1 w-full justify-center">
+                              <div className="flex items-center justify-between min-h-[48px]">
                                 <span className={`text-base font-bold tracking-tight ${active ? "text-[#1A1A1A]" : "text-[#4B5563]"}`}>
                                   {niche.label}
                                 </span>
@@ -767,12 +761,27 @@ function OnboardingContent() {
                                   </motion.div>
                                 )}
                               </div>
-                              <span className={`text-[10px] font-bold uppercase tracking-widest ${niche.accent}`}>
-                                {niche.target}
-                              </span>
-                              <p className="text-xs text-[#6B7280] leading-relaxed mt-1 line-clamp-3">
-                                {niche.desc}
-                              </p>
+                              <AnimatePresence>
+                                {active && (
+                                  <motion.div 
+                                    initial={{ height: 0, opacity: 0 }} 
+                                    animate={{ height: "auto", opacity: 1 }} 
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden flex flex-col gap-3 mt-1"
+                                  >
+                                    <p className="text-xs text-[#6B7280] leading-relaxed">
+                                      {niche.desc}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 pb-2">
+                                      {niche.tags?.map((tag: string, i: number) => (
+                                        <span key={i} className="px-2.5 py-1 bg-[#F3F4F6] border border-[#E2E8F0] text-[#4B5563] text-[10px] font-semibold rounded-full">
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
                           </div>
                         </motion.button>
@@ -810,7 +819,7 @@ function OnboardingContent() {
                     {/* Campos Principales */}
                     <div className="flex flex-col gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">Nombre del negocio *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">Nombre del negocio *</label>
                         <input
                           type="text"
                           placeholder={formData.niche === "agenda" ? "Spa Relax" : "El Gaucho"}
@@ -820,7 +829,7 @@ function OnboardingContent() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Servicio principal o especialidad' : 'Servicio o producto principal'} *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">{formData.niche === 'agenda' ? 'Servicio principal o especialidad' : 'Servicio o producto principal'} *</label>
                         <input
                           type="text"
                           placeholder={formData.niche === "agenda" ? "Consulta dental o Corte de cabello" : "Cortes de carne y asados"}
@@ -832,8 +841,8 @@ function OnboardingContent() {
                     </div>
 
                     {/* Horarios */}
-                    <div className="border border-[#E2E8F0] p-4 bg-[#FBFBFA] rounded-xl flex flex-col gap-4">
-                      <label className="block text-xs font-semibold text-[#4B5563]">Horarios de atención *</label>
+                    <div className="border border-[#E2E8F0] p-4 bg-white rounded-xl flex flex-col gap-4">
+                      <label className="block text-xs font-semibold text-[#4B5563] uppercase">Horarios de atención *</label>
                       <div className="flex gap-1.5">
                         {["LU", "MA", "MI", "JU", "VI", "SA", "DO"].map(day => (
                           <button
@@ -850,7 +859,7 @@ function OnboardingContent() {
                       </div>
                       <div className="flex gap-3">
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora apertura *</label>
+                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase">Hora de apertura *</label>
                           <input
                             type="time"
                             value={formData.contextData.openTime}
@@ -859,7 +868,7 @@ function OnboardingContent() {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5">Hora cierre *</label>
+                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase">Hora de cierre *</label>
                           <input
                             type="time"
                             value={formData.contextData.closeTime}
@@ -870,22 +879,17 @@ function OnboardingContent() {
                       </div>
                     </div>
                     {/* Campo de Encargado movido después de Horarios */}
-                    <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl shadow-sm mt-0">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-[#1A1A1A] flex items-center justify-center shrink-0">
-                          <Phone size={14} className="text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-[#1A1A1A]">{formData.niche === 'agenda' ? 'Número del encargado de las citas' : 'Número del encargado de pedidos'} *</p>
-                          <p className="text-[10px] text-[#6B7280]">{formData.niche === 'agenda' ? 'Indica a qué número llegarán las notificaciones de las citas.' : 'Indica a qué número llegarán las notificaciones de pedidos o citas.'}</p>
-                        </div>
+                    <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-xl mt-0">
+                      <div>
+                        <p className="text-xs font-semibold text-[#4B5563] uppercase">{formData.niche === 'agenda' ? 'Número del encargado de las citas' : 'Número del encargado de pedidos'} *</p>
+                        <p className="text-[10px] text-[#6B7280] mt-0.5">{formData.niche === 'agenda' ? 'Indica a qué número llegarán las notificaciones de las citas.' : 'Indica a qué número llegarán las notificaciones de pedidos o citas.'}</p>
                       </div>
                       <input
                         type="tel"
                         placeholder="593987654321"
                         value={formData.contextData.notifPhone || ""}
                         onChange={(e) => updateContext("notifPhone", e.target.value)}
-                        className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#1A1A1A] transition-colors mt-1 font-mono"
+                        className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#94A3B8] transition-colors mt-1 font-mono"
                       />
                     </div>
 
@@ -894,7 +898,7 @@ function OnboardingContent() {
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Descripción del negocio' : 'Descripción de perfil o biografía'} *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">{formData.niche === 'agenda' ? 'Descripción del negocio' : 'Descripción de perfil o biografía'} *</label>
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
@@ -903,7 +907,7 @@ function OnboardingContent() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5">{formData.niche === 'agenda' ? 'Ubicación' : 'Dirección física (Opcional)'}</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">{formData.niche === 'agenda' ? 'Ubicación' : 'Dirección física (Opcional)'}</label>
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
@@ -915,7 +919,7 @@ function OnboardingContent() {
 
                     {/* Enlaces y Contacto */}
                     <div className="flex flex-col gap-3">
-                      <label className="block text-xs font-semibold text-[#4B5563]">Enlaces y contacto adicionales</label>
+                      <label className="block text-xs font-semibold text-[#4B5563] uppercase">Enlaces y contacto adicionales</label>
 
                       <div className="flex bg-white border border-[#E2E8F0] rounded-lg overflow-hidden focus-within:border-[#94A3B8] focus-within:ring-1 focus-within:ring-[#94A3B8] transition-all">
                         <div className="px-3 py-2 flex items-center justify-center bg-[#F9FAFB] border-r border-[#E2E8F0]">
@@ -1008,48 +1012,64 @@ function OnboardingContent() {
                     </h2>
                     <p className="text-xs text-[#6B7280] leading-relaxed">
                       {ventasMethod === "ai" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
-                      {ventasMethod !== "choose" && ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.") }
+                      {ventasMethod === "manual" && ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.")}
                     </p>
                   </motion.div>
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
-                    {/* 1. SELECCIÓN PARA CATÁLOGOS */}
-                    {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
-                      <div className="flex flex-col gap-3">
-                        <motion.button
-                          variants={itemVariants}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => setVentasMethod("ai")}
-                          className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
+                    <AnimatePresence mode="wait">
+                      {/* 1. SELECCIÓN PARA CATÁLOGOS */}
+                      {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
+                        <motion.div 
+                          key="choose"
+                          variants={containerVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          className="flex flex-col gap-3"
                         >
-                          <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
-                            <Scan size={20} />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
-                            <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios o folletos" : "Sube una foto de tu menú físico"}</span>
-                          </div>
-                        </motion.button>
-                        <motion.button
-                          variants={itemVariants}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => setVentasMethod("manual")}
-                          className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
-                        >
-                          <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
-                            <Copy size={20} />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span className="text-sm font-bold text-[#1A1A1A]">Lista Manual</span>
-                            <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Escribe los productos uno a uno" : (formData.niche as string) === "agenda" ? "Escribe los servicios uno a uno" : "Escribe los platillos uno a uno"}</span>
-                          </div>
-                        </motion.button>
-                      </div>
-                    )}
+                          <motion.button
+                            variants={itemVariants}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => setVentasMethod("ai")}
+                            className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
+                          >
+                            <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
+                              <Scan size={20} />
+                            </div>
+                            <div className="flex flex-col text-left">
+                              <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
+                              <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios o folletos" : "Sube una foto de tu menú físico"}</span>
+                            </div>
+                          </motion.button>
+                          <motion.button
+                            variants={itemVariants}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => setVentasMethod("manual")}
+                            className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
+                          >
+                            <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
+                              <Copy size={20} />
+                            </div>
+                            <div className="flex flex-col text-left">
+                              <span className="text-sm font-bold text-[#1A1A1A]">Lista Manual</span>
+                              <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Escribe los productos uno a uno" : (formData.niche as string) === "agenda" ? "Escribe los servicios uno a uno" : "Escribe los platillos uno a uno"}</span>
+                            </div>
+                          </motion.button>
+                        </motion.div>
+                      )}
 
-                    {/* 2. ENTRADA MANUAL */}
-                    {ventasMethod === "manual" && (
+                      {/* 2. ENTRADA MANUAL */}
+                      {ventasMethod === "manual" && (
+                        <motion.div 
+                          key="manual"
+                          variants={containerVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          className="flex flex-col gap-4"
+                        >
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2 p-3 bg-[#FBFBFA] border border-[#E2E8F0] rounded-xl">
                           <div className="flex gap-2">
@@ -1127,12 +1147,19 @@ function OnboardingContent() {
                             )
                           })}
                         </div>
-                      </div>
-                    )}
+                        </motion.div>
+                      )}
 
-                    {/* 3. CATÁLOGO IA */}
-                    {ventasMethod === "ai" && (
-                      <div className="flex flex-col gap-5">
+                      {/* 3. CATÁLOGO IA */}
+                      {ventasMethod === "ai" && (
+                        <motion.div 
+                          key="ai"
+                          variants={containerVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          className="flex flex-col gap-5"
+                        >
 
 
                         {/* Contador de imágenes escaneadas — ventas, agenda y showroom */}
@@ -1292,9 +1319,9 @@ function OnboardingContent() {
                               ))}
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
