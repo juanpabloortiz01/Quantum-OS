@@ -531,7 +531,7 @@ function OnboardingContent() {
                 className="h-full bg-[#1A1A1A]"
                 initial={{ width: "25%" }}
                 animate={{ width: `${(step / 4) * 100}%` }}
-                transition={{ duration: 0.6, ease: iosCubic }}
+                transition={{ duration: 0.6, ease: smoothEase }}
               />
             </div>
           )}
@@ -1318,9 +1318,10 @@ function OnboardingContent() {
                               ))}
                             </div>
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   </div>
 
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
