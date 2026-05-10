@@ -63,17 +63,6 @@ export default function QuantumHero() {
         {/* LEFT SIDE */}
         <div className="flex flex-col items-start text-left w-full">
           
-          {/* STATUS BADGE */}
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-            className="mb-8 flex items-center gap-2 px-4 py-2 border border-[#E2E8F0] bg-white text-xs font-medium text-[#4B5563] shadow-sm rounded-full"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1A1A1A] animate-pulse" />
-            Quantum Plataforma v2.0
-          </motion.div>
-
           {/* HEADLINE PRINCIPAL */}
           <div className="w-full flex flex-col items-start justify-start">
             <LayoutGroup>
@@ -136,9 +125,6 @@ export default function QuantumHero() {
               >
                 {status === "loading" ? "..." : status === "authenticated" ? "Ir al Panel" : "Crear Agente"}
               </Link>
-              <button className="w-full sm:w-auto px-8 py-4 border border-[#E2E8F0] text-[#1A1A1A] bg-white text-sm font-medium hover:bg-[#F3F4F6] transition-all duration-300 rounded-lg shadow-sm">
-                Ver Demo
-              </button>
             </div>
 
             <p className="text-sm sm:text-base text-[#4B5563] leading-relaxed max-w-sm xl:border-l xl:border-[#E2E8F0] xl:pl-6">
@@ -146,17 +132,6 @@ export default function QuantumHero() {
             </p>
           </motion.div>
 
-          {/* NOTA BOTTOM */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.0 }}
-            className="mt-10 flex items-center justify-start gap-4 text-xs font-medium text-[#94A3B8]"
-          >
-            <span>Sin tarjeta de crédito</span>
-            <span className="w-1 h-1 rounded-full bg-[#E2E8F0]" />
-            <span>Configuración en 3 minutos</span>
-          </motion.div>
 
         </div>
 
