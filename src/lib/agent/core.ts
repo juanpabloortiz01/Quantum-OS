@@ -14,6 +14,22 @@ import { ParsedMessage } from "./logic-filter"
 
 const MAX_HISTORY = 10 // Últimos N mensajes a cargar
 
+function formatToEcuadorTime(isoStr: string): string {
+  try {
+    const d = new Date(isoStr);
+    const localStr = d.toLocaleString("en-US", { timeZone: "America/Guayaquil" });
+    const localDate = new Date(localStr);
+    const year = localDate.getFullYear();
+    const month = String(localDate.getMonth() + 1).padStart(2, "0");
+    const day = String(localDate.getDate()).padStart(2, "0");
+    const hours = String(localDate.getHours()).padStart(2, "0");
+    const minutes = String(localDate.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  } catch (e) {
+    return isoStr;
+  }
+}
+
 // ── Etiquetas de control internas ─────────────────────────────────
 // El cliente NUNCA las ve. El Dispatcher las parsea.
 // FOTO_URL:<url>          → enviar imagen
@@ -109,8 +125,21 @@ function buildSystemPrompt(
 
   const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
 
+  const ecuadorDateStr = new Date().toLocaleString("en-US", { timeZone: "America/Guayaquil" });
+  const ecuadorDate = new Date(ecuadorDateStr);
+  const year = ecuadorDate.getFullYear();
+  const month = String(ecuadorDate.getMonth() + 1).padStart(2, "0");
+  const day = String(ecuadorDate.getDate()).padStart(2, "0");
+  const hours = String(ecuadorDate.getHours()).padStart(2, "0");
+  const minutes = String(ecuadorDate.getMinutes()).padStart(2, "0");
+  const seconds = String(ecuadorDate.getSeconds()).padStart(2, "0");
+  const weekdays = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const weekdayName = weekdays[ecuadorDate.getDay()];
+  const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const monthName = months[ecuadorDate.getMonth()];
+
   const basePrompt = `Eres el asistente virtual experto de "${ctx.companyName}".
-La fecha y hora actual es: ${new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" })}.`;
+La fecha y hora actual en Ecuador (GMT-5) es: ${year}-${month}-${day} ${hours}:${minutes}:${seconds} (${weekdayName}, ${day} de ${monthName} de ${year}).`;
 
   const welcomeMenu = `
 "¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
@@ -143,7 +172,7 @@ REGLAS DE DISPONIBILIDAD:
 - Horario: ${scheduleStr}
 - Ocupado actualmente:
 ${ctx.calendarAvailability && ctx.calendarAvailability.length > 0
-    ? ctx.calendarAvailability.map(s => `- De ${s.start} a ${s.end}`).join("\n")
+    ? ctx.calendarAvailability.map(s => `- De ${formatToEcuadorTime(s.start)} a ${formatToEcuadorTime(s.end)}`).join("\n")
     : "Sin reservaciones previas."}
 - Duración: 60 min por cita.`;
 
