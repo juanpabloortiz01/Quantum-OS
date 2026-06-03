@@ -57,6 +57,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/onboarding" },
   callbacks: {
+    async signIn({ account, user }) {
+      if (account && account.provider === "google-calendar") {
+        const updateData: any = {
+          access_token: account.access_token,
+          expires_at: account.expires_at,
+        }
+        if (account.refresh_token) {
+          updateData.refresh_token = account.refresh_token
+        }
+
+        try {
+          const existingAccount = await prisma.account.findUnique({
+            where: {
+              provider_providerAccountId: {
+                provider: account.provider,
+                providerAccountId: account.providerAccountId
+              }
+            }
+          })
+
+          if (existingAccount) {
+            await prisma.account.update({
+              where: {
+                provider_providerAccountId: {
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId
+                }
+              },
+              data: updateData
+            })
+          }
+        } catch (err) {
+          console.error("[AUTH_SIGNIN_CALLBACK_ERROR]: Failed to update google-calendar tokens:", err)
+        }
+      }
+      return true
+    },
     async jwt({ token, user }) {
       if (user) token.id = user.id
       return token
@@ -69,7 +106,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async redirect({ url, baseUrl }) {
       // Después de Google OAuth ir al paso 1
-      if (url.includes("/api/auth/callback/google")) {
+      if (url.includes("/api/auth/callback/google") && !url.includes("google-calendar")) {
         return `${baseUrl}/onboarding?step=1`
       }
       if (url.startsWith(baseUrl)) return url

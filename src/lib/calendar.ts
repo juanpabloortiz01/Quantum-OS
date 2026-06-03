@@ -37,6 +37,32 @@ export async function getCalendarClient(organizationId: string) {
     expiry_date: account.expires_at ? account.expires_at * 1000 : undefined,
   });
 
+  oauth2Client.on("tokens", async (tokens) => {
+    try {
+      if (tokens.access_token) {
+        const updateData: any = {
+          access_token: tokens.access_token,
+        };
+        if (tokens.refresh_token) {
+          updateData.refresh_token = tokens.refresh_token;
+        }
+        if (tokens.expiry_date) {
+          updateData.expires_at = Math.floor(tokens.expiry_date / 1000);
+        }
+
+        await prisma.account.updateMany({
+          where: {
+            userId: org.userId,
+            provider: account.provider,
+          },
+          data: updateData,
+        });
+      }
+    } catch (err) {
+      console.error("[CALENDAR_AUTO_REFRESH_TOKEN_SAVE_ERROR]:", err);
+    }
+  });
+
   // Si el token expiró, lo refrescamos (Google-auth maneja esto si hay refresh_token)
   return google.calendar({ version: "v3", auth: oauth2Client });
 }

@@ -163,7 +163,7 @@ function OnboardingContent() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (step === 5 && connectionMethod && !evoConnected) {
+    if (step === 6 && connectionMethod && !evoConnected) {
       interval = setInterval(async () => {
         const res = await checkEvolutionConnectionState(tempId || undefined, activeInstanceName || undefined)
         if (res.connected) {
@@ -902,7 +902,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">Nombre del negocio *</label>
                         <input
                           type="text"
-                          placeholder={formData.niche === "agenda" ? "Spa Relax" : "El Gaucho"}
+                          placeholder={formData.niche === "agenda" ? "Clínica Dental OdontoSalud" : "El Gaucho"}
                           value={formData.contextData.companyName}
                           onChange={(e) => updateContext("companyName", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -912,7 +912,7 @@ function OnboardingContent() {
                         <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">{formData.niche === 'agenda' ? 'Servicio principal o especialidad' : 'Servicio o producto principal'} *</label>
                         <input
                           type="text"
-                          placeholder={formData.niche === "agenda" ? "Consulta dental o Corte de cabello" : "Cortes de carne y asados"}
+                          placeholder={formData.niche === "agenda" ? "Ortodoncia, Implantes y Odontología General" : "Cortes de carne y asados"}
                           value={formData.contextData.service}
                           onChange={(e) => updateContext("service", e.target.value)}
                           className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
@@ -942,7 +942,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
-                          placeholder={formData.niche === "agenda" ? "Centro de bienestar integral con 10 años de experiencia." : "Especialistas en carnes al carbón y tradición gastronómica."}
+                          placeholder={formData.niche === "agenda" ? "Clínica odontológica con especialistas en ortodoncia, implantes y estética dental." : "Especialistas en carnes al carbón y tradición gastronómica."}
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
@@ -951,7 +951,7 @@ function OnboardingContent() {
                         <textarea
                           value={formData.contextData.address}
                           onChange={(e) => updateContext("address", e.target.value)}
-                          placeholder={formData.niche === "agenda" ? "Ejem: Centro Comercial El Bosque, Local PB-12" : "Calle Larga 4-56 y Benigno Malo"}
+                          placeholder={formData.niche === "agenda" ? "Ejem: Av. Amazonas N24-15, Edificio Médico, Oficina 302" : "Calle Larga 4-56 y Benigno Malo"}
                           className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
                         />
                       </div>
