@@ -309,7 +309,7 @@ function InputBar({
     const el = ref.current;
     if (!el) return;
     el.style.height = "0";
-    const next = Math.min(el.scrollHeight, 120);
+    const next = Math.max(24, Math.min(el.scrollHeight, 120));
     el.style.height = `${next}px`;
     el.style.overflowY = el.scrollHeight > 120 ? "auto" : "hidden";
   }, [input]);
@@ -386,7 +386,7 @@ function InputBar({
               disabled={disabled}
               rows={1}
               className={cn(
-                "w-full resize-none bg-transparent border-0 outline-none text-[14px] leading-[1.6] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 overflow-hidden",
+                "w-full resize-none bg-transparent border-0 outline-none text-[14px] leading-[1.6] min-h-[24px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 overflow-hidden",
                 disabled && "opacity-50 cursor-not-allowed",
               )}
             />
