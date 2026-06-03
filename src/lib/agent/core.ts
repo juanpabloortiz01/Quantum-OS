@@ -28,10 +28,39 @@ function buildSystemPrompt(
   isNewConversation: boolean
 ): string {
   // ── Horarios formateados ───────────────────────────────────────────
-  const scheduleStr =
-    ctx.scheduleDays.length > 0
-      ? `${ctx.scheduleDays.join(", ")} de ${ctx.openTime} a ${ctx.closeTime}`
-      : "No especificado"
+  const dayNamesMap: Record<string, string> = {
+    LU: "Lunes",
+    MA: "Martes",
+    MI: "Miércoles",
+    JU: "Jueves",
+    VI: "Viernes",
+    SA: "Sábado",
+    DO: "Domingo"
+  }
+
+  let scheduleStr = "No especificado"
+  if (ctx.scheduleType === "24h") {
+    const activeDays = Object.entries(ctx.scheduleConfig || {})
+      .filter(([_, config]) => config.isOpen)
+      .map(([day, _]) => dayNamesMap[day] || day)
+    scheduleStr = activeDays.length > 0
+      ? `Abierto las 24 horas los días: ${activeDays.join(", ")}`
+      : "Cerrado todos los días"
+  } else if (ctx.scheduleType === "custom") {
+    const customDays = Object.entries(ctx.scheduleConfig || {})
+      .filter(([_, config]) => config.isOpen)
+      .map(([day, config]) => `${dayNamesMap[day] || day} (de ${config.openTime} a ${config.closeTime})`)
+    scheduleStr = customDays.length > 0
+      ? `Horario de atención: ${customDays.join(", ")}`
+      : "Cerrado todos los días"
+  } else {
+    // Compatibilidad con formato antiguo
+    const mappedDays = ctx.scheduleDays.map(day => dayNamesMap[day] || day)
+    scheduleStr =
+      ctx.scheduleDays.length > 0
+        ? `${mappedDays.join(", ")} de ${ctx.openTime} a ${ctx.closeTime}`
+        : "No especificado"
+  }
 
   // ── Catálogo de productos formateado ──────────────────────────────
   const catalogStr =

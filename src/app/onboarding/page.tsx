@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock, Check, Pencil } from "lucide-react"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock, Check, Pencil, Clock } from "lucide-react"
 
 import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState, registerAndFinalizeOnboarding } from "./action"
 
@@ -13,7 +13,7 @@ import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryCon
 const NICHES = [
   {
     id: "agenda",
-    label: "Quantum [Agenda]",
+    label: "Agenda",
     desc: "Perfecto para negocios que venden su tiempo por citas.",
     tags: ["Clínicas", "Estéticas", "Barberías", "Veterinarias", "Estudios de Tatuajes"],
     icon: Calendar,
@@ -21,7 +21,7 @@ const NICHES = [
   },
   {
     id: "ventas",
-    label: "Quantum [Ventas]",
+    label: "Ventas",
     desc: "Perfecto para negocios con alta rotación que toman pedidos por chat. Tú solo cobras y envías.",
     tags: ["Dropshippers", "Restaurantes", "Farmacias", "Cafeterías", "Floristerías y Tiendas de Regalos", "Tiendas Deliveries 24/7"],
     icon: Coffee,
@@ -85,6 +85,7 @@ function OnboardingContent() {
   const [agentPhoneCountry, setAgentPhoneCountry] = useState("593")
   const [isLoading, setIsLoading] = useState(false)
   const [pingStatus, setPingStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+  const [scheduleSubStep, setScheduleSubStep] = useState<"choose" | "config">("choose")
 
   // States for EVO QR/Code Sync
   const [connectionMethod, setConnectionMethod] = useState<"qr" | "code" | null>(null)
@@ -121,9 +122,17 @@ function OnboardingContent() {
       contactPhone: "",
       notifPhone: "",
       shippingZones: "",
+      scheduleType: "custom" as "custom" | "24h",
+      scheduleConfig: {
+        LU: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
+        MA: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
+        MI: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
+        JU: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
+        VI: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
+        SA: { isOpen: false, openTime: "09:00", closeTime: "18:00" },
+        DO: { isOpen: false, openTime: "09:00", closeTime: "18:00" },
+      } as Record<string, { isOpen: boolean; openTime: string; closeTime: string }>,
     },
-
-
     products: [] as any[],
     testPhone: "",
   })
@@ -348,6 +357,65 @@ function OnboardingContent() {
     })
   }
 
+  const updateDayTime = (dayKey: string, field: "openTime" | "closeTime", value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      contextData: {
+        ...prev.contextData,
+        scheduleConfig: {
+          ...prev.contextData.scheduleConfig,
+          [dayKey]: {
+            ...prev.contextData.scheduleConfig[dayKey],
+            [field]: value
+          }
+        }
+      }
+    }))
+  }
+
+  const toggleDayStatus = (dayKey: string) => {
+    setFormData(prev => ({
+      ...prev,
+      contextData: {
+        ...prev.contextData,
+        scheduleConfig: {
+          ...prev.contextData.scheduleConfig,
+          [dayKey]: {
+            ...prev.contextData.scheduleConfig[dayKey],
+            isOpen: !prev.contextData.scheduleConfig[dayKey].isOpen
+          }
+        }
+      }
+    }))
+  }
+
+  const handleSaveSchedule = () => {
+    const config = formData.contextData.scheduleConfig
+    const activeDays = Object.keys(config).filter(day => config[day].isOpen)
+    
+    let legacyOpen = "09:00"
+    let legacyClose = "18:00"
+    if (formData.contextData.scheduleType === "24h") {
+      legacyOpen = "00:00"
+      legacyClose = "24:00"
+    } else if (activeDays.length > 0) {
+      legacyOpen = config[activeDays[0]].openTime
+      legacyClose = config[activeDays[0]].closeTime
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      contextData: {
+        ...prev.contextData,
+        scheduleDays: activeDays,
+        openTime: legacyOpen,
+        closeTime: legacyClose
+      }
+    }))
+
+    setStep(4)
+  }
+
   // Leer errores de NextAuth en la URL (ej. OAuthAccountNotLinked o Configuration)
   useEffect(() => {
     const errorParam = searchParams.get("error")
@@ -507,7 +575,7 @@ function OnboardingContent() {
         }}
       />
 
-      <div className={`relative z-10 w-full transition-all duration-500 ${step === 2 ? "max-w-2xl" : "max-w-md"}`}>
+      <div className={`relative z-10 w-full transition-all duration-500 ${step === 2 || step === 3 ? "max-w-2xl" : "max-w-md"}`}>
 
         {/* HEADER MINI */}
         <div className="mb-6 flex items-center justify-between">
@@ -516,7 +584,7 @@ function OnboardingContent() {
           </div>
           {step > 0 && (
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
-              Paso {step}/5
+              Paso {step}/6
             </div>
           )}
         </div>
@@ -529,8 +597,8 @@ function OnboardingContent() {
             <div className="h-1 flex bg-[#F3F4F6] overflow-hidden">
               <motion.div 
                 className="h-full bg-[#1A1A1A]"
-                initial={{ width: "25%" }}
-                animate={{ width: `${(step / 4) * 100}%` }}
+                initial={{ width: "16.6%" }}
+                animate={{ width: `${(step / 6) * 100}%` }}
                 transition={{ duration: 0.6, ease: smoothEase }}
               />
             </div>
@@ -539,7 +607,7 @@ function OnboardingContent() {
           <div className="p-8">
             {/* Título */}
             <div className="mb-8 text-center flex flex-col gap-1 overflow-hidden">
-              {step !== 4 && step !== 5 && (
+              {step !== 5 && step !== 6 && (
                 <motion.span 
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -560,9 +628,10 @@ function OnboardingContent() {
                   {step === 0 && "Crear una cuenta"}
                   {step === 1 && "Sector del negocio"}
                   {step === 2 && "Describe tu negocio"}
-                  {step === 3 && "Sube tu catálogo"}
-                  {step === 4 && "Conexión del Agente IA"}
-                  {step === 5 && "Conecta tu WhatsApp"}
+                  {step === 3 && "Horarios de atención"}
+                  {step === 4 && "Sube tu catálogo"}
+                  {step === 5 && "Conexión del Agente IA"}
+                  {step === 6 && "Conecta tu WhatsApp"}
                 </motion.h1>
               </AnimatePresence>
               <AnimatePresence mode="wait">
@@ -577,9 +646,20 @@ function OnboardingContent() {
                     Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
                   </motion.p>
                 )}
-                {step === 4 && (
+                {step === 3 && (
                   <motion.p
-                    key="step4-desc"
+                    key="step3-desc"
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="text-sm text-[#4B5563] leading-relaxed mt-1 px-4"
+                  >
+                    Define los horarios de funcionamiento de tu negocio para que el asistente pueda responder e informar adecuadamente.
+                  </motion.p>
+                )}
+                {step === 5 && (
+                  <motion.p
+                    key="step5-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -588,9 +668,9 @@ function OnboardingContent() {
                     Configura el número de teléfono desde el cual el agente interactuará con tus clientes.
                   </motion.p>
                 )}
-                {step === 5 && (
+                {step === 6 && (
                   <motion.p
-                    key="step5-desc"
+                    key="step6-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -840,45 +920,7 @@ function OnboardingContent() {
                       </div>
                     </div>
 
-                    {/* Horarios */}
-                    <div className="border border-[#E2E8F0] p-4 bg-white rounded-xl flex flex-col gap-4">
-                      <label className="block text-xs font-semibold text-[#4B5563] uppercase">Horarios de atención *</label>
-                      <div className="flex gap-1.5">
-                        {["LU", "MA", "MI", "JU", "VI", "SA", "DO"].map(day => (
-                          <button
-                            key={day}
-                            onClick={() => toggleDay(day)}
-                            className={`flex-1 py-2 text-xs font-medium rounded-md transition-all border ${formData.contextData.scheduleDays.includes(day)
-                                ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
-                                : "border-[#E2E8F0] bg-white text-[#4B5563] hover:border-[#94A3B8]"
-                              }`}
-                          >
-                            {day}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex gap-3">
-                        <div className="flex-1">
-                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase">Hora de apertura *</label>
-                          <input
-                            type="time"
-                            value={formData.contextData.openTime}
-                            onChange={(e) => updateContext("openTime", e.target.value)}
-                            className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-sm text-[#1A1A1A] focus:border-[#94A3B8] outline-none"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase">Hora de cierre *</label>
-                          <input
-                            type="time"
-                            value={formData.contextData.closeTime}
-                            onChange={(e) => updateContext("closeTime", e.target.value)}
-                            className="w-full bg-white border border-[#E2E8F0] rounded-lg p-2.5 text-sm text-[#1A1A1A] focus:border-[#94A3B8] outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {/* Campo de Encargado movido después de Horarios */}
+                    {/* Campo de Encargado */}
                     <div className="flex flex-col gap-2 p-4 border border-[#E2E8F0] bg-white rounded-xl mt-0">
                       <div>
                         <p className="text-xs font-semibold text-[#4B5563] uppercase">{formData.niche === 'agenda' ? 'Número del encargado de las citas' : 'Número del encargado de pedidos'} *</p>
@@ -892,8 +934,6 @@ function OnboardingContent() {
                         className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-xs outline-none focus:border-[#94A3B8] transition-colors mt-1 font-mono"
                       />
                     </div>
-
-
 
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
@@ -975,14 +1015,11 @@ function OnboardingContent() {
                         !formData.contextData.companyName || 
                         !formData.contextData.description ||
                         !formData.contextData.service ||
-                        formData.contextData.scheduleDays.length === 0 ||
-                        !formData.contextData.openTime ||
-                        !formData.contextData.closeTime ||
                         !formData.contextData.notifPhone
                       }
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
                     >
-                      Continuar al catálogo
+                      Continuar a horarios
                     </button>
                   </motion.div>
                 </motion.div>
@@ -990,10 +1027,199 @@ function OnboardingContent() {
 
 
 
-              {/* ── PASO 3: CATÁLOGO / SERVICIOS ── */}
+              {/* ── PASO 3: HORARIOS DE ATENCIÓN ── */}
               {step === 3 && (
                 <motion.div
                   key="step3"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="flex flex-col gap-6"
+                >
+                  <AnimatePresence mode="wait">
+                    {scheduleSubStep === "choose" ? (
+                      <motion.div
+                        key="choose-schedule"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="flex flex-col gap-4"
+                      >
+                        <div className="text-center mb-2">
+                          <p className="text-sm text-[#6B7280]">
+                            Elige cómo responderá tu agente sobre tu horario laboral
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                          <motion.button
+                            variants={itemVariants}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                contextData: {
+                                  ...prev.contextData,
+                                  scheduleType: "custom"
+                                }
+                              }))
+                              setScheduleSubStep("config")
+                            }}
+                            className="group p-5 text-left border rounded-2xl bg-white hover:border-[#1A1A1A] hover:shadow-sm transition-all flex gap-4"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] text-[#6B7280] flex items-center justify-center shrink-0 group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
+                              <Clock size={24} />
+                            </div>
+                            <div className="flex flex-col justify-center">
+                              <span className="text-base font-bold text-[#1A1A1A]">
+                                Horario personalizado
+                              </span>
+                              <span className="text-xs text-[#6B7280] leading-relaxed mt-0.5">
+                                Define horas específicas de apertura y cierre por cada día.
+                              </span>
+                            </div>
+                          </motion.button>
+
+                          <motion.button
+                            variants={itemVariants}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                contextData: {
+                                  ...prev.contextData,
+                                  scheduleType: "24h"
+                                }
+                              }))
+                              setScheduleSubStep("config")
+                            }}
+                            className="group p-5 text-left border rounded-2xl bg-white hover:border-[#1A1A1A] hover:shadow-sm transition-all flex gap-4"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] text-[#6B7280] flex items-center justify-center shrink-0 group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
+                              <Zap size={24} />
+                            </div>
+                            <div className="flex flex-col justify-center">
+                              <span className="text-base font-bold text-[#1A1A1A]">
+                                Abierto las 24 horas
+                              </span>
+                              <span className="text-xs text-[#6B7280] leading-relaxed mt-0.5">
+                                Tu negocio está activo las 24 horas del día. Activa o desactiva qué días trabajas.
+                              </span>
+                            </div>
+                          </motion.button>
+                        </div>
+
+                        <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                          <button
+                            onClick={() => setStep(2)}
+                            className="w-full py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
+                          >
+                            ← Atrás
+                          </button>
+                        </motion.div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="config-schedule"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="flex flex-col gap-5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-[#1A1A1A]">
+                            {formData.contextData.scheduleType === "24h" ? "Abierto las 24 horas" : "Horario personalizado"}
+                          </span>
+                          <button
+                            onClick={() => setScheduleSubStep("choose")}
+                            className="text-xs font-semibold text-[#6B7280] hover:text-[#1A1A1A] transition-colors"
+                          >
+                            Cambiar tipo
+                          </button>
+                        </div>
+
+                        <div className="max-h-[50vh] overflow-y-auto pr-2 flex flex-col gap-4 custom-scrollbar">
+                          {[
+                            { key: "LU", label: "Lunes" },
+                            { key: "MA", label: "Martes" },
+                            { key: "MI", label: "Miércoles" },
+                            { key: "JU", label: "Jueves" },
+                            { key: "VI", label: "Viernes" },
+                            { key: "SA", label: "Sábado" },
+                            { key: "DO", label: "Domingo" },
+                          ].map(day => {
+                            const config = formData.contextData.scheduleConfig[day.key] || { isOpen: false, openTime: "09:00", closeTime: "18:00" }
+                            return (
+                              <div key={day.key} className="flex items-center justify-between p-4 border border-[#E2E8F0] bg-white rounded-xl shadow-sm gap-4">
+                                <div className="flex items-center gap-3">
+                                  {/* Custom Switch Component */}
+                                  <button
+                                    onClick={() => toggleDayStatus(day.key)}
+                                    className={`w-11 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${config.isOpen ? "bg-[#1A1A1A]" : "bg-[#E2E8F0]"}`}
+                                  >
+                                    <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ${config.isOpen ? "translate-x-5" : "translate-x-0"}`} />
+                                  </button>
+                                  <span className="text-sm font-bold text-[#1A1A1A] w-20">{day.label}</span>
+                                </div>
+
+                                {formData.contextData.scheduleType === "24h" ? (
+                                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${config.isOpen ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+                                    {config.isOpen ? "Abierto 24h" : "Cerrado"}
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="time"
+                                      value={config.openTime}
+                                      disabled={!config.isOpen}
+                                      onChange={(e) => updateDayTime(day.key, "openTime", e.target.value)}
+                                      className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none disabled:opacity-40 w-24"
+                                    />
+                                    <span className="text-xs text-[#6B7280] font-medium">a</span>
+                                    <input
+                                      type="time"
+                                      value={config.closeTime}
+                                      disabled={!config.isOpen}
+                                      onChange={(e) => updateDayTime(day.key, "closeTime", e.target.value)}
+                                      className="bg-[#FBFBFA] border border-[#E2E8F0] rounded-md text-xs p-2 text-[#1A1A1A] focus:border-[#94A3B8] outline-none disabled:opacity-40 w-24"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                          <button
+                            onClick={() => setScheduleSubStep("choose")}
+                            className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
+                          >
+                            ← Atrás
+                          </button>
+                          <button
+                            onClick={handleSaveSchedule}
+                            disabled={Object.values(formData.contextData.scheduleConfig).every(c => !c.isOpen)}
+                            className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
+                          >
+                            Continuar
+                          </button>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+
+
+
+              {/* ── PASO 4: CATÁLOGO / SERVICIOS ── */}
+              {step === 4 && (
+                <motion.div
+                  key="step4"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -1330,7 +1556,7 @@ function OnboardingContent() {
                         if (ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
-                          setStep(2)
+                          setStep(3)
                         }
                       }}
                       className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
@@ -1338,7 +1564,7 @@ function OnboardingContent() {
                       ← Atrás
                     </button>
                     <button
-                      onClick={() => setStep(4)}
+                      onClick={() => setStep(5)}
                       disabled={
                         ventasMethod === "choose" || formData.products.length === 0
                       }
@@ -1351,10 +1577,10 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 4: NÚMERO DE AGENTE ── */}
-              {step === 4 && (
+              {/* ── PASO 5: NÚMERO DE AGENTE ── */}
+              {step === 5 && (
                 <motion.div
-                  key="step4"
+                  key="step5"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -1406,7 +1632,7 @@ function OnboardingContent() {
                     whileTap={{ scale: 0.96 }}
                     onClick={() => {
                       if (validateAgentPhone()) {
-                        setStep(5);
+                        setStep(6);
                       }
                     }}
                     className="w-full bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors mt-2 shadow-sm"
@@ -1416,10 +1642,10 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 5: QR + TEST ── */}
-              {step === 5 && (
+              {/* ── PASO 6: QR + TEST ── */}
+              {step === 6 && (
                 <motion.div
-                  key="step5"
+                  key="step6"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"

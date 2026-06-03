@@ -21,6 +21,8 @@ export interface LoadedContext {
   scheduleDays: string[]
   openTime: string
   closeTime: string
+  scheduleType?: "custom" | "24h"
+  scheduleConfig?: Record<string, { isOpen: boolean; openTime: string; closeTime: string }>
   address: string
   website: string
   instagram: string
@@ -111,6 +113,8 @@ export async function loadContext(
       scheduleDays: ctx.scheduleDays ?? [],
       openTime: ctx.openTime ?? "09:00",
       closeTime: ctx.closeTime ?? "18:00",
+      scheduleType: ctx.scheduleType,
+      scheduleConfig: ctx.scheduleConfig,
       address: ctx.address ?? "",
       website: ctx.website ?? "",
       instagram: ctx.instagram ?? "",
