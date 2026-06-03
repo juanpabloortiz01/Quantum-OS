@@ -1047,11 +1047,7 @@ function OnboardingContent() {
                         exit="exit"
                         className="flex flex-col gap-4"
                       >
-                        <div className="text-center mb-2">
-                          <p className="text-sm text-[#6B7280]">
-                            Elige cómo responderá tu agente sobre tu horario laboral
-                          </p>
-                        </div>
+
 
                         <div className="grid grid-cols-1 gap-4">
                           <motion.button
@@ -1098,7 +1094,7 @@ function OnboardingContent() {
                             className="group p-5 text-left border rounded-2xl bg-white hover:border-[#1A1A1A] hover:shadow-sm transition-all flex gap-4"
                           >
                             <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] text-[#6B7280] flex items-center justify-center shrink-0 group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
-                              <Zap size={24} />
+                              <Clock size={24} />
                             </div>
                             <div className="flex flex-col justify-center">
                               <span className="text-base font-bold text-[#1A1A1A]">
