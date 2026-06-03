@@ -171,7 +171,7 @@ export default function QuantumHero() {
                 messages={messages}
                 onSend={handleSendMessage}
                 status={chatStatus}
-                emptyStatePosition="center"
+                emptyStatePosition="default"
                 className="absolute inset-0"
               />
             </div>
