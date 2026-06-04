@@ -123,6 +123,18 @@ function buildSystemPrompt(
     return parts.join(" | ")
   }).join("\n")
 
+  // ── Promociones / Lealtad ──────────────────────────────────────────
+  let loyaltyStr = ""
+  if (ctx.enabledNodes.includes("loyalty") && ctx.loyaltyRule) {
+    const { triggerCount, triggerProduct, rewardCount, rewardProduct } = ctx.loyaltyRule as any
+    loyaltyStr = `\n═══════════════════════════════════════
+🎁 PROGRAMA DE PROMOCIONES (ACTIVO)
+═══════════════════════════════════════
+Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si están finalizando un pedido:
+- Por la compra de ${triggerCount} "${triggerProduct}", el cliente recibe ${rewardCount} "${rewardProduct}" completamente GRATIS.
+`
+  }
+
   const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
 
   const ecuadorDateStr = new Date().toLocaleString("en-US", { timeZone: "America/Guayaquil" });
@@ -209,6 +221,7 @@ OPCIÓN 4 — INFORMACIÓN:
 Dirección: ${ctx.address || "No especificada"}
 Horarios: ${scheduleStr}
 ${contactParts}
+${loyaltyStr}
 
 ═══════════════════════════════════════
 CONOCIMIENTO BASE
