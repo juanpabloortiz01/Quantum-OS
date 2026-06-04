@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import { sendText } from "@/lib/agent/dispatcher"
+import { createAppointment } from "@/lib/calendar"
 
 export async function saveSchedulingConfig(config: {
   simultaneous: number
@@ -307,6 +308,21 @@ export async function updateReservationStatus(
       where: { id: reservationId },
       data: updateData
     })
+
+    if (status === "confirmado") {
+      try {
+        await createAppointment(org.id, {
+          customerName: reserva.cliente_nombre,
+          customerPhone: reserva.cliente_id,
+          service: "Reserva de Mesa",
+          startTime: reserva.fecha_hora_deseada,
+          summary: `Reserva: ${reserva.cliente_nombre} - ${reserva.cantidad_personas} personas`
+        })
+        console.log(`[ACTION_CALENDAR]: Reserva confirmada agregada a Google Calendar`)
+      } catch (calErr: any) {
+        console.warn(`[ACTION_CALENDAR_WARN]: No se pudo registrar en Google Calendar:`, calErr.message)
+      }
+    }
 
     // --- ENVIAR NOTIFICACIÓN POR WHATSAPP ---
     const EVO_URL = process.env.EVOLUTION_URL ?? process.env.EVOLUTION_API_URL ?? ""

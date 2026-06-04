@@ -246,6 +246,17 @@ const DashboardContent = () => {
     }
   };
 
+  React.useEffect(() => {
+    if (status !== "authenticated") return;
+
+    // Poll reservations every 10 seconds to keep the local view updated in real-time
+    const interval = setInterval(async () => {
+      await fetchAndSetReservations();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [status]);
+
   const menuItems = [
     { icon: CheckSquare, view: "modules" as const, label: "AGENTE" },
     { icon: Calendar, view: "reservations" as const, label: "RESERVACIONES" },
@@ -940,8 +951,8 @@ const DashboardContent = () => {
               className="space-y-8 max-w-2xl mx-auto"
             >
               <div className="text-center mb-16">
-                <h1 className="text-5xl font-semibold text-gray-900 mb-3 tracking-tight">
-                  Ajustes
+                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+                  AJUSTES
                 </h1>
                 <p className="text-gray-500 font-light text-lg">
                   Parámetros técnicos de la organización.

@@ -241,6 +241,21 @@ export async function runDispatcher(
             }
           })
 
+          if (estado === "confirmado") {
+            try {
+              await createAppointment(ctx.organizationId, {
+                customerName: cliente_nombre,
+                customerPhone: cleanPhone,
+                service: "Reserva de Mesa",
+                startTime: fechaHora,
+                summary: `Reserva: ${cliente_nombre} - ${cantidad_personas} personas`
+              })
+              console.log(`[DISPATCHER]: Reserva agregada a Google Calendar para ${cliente_nombre}`)
+            } catch (calErr: any) {
+              console.warn(`[DISPATCHER_CALENDAR_WARN]: No se pudo registrar en Google Calendar:`, calErr.message)
+            }
+          }
+
           coreResult.cleanText = replyMessage
 
           if (estado === "pendiente_aprobacion" && ctx.notifPhone) {
