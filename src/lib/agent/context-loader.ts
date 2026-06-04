@@ -50,6 +50,10 @@ export interface LoadedContext {
     maxSimultaneousEvents: number
     limitPerPersonPerDay: number
   }
+  reservationsConfig?: {
+    limite_grupo_autonomo: number
+    tope_personas_por_hora: number
+  }
 }
 
 
@@ -138,6 +142,10 @@ export async function loadContext(
       schedulingConfig: {
         maxSimultaneousEvents: config.scheduling?.maxSimultaneousEvents ?? 1,
         limitPerPersonPerDay: config.scheduling?.limitPerPersonPerDay ?? 1,
+      },
+      reservationsConfig: {
+        limite_grupo_autonomo: config.reservationsConfig?.limite_grupo_autonomo ?? 6,
+        tope_personas_por_hora: config.reservationsConfig?.tope_personas_por_hora ?? 25,
       }
     }
 

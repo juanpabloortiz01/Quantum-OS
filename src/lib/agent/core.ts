@@ -43,6 +43,19 @@ function buildSystemPrompt(
   sentryResult: SentryResult,
   isNewConversation: boolean
 ): string {
+  const ecuadorDateStr = new Date().toLocaleString("en-US", { timeZone: "America/Guayaquil" });
+  const ecuadorDate = new Date(ecuadorDateStr);
+  const year = ecuadorDate.getFullYear();
+  const month = String(ecuadorDate.getMonth() + 1).padStart(2, "0");
+  const day = String(ecuadorDate.getDate()).padStart(2, "0");
+  const hours = String(ecuadorDate.getHours()).padStart(2, "0");
+  const minutes = String(ecuadorDate.getMinutes()).padStart(2, "0");
+  const seconds = String(ecuadorDate.getSeconds()).padStart(2, "0");
+  const weekdays = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const weekdayName = weekdays[ecuadorDate.getDay()];
+  const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const monthName = months[ecuadorDate.getMonth()];
+
   // ── Horarios formateados ───────────────────────────────────────────
   const dayNamesMap: Record<string, string> = {
     LU: "Lunes",
@@ -135,20 +148,27 @@ Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si es
 `
   }
 
+  // ── Reservaciones de Mesa ──────────────────────────────────────────
+  let reservationsStr = ""
+  if (ctx.enabledNodes.includes("reservations")) {
+    reservationsStr = `\n═══════════════════════════════════════
+📅 PROCESO DE RESERVACIONES DE MESAS (ACTIVO)
+═══════════════════════════════════════
+Si el cliente desea reservar una mesa, debes solicitar obligatoriamente los siguientes datos:
+1. Nombre completo del cliente
+2. Cantidad de personas
+3. Fecha y hora deseada para la reserva
+
+Solo cuando tengas estos 3 datos confirmados, debes generar la siguiente etiqueta oculta al final de tu respuesta:
+SOLICITAR_RESERVA:{"cliente_nombre": "Nombre del Cliente", "cantidad_personas": Número, "fecha_hora_deseada": "YYYY-MM-DDTHH:MM:SS"}
+
+Nota: La fecha y hora debe estar en formato ISO YYYY-MM-DDTHH:MM:SS. Ajusta el año, mes y día de acuerdo a la fecha actual: ${year}-${month}-${day} y la hora actual: ${hours}:${minutes}.
+`
+  }
+
   const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
 
-  const ecuadorDateStr = new Date().toLocaleString("en-US", { timeZone: "America/Guayaquil" });
-  const ecuadorDate = new Date(ecuadorDateStr);
-  const year = ecuadorDate.getFullYear();
-  const month = String(ecuadorDate.getMonth() + 1).padStart(2, "0");
-  const day = String(ecuadorDate.getDate()).padStart(2, "0");
-  const hours = String(ecuadorDate.getHours()).padStart(2, "0");
-  const minutes = String(ecuadorDate.getMinutes()).padStart(2, "0");
-  const seconds = String(ecuadorDate.getSeconds()).padStart(2, "0");
-  const weekdays = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  const weekdayName = weekdays[ecuadorDate.getDay()];
-  const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-  const monthName = months[ecuadorDate.getMonth()];
+
 
   const basePrompt = `Eres el asistente virtual experto de "${ctx.companyName}".
 La fecha y hora actual en Ecuador (GMT-5) es: ${year}-${month}-${day} ${hours}:${minutes}:${seconds} (${weekdayName}, ${day} de ${monthName} de ${year}).`;
@@ -156,7 +176,7 @@ La fecha y hora actual en Ecuador (GMT-5) es: ${year}-${month}-${day} ${hours}:$
   const welcomeMenu = `
 "¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
 
-1️⃣ ${isAgenda ? "Agendar una cita" : "Tomar un pedido"}
+1️⃣ ${isAgenda ? "Agendar una cita" : (ctx.enabledNodes.includes("reservations") ? "Tomar un pedido / Reservar mesa" : "Tomar un pedido")}
 2️⃣ Hablar con alguien
 3️⃣ ${isAgenda ? "Ver servicios" : "Ver el menú / carta"}
 4️⃣ Información del local
@@ -189,8 +209,9 @@ ${ctx.calendarAvailability && ctx.calendarAvailability.length > 0
 - Duración: 60 min por cita.`;
 
   const generalRules = `
-OPCIÓN 1 — TOMAR UN PEDIDO:
-Sigue este protocolo de recolección:
+OPCIÓN 1 — TOMAR UN PEDIDO ${ctx.enabledNodes.includes("reservations") ? "O RESERVAR MESA" : ""}:
+${ctx.enabledNodes.includes("reservations") ? `Si el cliente desea reservar una mesa, sigue el protocolo de RESERVACIONES (pide Nombre, Personas, Fecha y Hora).
+Si desea pedir comida para llevar o domicilio, sigue este protocolo de recolección de pedido:` : "Sigue este protocolo de recolección:"}
 1. ¿Qué plato(s) deseas pedir?
 2. Nombre completo.
 3. Dirección de entrega (si mandan ubicación por WhatsApp, trátala como dirección).
@@ -222,6 +243,7 @@ Dirección: ${ctx.address || "No especificada"}
 Horarios: ${scheduleStr}
 ${contactParts}
 ${loyaltyStr}
+${reservationsStr}
 
 ═══════════════════════════════════════
 CONOCIMIENTO BASE
@@ -254,6 +276,7 @@ export interface CoreResult {
   agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
   isEscaladoSoporte: boolean
   escalationData: { nombre: string } | null
+  solicitarReserva: { cliente_nombre: string; cantidad_personas: number; fecha_hora_deseada: string } | null
 
   userName: string | null
   summary: string | null
@@ -390,6 +413,17 @@ export async function runCore(
     }
   }
 
+  // Parsear SOLICITAR_RESERVA
+  const reservaMatch = rawResponse.match(/SOLICITAR_RESERVA:({.+})/i)
+  let solicitarReserva = null
+  if (reservaMatch) {
+    try {
+      solicitarReserva = JSON.parse(reservaMatch[1])
+    } catch (e) {
+      console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de reserva")
+    }
+  }
+
 
   let userName = null
   let summary = null
@@ -409,6 +443,7 @@ export async function runCore(
     .replace(/AGENDAR_CITA:({.+})/gi, "")
     .replace(/AGENDAR_CITA:[^.\n]+/gi, "") // Limpiar formato de texto también
     .replace(/ESCALADO_SOPORTE:({.+})/gi, "")
+    .replace(/SOLICITAR_RESERVA:({.+})/gi, "")
     .replace(/\[USER_NAME:\s*(.+?)\]/gi, "")
     .replace(/\[SUMMARY:\s*(.+?)\]/gi, "")
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "")
@@ -445,6 +480,7 @@ export async function runCore(
     agendarCita,
     isEscaladoSoporte,
     escalationData,
+    solicitarReserva,
     userName,
     summary,
     cleanText,

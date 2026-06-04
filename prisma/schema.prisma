@@ -85,6 +85,7 @@ model Organization {
   chatHistory    ChatHistory[]
   products       Product[]
   leads          Lead[]
+  reservas       Reserva[]
 }
 
 model BusinessConfig {
@@ -166,4 +167,21 @@ model Lead {
   updatedAt      DateTime     @updatedAt
 
   @@unique([organizationId, customerPhone])
+}
+
+model Reserva {
+  id                    String       @id @default(uuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  cliente_id            String
+  cliente_nombre        String
+  cantidad_personas     Int
+  fecha_hora_deseada    DateTime
+  estado                String       @default("pendiente_aprobacion")
+  propuesta_alternativa DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([fecha_hora_deseada])
 }

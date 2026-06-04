@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule } from "./action";
+import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule, getReservas, saveReservationsConfig, updateReservationStatus } from "./action";
 
 interface GlassModule {
   id: string;
@@ -32,14 +32,49 @@ interface Lead {
 const MODULE_LIBRARY = [
   { id: "calendar", name: "Agenda", description: "Sincronización con Google Calendar y agendamiento automático.", icon: Calendar, niches: ["AGENDA"] },
   { id: "loyalty", name: "Promociones", description: "Configura ofertas especiales y recompensas para tus clientes.", icon: Heart, niches: ["VENTAS"] },
+  { id: "reservations", name: "Reservaciones", description: "Gestiona las reservaciones de mesas de forma automatizada y con aprobación manual.", icon: Calendar, niches: ["VENTAS", "GASTRONOMY", "AGENDA"] },
 ];
+
+const getDaysInMonthGrid = (date: Date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  
+  const cells: { date: Date; isCurrentMonth: boolean }[] = [];
+  
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    cells.push({
+      date: new Date(year, month - 1, daysInPrevMonth - i),
+      isCurrentMonth: false
+    });
+  }
+  
+  for (let i = 1; i <= daysInMonth; i++) {
+    cells.push({
+      date: new Date(year, month, i),
+      isCurrentMonth: true
+    });
+  }
+  
+  const remaining = 42 - cells.length;
+  for (let i = 1; i <= remaining; i++) {
+    cells.push({
+      date: new Date(year, month + 1, i),
+      isCurrentMonth: false
+    });
+  }
+  
+  return cells;
+};
 
 const DashboardContent = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [activeView, setActiveView] = React.useState<"modules" | "leads" | "collaborators" | "config">("modules");
+  const [activeView, setActiveView] = React.useState<"modules" | "leads" | "collaborators" | "config" | "reservations">("modules");
   const [niche, setNiche] = React.useState<string>("AGENDA");
   const [modules, setModules] = React.useState<GlassModule[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -58,6 +93,18 @@ const DashboardContent = () => {
     rewardCount: "1",
     rewardProduct: "Gaseosa"
   });
+
+  // States for reservations configuration
+  const [showReservationsModal, setShowReservationsModal] = React.useState(false);
+  const [reservationsForm, setReservationsForm] = React.useState({
+    limite_grupo_autonomo: 6,
+    tope_personas_por_hora: 25
+  });
+  const [reservations, setReservations] = React.useState<any[]>([]);
+  const [calendarMonth, setCalendarMonth] = React.useState<Date>(new Date(2026, 5, 1)); // Junio 2026
+  const [calendarViewMode, setCalendarViewMode] = React.useState<"month" | "day">("month");
+  const [selectedCalendarDay, setSelectedCalendarDay] = React.useState<Date>(new Date(2026, 5, 4)); // 4 de Junio 2026
+  const [activeReservationForAlternative, setActiveReservationForAlternative] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -109,6 +156,16 @@ const DashboardContent = () => {
             rewardProduct: layout.loyaltyRule.rewardProduct || "Gaseosa"
           });
         }
+
+        if ((layout as any).reservationsConfig) {
+          setReservationsForm({
+            limite_grupo_autonomo: (layout as any).reservationsConfig.limite_grupo_autonomo ?? 6,
+            tope_personas_por_hora: (layout as any).reservationsConfig.tope_personas_por_hora ?? 25
+          });
+        }
+
+        const fetchedRes = await getReservas();
+        setReservations(fetchedRes);
       }
       setGoogleConnected(conn.connected);
       setLoading(false);
@@ -141,6 +198,13 @@ const DashboardContent = () => {
       }
     }
 
+    if (id === "reservations") {
+      const module = modules.find(m => m.id === "reservations");
+      if (!module?.enabled) {
+        setShowReservationsModal(true);
+      }
+    }
+
     const updatedModules = modules.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m);
     setModules(updatedModules);
     
@@ -165,8 +229,26 @@ const DashboardContent = () => {
     }
   };
 
+  const fetchAndSetReservations = async () => {
+    const fetchedRes = await getReservas();
+    setReservations(fetchedRes);
+  };
+
+  const handleProposeAlternative = async (reservaId: string, originalDateStr: string, hoursToAdd: number) => {
+    const originalDate = new Date(originalDateStr);
+    const altDate = new Date(originalDate.getTime() + hoursToAdd * 60 * 60 * 1000);
+    const res = await updateReservationStatus(reservaId, "reagendado", altDate.toISOString());
+    if (res.success) {
+      await fetchAndSetReservations();
+      setActiveReservationForAlternative(null);
+    } else {
+      alert(res.error || "Error al proponer alternativa");
+    }
+  };
+
   const menuItems = [
     { icon: CheckSquare, view: "modules" as const, label: "AGENTE" },
+    { icon: Calendar, view: "reservations" as const, label: "RESERVACIONES" },
     { icon: Search, view: "leads" as const, label: "CLIENTES" },
     { icon: Users, view: "collaborators" as const, label: "EQUIPO" },
     { icon: Settings, view: "config" as const, label: "AJUSTES" },
@@ -342,6 +424,15 @@ const DashboardContent = () => {
                         </button>
                       )}
 
+                      {module.id === "reservations" && module.enabled && (
+                        <button
+                          onClick={() => setShowReservationsModal(true)}
+                          className="mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left"
+                        >
+                          Configurar Reservaciones
+                        </button>
+                      )}
+
 
                     </div>
                     {module.enabled && (
@@ -356,6 +447,329 @@ const DashboardContent = () => {
                 </div>
                 ))}
               </div>
+            </motion.div>
+          )}
+
+          {activeView === "reservations" && (
+            <motion.div
+              key="reservations"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="space-y-8 max-w-6xl mx-auto"
+            >
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                <div>
+                  <h1 className="text-4xl font-semibold text-gray-900 tracking-tight uppercase italic">
+                    Reservaciones
+                  </h1>
+                  <p className="text-gray-500 font-light mt-1">
+                    Gestiona las reservaciones de mesas y optimiza el flujo en tiempo real.
+                  </p>
+                </div>
+
+                {/* Calendar View Selectors & Nav */}
+                <div className="flex items-center gap-3 self-start md:self-auto">
+                  <button
+                    onClick={() => {
+                      const today = new Date(2026, 5, 4);
+                      setCalendarMonth(new Date(2026, 5, 1));
+                      setSelectedCalendarDay(today);
+                    }}
+                    className="px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    Hoy
+                  </button>
+
+                  <div className="flex items-center border border-gray-200 rounded-xl bg-white p-1 shadow-sm">
+                    <button
+                      onClick={() => {
+                        if (calendarViewMode === "month") {
+                          setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1));
+                        } else {
+                          setSelectedCalendarDay(new Date(selectedCalendarDay.getTime() - 24 * 60 * 60 * 1000));
+                        }
+                      }}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      &lt;
+                    </button>
+                    <span className="px-3 text-sm font-medium text-gray-700 min-w-[100px] text-center">
+                      {calendarViewMode === "month"
+                        ? calendarMonth.toLocaleDateString("es-EC", { month: "long", year: "numeric" })
+                        : selectedCalendarDay.toLocaleDateString("es-EC", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (calendarViewMode === "month") {
+                          setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
+                        } else {
+                          setSelectedCalendarDay(new Date(selectedCalendarDay.getTime() + 24 * 60 * 60 * 1000));
+                        }
+                      }}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+
+                  <div className="flex border border-gray-200 rounded-xl bg-white p-1 shadow-sm">
+                    <button
+                      onClick={() => setCalendarViewMode("month")}
+                      className={cn(
+                        "px-3 py-1 text-xs font-medium rounded-lg transition-all",
+                        calendarViewMode === "month" ? "bg-gray-900 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+                      )}
+                    >
+                      Mes
+                    </button>
+                    <button
+                      onClick={() => setCalendarViewMode("day")}
+                      className={cn(
+                        "px-3 py-1 text-xs font-medium rounded-lg transition-all",
+                        calendarViewMode === "day" ? "bg-gray-900 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+                      )}
+                    >
+                      Día
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly View Grid */}
+              {calendarViewMode === "month" && (
+                <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-sm overflow-hidden">
+                  <div className="grid grid-cols-7 gap-2 mb-4">
+                    {["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"].map((dayName) => (
+                      <div key={dayName} className="text-center text-xs font-bold text-gray-400 py-2">
+                        {dayName}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-2">
+                    {getDaysInMonthGrid(calendarMonth).map((cell, idx) => {
+                      const dayRes = reservations.filter((r) => {
+                        const rDate = new Date(r.fecha_hora_deseada);
+                        return rDate.getDate() === cell.date.getDate() &&
+                               rDate.getMonth() === cell.date.getMonth() &&
+                               rDate.getFullYear() === cell.date.getFullYear();
+                      });
+
+                      const isSelected = selectedCalendarDay.getDate() === cell.date.getDate() &&
+                                         selectedCalendarDay.getMonth() === cell.date.getMonth() &&
+                                         selectedCalendarDay.getFullYear() === cell.date.getFullYear();
+
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setSelectedCalendarDay(cell.date);
+                            setCalendarViewMode("day");
+                          }}
+                          className={cn(
+                            "min-h-[6rem] p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-300",
+                            cell.isCurrentMonth ? "bg-white/50 border-gray-100 hover:border-gray-300" : "bg-gray-50/20 border-transparent text-gray-400",
+                            isSelected && "border-gray-900 bg-gray-50/50 shadow-sm"
+                          )}
+                        >
+                          <span className={cn(
+                            "text-sm font-semibold",
+                            isSelected && "text-gray-900 underline decoration-2 decoration-gray-900"
+                          )}>
+                            {cell.date.getDate()}
+                          </span>
+
+                          {dayRes.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                                {dayRes.length} {dayRes.length === 1 ? "reserva" : "reservas"}
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Daily View Timeline */}
+              {calendarViewMode === "day" && (
+                <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Horario de Reserva: {selectedCalendarDay.toLocaleDateString("es-EC", { weekday: "long", day: "numeric", month: "long" })}
+                    </h2>
+                    <button
+                      onClick={() => setCalendarViewMode("month")}
+                      className="text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors"
+                    >
+                      Volver a Vista Mensual
+                    </button>
+                  </div>
+
+                  <div className="relative border-l border-gray-200 pl-4 space-y-4">
+                    {/* Live indicator line if today */}
+                    {(() => {
+                      const now = new Date();
+                      const isSelectedToday = selectedCalendarDay.getDate() === now.getDate() &&
+                                              selectedCalendarDay.getMonth() === now.getMonth() &&
+                                              selectedCalendarDay.getFullYear() === now.getFullYear();
+                      if (!isSelectedToday) return null;
+                      
+                      const hour = now.getHours();
+                      const min = now.getMinutes();
+                      if (hour < 8 || hour > 22) return null;
+                      
+                      const hourIndex = hour - 8;
+                      const topOffset = 80 * hourIndex + (80 * min / 60) + 12; // approximate height of row is 5rem (80px)
+                      return (
+                        <div
+                          className="absolute left-0 right-0 h-0.5 bg-red-500 z-10 pointer-events-none"
+                          style={{ top: `${topOffset}px` }}
+                        >
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 absolute -left-1.5 -top-1" />
+                        </div>
+                      );
+                    })()}
+
+                    {/* Hour Rows */}
+                    {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map((hour) => {
+                      const hourRes = reservations.filter((r) => {
+                        const rDate = new Date(r.fecha_hora_deseada);
+                        return rDate.getDate() === selectedCalendarDay.getDate() &&
+                               rDate.getMonth() === selectedCalendarDay.getMonth() &&
+                               rDate.getFullYear() === selectedCalendarDay.getFullYear() &&
+                               rDate.getHours() === hour;
+                      });
+
+                      const displayHour = hour > 12 ? `${hour - 12} PM` : hour === 12 ? "12 PM" : `${hour} AM`;
+
+                      return (
+                        <div key={hour} className="flex gap-4 min-h-[5rem] group">
+                          {/* Hour Label */}
+                          <div className="w-16 flex-shrink-0 text-right text-xs font-bold text-gray-400 pt-1">
+                            {displayHour}
+                          </div>
+
+                          {/* Reservation Cards in Row */}
+                          <div className="flex-1 bg-white/30 border border-gray-100 rounded-2xl p-4 flex flex-wrap gap-4 items-center">
+                            {hourRes.length === 0 ? (
+                              <span className="text-xs font-light text-gray-400 italic">Disponible</span>
+                            ) : (
+                              hourRes.map((res) => (
+                                <div
+                                  key={res.id}
+                                  className={cn(
+                                    "p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 flex-1 min-w-[280px] shadow-sm",
+                                    res.estado === "confirmado" && "bg-emerald-50/50 border-emerald-100 text-emerald-950",
+                                    res.estado === "pendiente_aprobacion" && "bg-amber-50/50 border-amber-200 text-amber-950 animate-pulse-subtle",
+                                    res.estado === "reagendado" && "bg-purple-50/50 border-purple-200 text-purple-950",
+                                    res.estado === "cancelado" && "bg-rose-50/50 border-rose-100 text-rose-950 opacity-60"
+                                  )}
+                                >
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                      <span className="font-semibold text-sm">
+                                        {res.cliente_nombre}
+                                      </span>
+                                      <span className="text-xs font-light opacity-80">
+                                        ({res.cliente_id})
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                                      <span className="inline-flex items-center gap-1 opacity-90">
+                                        <Users className="w-3.5 h-3.5" />
+                                        {res.cantidad_personas} {res.cantidad_personas === 1 ? "persona" : "personas"}
+                                      </span>
+                                      <span className="opacity-90">
+                                        Hora: {new Date(res.fecha_hora_deseada).toLocaleTimeString("es-EC", {
+                                          timeZone: "America/Guayaquil",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                          hour12: false
+                                        })}
+                                      </span>
+                                      {res.estado === "reagendado" && res.propuesta_alternativa && (
+                                        <span className="text-[10px] font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded border border-purple-200">
+                                          Propuesta: {new Date(res.propuesta_alternativa).toLocaleTimeString("es-EC", {
+                                            timeZone: "America/Guayaquil",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            hour12: false
+                                          })}
+                                        </span>
+                                      )}
+                                      <span className={cn(
+                                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                                        res.estado === "confirmado" && "bg-emerald-100 text-emerald-800",
+                                        res.estado === "pendiente_aprobacion" && "bg-amber-100 text-amber-800",
+                                        res.estado === "reagendado" && "bg-purple-100 text-purple-800",
+                                        res.estado === "cancelado" && "bg-rose-100 text-rose-800"
+                                      )}>
+                                        {res.estado === "pendiente_aprobacion" ? "Pendiente" : res.estado}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Actions for Pending */}
+                                  {res.estado === "pendiente_aprobacion" && (
+                                    <div className="flex items-center gap-2 self-end md:self-auto relative">
+                                      <button
+                                        onClick={async () => {
+                                          const updateRes = await updateReservationStatus(res.id, "confirmado");
+                                          if (updateRes.success) {
+                                            await fetchAndSetReservations();
+                                          } else {
+                                            alert(updateRes.error || "Error al aceptar");
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+                                      >
+                                        Aceptar Mesa
+                                      </button>
+                                      
+                                      <button
+                                        onClick={() => {
+                                          setActiveReservationForAlternative(
+                                            activeReservationForAlternative === res.id ? null : res.id
+                                          );
+                                        }}
+                                        className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 transition-colors shadow-sm"
+                                      >
+                                        Proponer Alternativa
+                                      </button>
+
+                                      {/* Dropdown for alternative times */}
+                                      {activeReservationForAlternative === res.id && (
+                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 p-2 space-y-1">
+                                          <div className="text-[10px] text-gray-400 font-bold uppercase p-2 border-b border-gray-50 mb-1">Horas más tarde:</div>
+                                          {[1, 1.5, 2, 2.5].map((hours) => (
+                                            <button
+                                              key={hours}
+                                              onClick={() => handleProposeAlternative(res.id, res.fecha_hora_deseada, hours)}
+                                              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                                            >
+                                              {hours === 1 ? "+1 hora" : `+${hours} horas`}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -814,6 +1228,86 @@ const DashboardContent = () => {
                       const res = await saveLoyaltyRule(loyaltyForm);
                       if (res.success) {
                         setShowLoyaltyModal(false);
+                      } else {
+                        alert(res.error || "Error al guardar");
+                      }
+                    }}
+                    className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Reservations Configuration Modal */}
+        <AnimatePresence>
+          {showReservationsModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setShowReservationsModal(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-8 space-y-6"
+              >
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
+                    Configurar Reservaciones
+                  </h3>
+                  <p className="text-sm font-light text-gray-500 mt-1.5 leading-relaxed">
+                    Define las reglas para controlar el tráfico humano en tu restaurante y el comportamiento del agente de IA.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Grupo Máximo Autónomo</label>
+                    <input
+                      type="number"
+                      value={reservationsForm.limite_grupo_autonomo}
+                      onChange={(e) => setReservationsForm({ ...reservationsForm, limite_grupo_autonomo: Number(e.target.value) })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    />
+                    <p className="text-[11px] font-light text-gray-500 leading-normal">
+                      Grupo Máximo Autónomo: Cualquier reserva mayor a este número pasará a tu aprobación en el Mando antes de confirmarse.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Tope de Personas por Hora</label>
+                    <input
+                      type="number"
+                      value={reservationsForm.tope_personas_por_hora}
+                      onChange={(e) => setReservationsForm({ ...reservationsForm, tope_personas_por_hora: Number(e.target.value) })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    />
+                    <p className="text-[11px] font-light text-gray-500 leading-normal">
+                      Tope de Personas por Hora: Cuántas personas con reserva puede soportar tu cocina simultáneamente cada hora, tomando en cuenta el flujo de clientes sin reserva.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowReservationsModal(false)}
+                    className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const res = await saveReservationsConfig(reservationsForm);
+                      if (res.success) {
+                        setShowReservationsModal(false);
                       } else {
                         alert(res.error || "Error al guardar");
                       }

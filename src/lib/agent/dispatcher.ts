@@ -9,6 +9,7 @@
 import { LoadedContext } from "./context-loader"
 import { CoreResult } from "./core"
 import { createAppointment } from "@/lib/calendar"
+import { prisma } from "@/lib/prisma"
 
 
 export interface DispatchResult {
@@ -20,7 +21,7 @@ export interface DispatchResult {
 /**
  * Envía un mensaje de texto simple por EvolutionAPI.
  */
-async function sendText(
+export async function sendText(
   evoUrl: string,
   instanceName: string,
   token: string,
@@ -169,6 +170,105 @@ export async function runDispatcher(
           console.log(`[DISPATCHER]: Evento creado con éxito para ${date} ${time}`)
         } catch (calErr: any) {
           console.error(`[DISPATCHER_CALENDAR_ERROR]:`, calErr.message)
+        }
+      }
+
+      // ── MANEJO DE RESERVA DE MESAS (RESERVACIONES) ──────────────────────
+      if (coreResult.solicitarReserva) {
+        const { cliente_nombre, cantidad_personas, fecha_hora_deseada } = coreResult.solicitarReserva
+
+        const cleanIsoStr = fecha_hora_deseada.includes("-") || fecha_hora_deseada.includes("+") 
+          ? fecha_hora_deseada 
+          : `${fecha_hora_deseada}-05:00`
+        const fechaHora = new Date(cleanIsoStr)
+
+        try {
+          console.log(`[DISPATCHER]: >>> PROCESANDO SOLICITUD DE RESERVA <<<`)
+          
+          const startOfHour = new Date(fechaHora)
+          startOfHour.setMinutes(0, 0, 0)
+          const endOfHour = new Date(fechaHora)
+          endOfHour.setMinutes(59, 59, 999)
+
+          const confirmedReservations = await prisma.reserva.findMany({
+            where: {
+              organizationId: ctx.organizationId,
+              estado: "confirmado",
+              fecha_hora_deseada: {
+                gte: startOfHour,
+                lte: endOfHour
+              }
+            }
+          })
+
+          const totalConfirmed = confirmedReservations.reduce((sum: number, r: any) => sum + r.cantidad_personas, 0)
+
+          const limitAutonomo = ctx.reservationsConfig?.limite_grupo_autonomo ?? 6
+          const maxPeoplePerHour = ctx.reservationsConfig?.tope_personas_por_hora ?? 25
+
+          const meetsLimitAutonomo = cantidad_personas <= limitAutonomo
+          const meetsMaxPeople = (totalConfirmed + cantidad_personas) <= maxPeoplePerHour
+
+          let estado = "confirmado"
+          let replyMessage = ""
+
+          const cleanPhone = to.replace("@s.whatsapp.net", "")
+
+          const formatTime = (d: Date) => d.toLocaleTimeString("es-EC", {
+            timeZone: "America/Guayaquil",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+          })
+          const horaStr = formatTime(fechaHora)
+
+          if (meetsLimitAutonomo && meetsMaxPeople) {
+            estado = "confirmado"
+            replyMessage = `Perfecto. Tu mesa está separada para hoy a las ${horaStr}. Te esperamos.`
+          } else {
+            estado = "pendiente_aprobacion"
+            replyMessage = `Recibido. Al ser un grupo grande, el encargado está verificando la disposición de las mesas en este momento. Te confirmo en un par de minutos por aquí mismo.`
+          }
+
+          await prisma.reserva.create({
+            data: {
+              organizationId: ctx.organizationId,
+              cliente_id: cleanPhone,
+              cliente_nombre,
+              cantidad_personas,
+              fecha_hora_deseada: fechaHora,
+              estado
+            }
+          })
+
+          coreResult.cleanText = replyMessage
+
+          if (estado === "pendiente_aprobacion" && ctx.notifPhone) {
+            const notifMsg = [
+              `🔔 *NUEVA RESERVA PENDIENTE DE APROBACIÓN*`,
+              ``,
+              `👤 *Cliente:* ${cliente_nombre}`,
+              `👥 *Personas:* ${cantidad_personas}`,
+              `⏰ *Hora:* ${horaStr}`,
+              `📱 *Teléfono:* ${cleanPhone}`,
+              ``,
+              `_Por favor, ingresa al Dashboard de Reservaciones para aprobar o proponer una hora alternativa._`
+            ].join("\n")
+
+            try {
+              const rawDigits = ctx.notifPhone.replace(/\D/g, "")
+              const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+              const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
+
+              await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
+              console.log(`[DISPATCHER]: Alerta de reserva pendiente enviada a despachador ${normalizedPhone}`)
+            } catch (notifErr: any) {
+              console.error(`[DISPATCHER_RESERVA_NOTIF_ERROR]:`, notifErr.message)
+            }
+          }
+
+        } catch (dbErr: any) {
+          console.error(`[DISPATCHER_RESERVAS_ERROR]:`, dbErr.message)
         }
       }
 
