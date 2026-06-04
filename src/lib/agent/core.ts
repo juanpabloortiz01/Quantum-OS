@@ -413,14 +413,20 @@ export async function runCore(
     }
   }
 
-  // Parsear SOLICITAR_RESERVA
-  const reservaMatch = rawResponse.match(/SOLICITAR_RESERVA:({.+})/i)
+  // Parsear SOLICITAR_RESERVA (robusto a espacios, saltos de línea y bloques de código)
   let solicitarReserva = null
+  const reservaMatch = rawResponse.match(/SOLICITAR_RESERVA:\s*([\s\S]+)/i)
   if (reservaMatch) {
-    try {
-      solicitarReserva = JSON.parse(reservaMatch[1])
-    } catch (e) {
-      console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de reserva")
+    const content = reservaMatch[1].trim()
+    const startIdx = content.indexOf("{")
+    const endIdx = content.lastIndexOf("}")
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      const jsonStr = content.substring(startIdx, endIdx + 1)
+      try {
+        solicitarReserva = JSON.parse(jsonStr)
+      } catch (e) {
+        console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de reserva", jsonStr, e)
+      }
     }
   }
 
@@ -443,7 +449,9 @@ export async function runCore(
     .replace(/AGENDAR_CITA:({.+})/gi, "")
     .replace(/AGENDAR_CITA:[^.\n]+/gi, "") // Limpiar formato de texto también
     .replace(/ESCALADO_SOPORTE:({.+})/gi, "")
-    .replace(/SOLICITAR_RESERVA:({.+})/gi, "")
+    .replace(/SOLICITAR_RESERVA:\s*({[\s\S]+?})/gi, "")
+    .replace(/SOLICITAR_RESERVA:\s*```json[\s\S]+?```/gi, "")
+    .replace(/SOLICITAR_RESERVA:\s*```[\s\S]+?```/gi, "")
     .replace(/\[USER_NAME:\s*(.+?)\]/gi, "")
     .replace(/\[SUMMARY:\s*(.+?)\]/gi, "")
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "")
