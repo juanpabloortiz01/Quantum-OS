@@ -1264,13 +1264,13 @@ const DashboardContent = () => {
                     Configurar Reservaciones
                   </h3>
                   <p className="text-sm font-light text-gray-500 mt-1.5 leading-relaxed">
-                    Define las reglas para controlar el tráfico humano en tu restaurante y el comportamiento del agente de IA.
+                    Define las reglas para controlar el tráfico de clientes en tu negocio.
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Grupo Máximo Autónomo</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Grupo Máximo</label>
                     <input
                       type="number"
                       value={reservationsForm.limite_grupo_autonomo}
@@ -1278,7 +1278,7 @@ const DashboardContent = () => {
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                     />
                     <p className="text-[11px] font-light text-gray-500 leading-normal">
-                      Grupo Máximo Autónomo: Cualquier reserva mayor a este número pasará a tu aprobación en el Mando antes de confirmarse.
+                      Cualquier reserva mayor a este número de personas pasará a tu aprobación en Whatsapp antes de confirmarse.
                     </p>
                   </div>
 
@@ -1291,7 +1291,7 @@ const DashboardContent = () => {
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                     />
                     <p className="text-[11px] font-light text-gray-500 leading-normal">
-                      Tope de Personas por Hora: Cuántas personas con reserva puede soportar tu cocina simultáneamente cada hora, tomando en cuenta el flujo de clientes sin reserva.
+                      Cuántas personas con reserva puede soportar tu negocio cada hora, tomando en cuenta el flujo de clientes sin reserva.
                     </p>
                   </div>
                 </div>
