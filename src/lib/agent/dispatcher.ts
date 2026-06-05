@@ -210,10 +210,13 @@ export async function runDispatcher(
 
           let reservaToUpdateId: string | null = null
           if (existingReagendado && existingReagendado.propuesta_alternativa) {
-            const diffMs = Math.abs(existingReagendado.propuesta_alternativa.getTime() - fechaHora.getTime())
-            // Si la diferencia es menor a 30 minutos, asumimos que confirma el reagendamiento propuesto
-            if (diffMs < 30 * 60 * 1000) {
+            const reqDateStr = fechaHora.toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" })
+            const origDateStr = existingReagendado.fecha_hora_deseada.toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" })
+
+            if (reqDateStr === origDateStr) {
               reservaToUpdateId = existingReagendado.id
+              // Forzar a usar la hora alternativa propuesta por el administrador
+              fechaHora = existingReagendado.propuesta_alternativa
             }
           }
 
