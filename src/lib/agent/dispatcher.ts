@@ -177,42 +177,45 @@ export async function runDispatcher(
       if (coreResult.solicitarReserva) {
         const { cliente_nombre, cantidad_personas, fecha_hora_deseada } = coreResult.solicitarReserva
 
-        const cleanIsoStr = fecha_hora_deseada.includes("-") || fecha_hora_deseada.includes("+") 
-          ? fecha_hora_deseada 
-          : `${fecha_hora_deseada}-05:00`
-        const fechaHora = new Date(cleanIsoStr)
+        let fechaHora: Date
+        const dateMatch = fecha_hora_deseada.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+        if (dateMatch) {
+          const y = parseInt(dateMatch[1])
+          const m = parseInt(dateMatch[2]) - 1
+          const d = parseInt(dateMatch[3])
+          const h = parseInt(dateMatch[4])
+          const min = parseInt(dateMatch[5])
+          // Ecuador is GMT-5, so UTC is local + 5 hours
+          fechaHora = new Date(Date.UTC(y, m, d, h + 5, min, 0))
+        } else {
+          const cleanIsoStr = fecha_hora_deseada.includes("-") || fecha_hora_deseada.includes("+") 
+            ? fecha_hora_deseada 
+            : `${fecha_hora_deseada}-05:00`
+          fechaHora = new Date(cleanIsoStr)
+        }
 
         try {
           console.log(`[DISPATCHER]: >>> PROCESANDO SOLICITUD DE RESERVA <<<`)
-          
-          const startOfHour = new Date(fechaHora)
-          startOfHour.setMinutes(0, 0, 0)
-          const endOfHour = new Date(fechaHora)
-          endOfHour.setMinutes(59, 59, 999)
+          const cleanPhone = to.replace("@s.whatsapp.net", "")
 
-          const confirmedReservations = await prisma.reserva.findMany({
+          // 1. Buscar si ya existe una propuesta de reagendamiento para este cliente
+          const existingReagendado = await prisma.reserva.findFirst({
             where: {
               organizationId: ctx.organizationId,
-              estado: "confirmado",
-              fecha_hora_deseada: {
-                gte: startOfHour,
-                lte: endOfHour
-              }
-            }
+              cliente_id: cleanPhone,
+              estado: "reagendado"
+            },
+            orderBy: { updatedAt: "desc" }
           })
 
-          const totalConfirmed = confirmedReservations.reduce((sum: number, r: any) => sum + r.cantidad_personas, 0)
-
-          const limitAutonomo = ctx.reservationsConfig?.limite_grupo_autonomo ?? 6
-          const maxPeoplePerHour = ctx.reservationsConfig?.tope_personas_por_hora ?? 25
-
-          const meetsLimitAutonomo = cantidad_personas <= limitAutonomo
-          const meetsMaxPeople = (totalConfirmed + cantidad_personas) <= maxPeoplePerHour
-
-          let estado = "confirmado"
-          let replyMessage = ""
-
-          const cleanPhone = to.replace("@s.whatsapp.net", "")
+          let reservaToUpdateId: string | null = null
+          if (existingReagendado && existingReagendado.propuesta_alternativa) {
+            const diffMs = Math.abs(existingReagendado.propuesta_alternativa.getTime() - fechaHora.getTime())
+            // Si la diferencia es menor a 30 minutos, asumimos que confirma el reagendamiento propuesto
+            if (diffMs < 30 * 60 * 1000) {
+              reservaToUpdateId = existingReagendado.id
+            }
+          }
 
           const formatTime = (d: Date) => d.toLocaleTimeString("es-EC", {
             timeZone: "America/Guayaquil",
@@ -222,24 +225,68 @@ export async function runDispatcher(
           })
           const horaStr = formatTime(fechaHora)
 
-          if (meetsLimitAutonomo && meetsMaxPeople) {
+          let estado = "confirmado"
+          let replyMessage = ""
+
+          if (reservaToUpdateId) {
+            // Caso: Confirmación de propuesta de reagendamiento existente
             estado = "confirmado"
             replyMessage = `Perfecto. Tu mesa está separada para hoy a las ${horaStr}. Te esperamos.`
-          } else {
-            estado = "pendiente_aprobacion"
-            replyMessage = `Recibido. Al ser un grupo grande, el encargado está verificando la disposición de las mesas en este momento. Te confirmo en un par de minutos por aquí mismo.`
-          }
 
-          await prisma.reserva.create({
-            data: {
-              organizationId: ctx.organizationId,
-              cliente_id: cleanPhone,
-              cliente_nombre,
-              cantidad_personas,
-              fecha_hora_deseada: fechaHora,
-              estado
+            await prisma.reserva.update({
+              where: { id: reservaToUpdateId },
+              data: {
+                fecha_hora_deseada: fechaHora,
+                estado,
+                propuesta_alternativa: null
+              }
+            })
+            console.log(`[DISPATCHER]: Reserva existente ${reservaToUpdateId} REAGENDADA Y CONFIRMADA`)
+          } else {
+            // Caso Normal: Crear nueva reserva
+            const startOfHour = new Date(fechaHora)
+            startOfHour.setMinutes(0, 0, 0)
+            const endOfHour = new Date(fechaHora)
+            endOfHour.setMinutes(59, 59, 999)
+
+            const confirmedReservations = await prisma.reserva.findMany({
+              where: {
+                organizationId: ctx.organizationId,
+                estado: "confirmado",
+                fecha_hora_deseada: {
+                  gte: startOfHour,
+                  lte: endOfHour
+                }
+              }
+            })
+
+            const totalConfirmed = confirmedReservations.reduce((sum: number, r: any) => sum + r.cantidad_personas, 0)
+
+            const limitAutonomo = ctx.reservationsConfig?.limite_grupo_autonomo ?? 6
+            const maxPeoplePerHour = ctx.reservationsConfig?.tope_personas_por_hora ?? 25
+
+            const meetsLimitAutonomo = cantidad_personas <= limitAutonomo
+            const meetsMaxPeople = (totalConfirmed + cantidad_personas) <= maxPeoplePerHour
+
+            if (meetsLimitAutonomo && meetsMaxPeople) {
+              estado = "confirmado"
+              replyMessage = `Perfecto. Tu mesa está separada para hoy a las ${horaStr}. Te esperamos.`
+            } else {
+              estado = "pendiente_aprobacion"
+              replyMessage = `Recibido. Al ser un grupo grande, el encargado está verificando la disposición de las mesas en este momento. Te confirmo en un par de minutos por aquí mismo.`
             }
-          })
+
+            await prisma.reserva.create({
+              data: {
+                organizationId: ctx.organizationId,
+                cliente_id: cleanPhone,
+                cliente_nombre,
+                cantidad_personas,
+                fecha_hora_deseada: fechaHora,
+                estado
+              }
+            })
+          }
 
           if (estado === "confirmado") {
             try {

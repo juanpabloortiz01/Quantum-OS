@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule, getReservas, saveReservationsConfig, updateReservationStatus } from "./action";
+import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule, getReservas, saveReservationsConfig, updateReservationStatus, deleteReservation } from "./action";
 
 interface GlassModule {
   id: string;
@@ -34,6 +34,23 @@ const MODULE_LIBRARY = [
   { id: "loyalty", name: "Promociones", description: "Configura ofertas especiales y recompensas para tus clientes.", icon: Heart, niches: ["VENTAS"] },
   { id: "reservations", name: "Reservaciones", description: "Gestiona las reservaciones de mesas de forma automatizada y con aprobación manual.", icon: Calendar, niches: ["VENTAS", "GASTRONOMY", "AGENDA"] },
 ];
+
+const getEcuadorHour = (date: Date | string) => {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const hourStr = d.toLocaleTimeString("es-EC", {
+    timeZone: "America/Guayaquil",
+    hour: "2-digit",
+    hour12: false
+  });
+  return parseInt(hourStr);
+};
+
+const getEcuadorDateString = (date: Date | string) => {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-CA", {
+    timeZone: "America/Guayaquil"
+  });
+};
 
 const getDaysInMonthGrid = (date: Date) => {
   const year = date.getFullYear();
@@ -562,16 +579,22 @@ const DashboardContent = () => {
 
                   <div className="grid grid-cols-7 gap-2">
                     {getDaysInMonthGrid(calendarMonth).map((cell, idx) => {
+                      const cellY = cell.date.getFullYear();
+                      const cellM = String(cell.date.getMonth() + 1).padStart(2, "0");
+                      const cellD = String(cell.date.getDate()).padStart(2, "0");
+                      const cellDateStr = `${cellY}-${cellM}-${cellD}`;
+
                       const dayRes = reservations.filter((r) => {
-                        const rDate = new Date(r.fecha_hora_deseada);
-                        return rDate.getDate() === cell.date.getDate() &&
-                               rDate.getMonth() === cell.date.getMonth() &&
-                               rDate.getFullYear() === cell.date.getFullYear();
+                        const rDateStr = getEcuadorDateString(r.fecha_hora_deseada);
+                        return rDateStr === cellDateStr;
                       });
 
-                      const isSelected = selectedCalendarDay.getDate() === cell.date.getDate() &&
-                                         selectedCalendarDay.getMonth() === cell.date.getMonth() &&
-                                         selectedCalendarDay.getFullYear() === cell.date.getFullYear();
+                      const selectedY = selectedCalendarDay.getFullYear();
+                      const selectedM = String(selectedCalendarDay.getMonth() + 1).padStart(2, "0");
+                      const selectedD = String(selectedCalendarDay.getDate()).padStart(2, "0");
+                      const selectedDateStr = `${selectedY}-${selectedM}-${selectedD}`;
+
+                      const isSelected = selectedDateStr === cellDateStr;
 
                       return (
                         <button
@@ -625,14 +648,24 @@ const DashboardContent = () => {
                   <div className="relative border-l border-gray-200 pl-4 space-y-4">
                     {/* Live indicator line if today */}
                     {(() => {
-                      const now = new Date();
-                      const isSelectedToday = selectedCalendarDay.getDate() === now.getDate() &&
-                                              selectedCalendarDay.getMonth() === now.getMonth() &&
-                                              selectedCalendarDay.getFullYear() === now.getFullYear();
+                      const selectedY = selectedCalendarDay.getFullYear();
+                      const selectedM = String(selectedCalendarDay.getMonth() + 1).padStart(2, "0");
+                      const selectedD = String(selectedCalendarDay.getDate()).padStart(2, "0");
+                      const targetDateStr = `${selectedY}-${selectedM}-${selectedD}`;
+
+                      const nowEcuadorStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" });
+                      const isSelectedToday = targetDateStr === nowEcuadorStr;
                       if (!isSelectedToday) return null;
                       
-                      const hour = now.getHours();
-                      const min = now.getMinutes();
+                      const nowEcuadorTime = new Date().toLocaleTimeString("en-US", {
+                        timeZone: "America/Guayaquil",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false
+                      });
+                      const [hourStr, minStr] = nowEcuadorTime.split(":");
+                      const hour = parseInt(hourStr);
+                      const min = parseInt(minStr);
                       if (hour < 8 || hour > 22) return null;
                       
                       const hourIndex = hour - 8;
@@ -649,12 +682,15 @@ const DashboardContent = () => {
 
                     {/* Hour Rows */}
                     {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map((hour) => {
+                      const selectedY = selectedCalendarDay.getFullYear();
+                      const selectedM = String(selectedCalendarDay.getMonth() + 1).padStart(2, "0");
+                      const selectedD = String(selectedCalendarDay.getDate()).padStart(2, "0");
+                      const targetDateStr = `${selectedY}-${selectedM}-${selectedD}`;
+
                       const hourRes = reservations.filter((r) => {
-                        const rDate = new Date(r.fecha_hora_deseada);
-                        return rDate.getDate() === selectedCalendarDay.getDate() &&
-                               rDate.getMonth() === selectedCalendarDay.getMonth() &&
-                               rDate.getFullYear() === selectedCalendarDay.getFullYear() &&
-                               rDate.getHours() === hour;
+                        const rDateStr = getEcuadorDateString(r.fecha_hora_deseada);
+                        const rHour = getEcuadorHour(r.fecha_hora_deseada);
+                        return rDateStr === targetDateStr && rHour === hour;
                       });
 
                       const displayHour = hour > 12 ? `${hour - 12} PM` : hour === 12 ? "12 PM" : `${hour} AM`;
@@ -726,51 +762,70 @@ const DashboardContent = () => {
                                     </div>
                                   </div>
 
-                                  {/* Actions for Pending */}
-                                  {res.estado === "pendiente_aprobacion" && (
-                                    <div className="flex items-center gap-2 self-end md:self-auto relative">
-                                      <button
-                                        onClick={async () => {
-                                          const updateRes = await updateReservationStatus(res.id, "confirmado");
-                                          if (updateRes.success) {
+                                  {/* Actions and Delete Button */}
+                                  <div className="flex items-center gap-2 self-end md:self-auto relative">
+                                    {res.estado === "pendiente_aprobacion" && (
+                                      <>
+                                        <button
+                                          onClick={async () => {
+                                            const updateRes = await updateReservationStatus(res.id, "confirmado");
+                                            if (updateRes.success) {
+                                              await fetchAndSetReservations();
+                                            } else {
+                                              alert(updateRes.error || "Error al aceptar");
+                                            }
+                                          }}
+                                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+                                        >
+                                          Aceptar Mesa
+                                        </button>
+                                        
+                                        <button
+                                          onClick={() => {
+                                            setActiveReservationForAlternative(
+                                              activeReservationForAlternative === res.id ? null : res.id
+                                            );
+                                          }}
+                                          className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 transition-colors shadow-sm"
+                                        >
+                                          Proponer Alternativa
+                                        </button>
+
+                                        {/* Dropdown for alternative times */}
+                                        {activeReservationForAlternative === res.id && (
+                                          <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 p-2 space-y-1">
+                                            <div className="text-[10px] text-gray-400 font-bold uppercase p-2 border-b border-gray-50 mb-1">Horas más tarde:</div>
+                                            {[1, 1.5, 2, 2.5].map((hours) => (
+                                              <button
+                                                key={hours}
+                                                onClick={() => handleProposeAlternative(res.id, res.fecha_hora_deseada, hours)}
+                                                className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                                              >
+                                                {hours === 1 ? "+1 hora" : `+${hours} horas`}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm("¿Estás seguro de que deseas eliminar esta reservación?")) {
+                                          const deleteRes = await deleteReservation(res.id);
+                                          if (deleteRes.success) {
                                             await fetchAndSetReservations();
                                           } else {
-                                            alert(updateRes.error || "Error al aceptar");
+                                            alert(deleteRes.error || "Error al eliminar");
                                           }
-                                        }}
-                                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
-                                      >
-                                        Aceptar Mesa
-                                      </button>
-                                      
-                                      <button
-                                        onClick={() => {
-                                          setActiveReservationForAlternative(
-                                            activeReservationForAlternative === res.id ? null : res.id
-                                          );
-                                        }}
-                                        className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 transition-colors shadow-sm"
-                                      >
-                                        Proponer Alternativa
-                                      </button>
-
-                                      {/* Dropdown for alternative times */}
-                                      {activeReservationForAlternative === res.id && (
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 p-2 space-y-1">
-                                          <div className="text-[10px] text-gray-400 font-bold uppercase p-2 border-b border-gray-50 mb-1">Horas más tarde:</div>
-                                          {[1, 1.5, 2, 2.5].map((hours) => (
-                                            <button
-                                              key={hours}
-                                              onClick={() => handleProposeAlternative(res.id, res.fecha_hora_deseada, hours)}
-                                              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                            >
-                                              {hours === 1 ? "+1 hora" : `+${hours} horas`}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
+                                        }
+                                      }}
+                                      className="p-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg hover:bg-rose-100 transition-colors shadow-sm"
+                                      title="Eliminar reservación"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
                               ))
                             )}

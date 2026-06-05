@@ -1633,7 +1633,7 @@ function OnboardingContent() {
                     }}
                     className="w-full bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors mt-2 shadow-sm"
                   >
-                    Continuar a Conexión
+                    Conectar
                   </motion.button>
                 </motion.div>
               )}

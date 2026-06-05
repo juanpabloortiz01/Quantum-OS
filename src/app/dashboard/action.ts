@@ -368,3 +368,33 @@ export async function updateReservationStatus(
     return { error: "No se pudo actualizar el estado de la reserva" }
   }
 }
+
+export async function deleteReservation(reservationId: string) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "No autorizado" }
+
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { userId: session.user.id }
+    })
+    if (!org) return { error: "Organización no encontrada" }
+
+    const reserva = await prisma.reserva.findUnique({
+      where: { id: reservationId }
+    })
+
+    if (!reserva || reserva.organizationId !== org.id) {
+      return { error: "Reserva no encontrada o no autorizada" }
+    }
+
+    await prisma.reserva.delete({
+      where: { id: reservationId }
+    })
+
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[DELETE_RESERVA_ERROR]:", error)
+    return { error: "No se pudo eliminar la reserva" }
+  }
+}
