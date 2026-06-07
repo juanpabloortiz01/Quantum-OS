@@ -13,7 +13,7 @@ import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryCon
 const NICHES = [
   {
     id: "agenda",
-    label: "Agenda",
+    label: "Clínicas",
     desc: "Perfecto para negocios que venden su tiempo por citas.",
     tags: ["Clínicas", "Estéticas", "Barberías", "Veterinarias", "Estudios de Tatuajes"],
     icon: Calendar,
@@ -21,7 +21,7 @@ const NICHES = [
   },
   {
     id: "ventas",
-    label: "Ventas",
+    label: "Restaurantes",
     desc: "Perfecto para negocios con alta rotación que toman pedidos por chat. Tú solo cobras y envías.",
     tags: ["Dropshippers", "Restaurantes", "Farmacias", "Cafeterías", "Floristerías y Tiendas de Regalos", "Tiendas Deliveries 24/7"],
     icon: Coffee,
@@ -629,7 +629,7 @@ function OnboardingContent() {
                   {step === 1 && "Sector del negocio"}
                   {step === 2 && "Describe tu negocio"}
                   {step === 3 && "Horarios de atención"}
-                  {step === 4 && "Sube tu catálogo"}
+                  {step === 4 && "Sube tu menú"}
                   {step === 5 && "Conexión del Agente IA"}
                   {step === 6 && "Conecta tu WhatsApp"}
                 </motion.h1>
@@ -938,7 +938,7 @@ function OnboardingContent() {
                     {/* Descripción y Dirección */}
                     <div className="flex flex-col gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">{formData.niche === 'agenda' ? 'Descripción del negocio' : 'Descripción de perfil o biografía'} *</label>
+                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">Descripción del negocio *</label>
                         <textarea
                           value={formData.contextData.description}
                           onChange={(e) => updateContext("description", e.target.value)}
