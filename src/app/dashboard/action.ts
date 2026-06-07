@@ -302,6 +302,10 @@ export async function updateReservationStatus(
     if (status === "reagendado" && alternativaIso) {
       alternativaDate = new Date(alternativaIso)
       updateData.propuesta_alternativa = alternativaDate
+    } else if (status === "confirmado" && reserva.estado === "reagendado" && reserva.propuesta_alternativa) {
+      // Si se confirma una propuesta de reagendamiento, la fecha oficial pasa a ser la propuesta
+      updateData.fecha_hora_deseada = reserva.propuesta_alternativa
+      updateData.propuesta_alternativa = null
     }
 
     await prisma.reserva.update({
@@ -309,13 +313,17 @@ export async function updateReservationStatus(
       data: updateData
     })
 
+    const finalStartTime = status === "confirmado" && reserva.estado === "reagendado" && reserva.propuesta_alternativa
+      ? reserva.propuesta_alternativa
+      : reserva.fecha_hora_deseada
+
     if (status === "confirmado") {
       try {
         await createAppointment(org.id, {
           customerName: reserva.cliente_nombre,
           customerPhone: reserva.cliente_id,
           service: "Reserva de Mesa",
-          startTime: reserva.fecha_hora_deseada,
+          startTime: finalStartTime,
           summary: `Reserva: ${reserva.cliente_nombre} - ${reserva.cantidad_personas} personas`
         })
         console.log(`[ACTION_CALENDAR]: Reserva confirmada agregada a Google Calendar`)
@@ -333,21 +341,44 @@ export async function updateReservationStatus(
 
     if (EVO_URL && instanceName && authKey) {
       const formatTime = (d: Date) => d.toLocaleTimeString("es-EC", {
+        timeZone: "America/Gu../../../../..",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      })
+      // Correct timeZone string
+      const formatTimeEC = (d: Date) => d.toLocaleTimeString("es-EC", {
         timeZone: "America/Guayaquil",
         hour: "2-digit",
         minute: "2-digit",
         hour12: false
+      })
+      const formatDateEC = (d: Date) => d.toLocaleDateString("es-EC", {
+        timeZone: "America/Guayaquil",
+        weekday: "long",
+        day: "numeric",
+        month: "long"
       })
 
       const targetJid = `${reserva.cliente_id}@s.whatsapp.net`
       let text = ""
 
       if (status === "confirmado") {
-        const timeStr = formatTime(reserva.fecha_hora_deseada)
-        text = `Perfecto. Tu mesa está separada para hoy a las ${timeStr}. Te esperamos.`
+        const timeStr = formatTimeEC(finalStartTime)
+        const dateStr = formatDateEC(finalStartTime)
+        text = [
+          `¡Reserva Confirmada! 🎉`,
+          ``,
+          `Hola ${reserva.cliente_nombre}, tu mesa ha sido reservada con éxito:`,
+          `👥 *Personas:* ${reserva.cantidad_personas}`,
+          `🗓 *Fecha:* ${dateStr}`,
+          `⏰ *Hora:* ${timeStr}`,
+          ``,
+          `¡Te esperamos!`
+        ].join("\n")
       } else if (status === "reagendado" && alternativaDate) {
-        const horaOriginal = formatTime(reserva.fecha_hora_deseada)
-        const horaAlternativa = formatTime(alternativaDate)
+        const horaOriginal = formatTimeEC(reserva.fecha_hora_deseada)
+        const horaAlternativa = formatTimeEC(alternativaDate)
         text = `El restaurante estará lleno a las ${horaOriginal}. Sin embargo, podemos recibirlos perfectamente a las ${horaAlternativa}. ¿Te aseguro la mesa a esa hora?`
       }
 

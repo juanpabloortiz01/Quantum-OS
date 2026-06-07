@@ -102,6 +102,7 @@ const DashboardContent = () => {
   const [leads, setLeads] = React.useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = React.useState<Lead | null>(null);
   const [seenLeadPhones, setSeenLeadPhones] = React.useState<string[]>([]);
+  const [seenReservationIds, setSeenReservationIds] = React.useState<string[]>([]);
 
   // States for loyalty/promotions configuration
   const [showLoyaltyModal, setShowLoyaltyModal] = React.useState(false);
@@ -214,6 +215,29 @@ const DashboardContent = () => {
     }
   }, [activeView, leads, seenLeadPhones]);
 
+  React.useEffect(() => {
+    const stored = localStorage.getItem("seen_reservation_ids");
+    if (stored) {
+      try {
+        setSeenReservationIds(JSON.parse(stored));
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (activeView === "reservations" && reservations.length > 0) {
+      const currentIds = reservations.map(r => r.id).filter(Boolean) as string[];
+      const hasNewIds = currentIds.some(id => !seenReservationIds.includes(id));
+      if (hasNewIds) {
+        const updatedSeen = Array.from(new Set([...seenReservationIds, ...currentIds]));
+        setSeenReservationIds(updatedSeen);
+        localStorage.setItem("seen_reservation_ids", JSON.stringify(updatedSeen));
+      }
+    }
+  }, [activeView, reservations, seenReservationIds]);
+
   const handleGoogleSync = async () => {
     await signIn("google-calendar", {
       callbackUrl: "/dashboard?calendar_success=1",
@@ -300,12 +324,12 @@ const DashboardContent = () => {
     return () => clearInterval(interval);
   }, [status]);
 
-  const pendingReservationsCount = reservations.filter(r => r.estado === "pendiente_aprobacion").length;
+  const newReservationsCount = reservations.filter(r => !seenReservationIds.includes(r.id)).length;
   const newLeadsCount = leads.filter(l => l.phone && !seenLeadPhones.includes(l.phone)).length;
 
   const menuItems = [
     { icon: CheckSquare, view: "modules" as const, label: "AGENTE", badge: 0 },
-    { icon: Calendar, view: "reservations" as const, label: "RESERVACIONES", badge: pendingReservationsCount },
+    { icon: Calendar, view: "reservations" as const, label: "RESERVACIONES", badge: newReservationsCount },
     { icon: Search, view: "leads" as const, label: "CLIENTES", badge: newLeadsCount },
     { icon: Users, view: "collaborators" as const, label: "EQUIPO", badge: 0 },
     { icon: Settings, view: "config" as const, label: "AJUSTES", badge: 0 },
@@ -798,7 +822,7 @@ const DashboardContent = () => {
 
                                   {/* Actions and Delete Button */}
                                   <div className="flex items-center gap-2 self-end md:self-auto relative">
-                                    {res.estado === "pendiente_aprobacion" && (
+                                    {["pendiente_aprobacion", "reagendado"].includes(res.estado) && (
                                       <>
                                         <button
                                           onClick={async () => {

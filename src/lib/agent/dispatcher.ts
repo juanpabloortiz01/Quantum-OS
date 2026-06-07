@@ -212,8 +212,9 @@ export async function runDispatcher(
           if (existingReagendado && existingReagendado.propuesta_alternativa) {
             const reqDateStr = fechaHora.toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" })
             const origDateStr = existingReagendado.fecha_hora_deseada.toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" })
+            const propDateStr = existingReagendado.propuesta_alternativa.toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" })
 
-            if (reqDateStr === origDateStr) {
+            if (reqDateStr === origDateStr || reqDateStr === propDateStr) {
               reservaToUpdateId = existingReagendado.id
               // Forzar a usar la hora alternativa propuesta por el administrador
               fechaHora = existingReagendado.propuesta_alternativa
@@ -226,7 +227,14 @@ export async function runDispatcher(
             minute: "2-digit",
             hour12: false
           })
+          const formatDate = (d: Date) => d.toLocaleDateString("es-EC", {
+            timeZone: "America/Guayaquil",
+            weekday: "long",
+            day: "numeric",
+            month: "long"
+          })
           const horaStr = formatTime(fechaHora)
+          const dateStr = formatDate(fechaHora)
 
           let estado = "confirmado"
           let replyMessage = ""
@@ -234,7 +242,16 @@ export async function runDispatcher(
           if (reservaToUpdateId) {
             // Caso: Confirmación de propuesta de reagendamiento existente
             estado = "confirmado"
-            replyMessage = `Perfecto. Tu mesa está separada para hoy a las ${horaStr}. Te esperamos.`
+            replyMessage = [
+              `¡Reserva Confirmada! 🎉`,
+              ``,
+              `Hola ${cliente_nombre}, tu mesa ha sido reservada con éxito para el nuevo horario:`,
+              `👥 *Personas:* ${cantidad_personas}`,
+              `🗓 *Fecha:* ${dateStr}`,
+              `⏰ *Hora:* ${horaStr}`,
+              ``,
+              `¡Te esperamos!`
+            ].join("\n")
 
             await prisma.reserva.update({
               where: { id: reservaToUpdateId },
@@ -273,7 +290,16 @@ export async function runDispatcher(
 
             if (meetsLimitAutonomo && meetsMaxPeople) {
               estado = "confirmado"
-              replyMessage = `Perfecto. Tu mesa está separada para hoy a las ${horaStr}. Te esperamos.`
+              replyMessage = [
+                `¡Reserva Confirmada! 🎉`,
+                ``,
+                `Hola ${cliente_nombre}, tu mesa ha sido reservada con éxito:`,
+                `👥 *Personas:* ${cantidad_personas}`,
+                `🗓 *Fecha:* ${dateStr}`,
+                `⏰ *Hora:* ${horaStr}`,
+                ``,
+                `¡Te esperamos!`
+              ].join("\n")
             } else {
               estado = "pendiente_aprobacion"
               replyMessage = `Recibido. Al ser un grupo grande, el encargado está verificando la disposición de las mesas en este momento. Te confirmo en un par de minutos por aquí mismo.`
@@ -308,27 +334,48 @@ export async function runDispatcher(
 
           coreResult.cleanText = replyMessage
 
-          if (estado === "pendiente_aprobacion" && ctx.notifPhone) {
-            const notifMsg = [
-              `🔔 *NUEVA RESERVA PENDIENTE DE APROBACIÓN*`,
-              ``,
-              `👤 *Cliente:* ${cliente_nombre}`,
-              `👥 *Personas:* ${cantidad_personas}`,
-              `⏰ *Hora:* ${horaStr}`,
-              `📱 *Teléfono:* ${cleanPhone}`,
-              ``,
-              `_Por favor, ingresa al Dashboard de Reservaciones para aprobar o proponer una hora alternativa._`
-            ].join("\n")
+          if (ctx.notifPhone) {
+            const rawDigits = ctx.notifPhone.replace(/\D/g, "")
+            const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+            const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
 
-            try {
-              const rawDigits = ctx.notifPhone.replace(/\D/g, "")
-              const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
-              const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
+            if (estado === "pendiente_aprobacion") {
+              const notifMsg = [
+                `🔔 *NUEVA RESERVA PENDIENTE DE APROBACIÓN*`,
+                ``,
+                `👤 *Cliente:* ${cliente_nombre}`,
+                `👥 *Personas:* ${cantidad_personas}`,
+                `⏰ *Hora:* ${horaStr}`,
+                `📱 *Teléfono:* ${cleanPhone}`,
+                ``,
+                `_Por favor, ingresa al Dashboard de Reservaciones para aprobar o proponer una hora alternativa._`
+              ].join("\n")
 
-              await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
-              console.log(`[DISPATCHER]: Alerta de reserva pendiente enviada a despachador ${normalizedPhone}`)
-            } catch (notifErr: any) {
-              console.error(`[DISPATCHER_RESERVA_NOTIF_ERROR]:`, notifErr.message)
+              try {
+                await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
+                console.log(`[DISPATCHER]: Alerta de reserva pendiente enviada a despachador ${normalizedPhone}`)
+              } catch (notifErr: any) {
+                console.error(`[DISPATCHER_RESERVA_NOTIF_ERROR]:`, notifErr.message)
+              }
+            } else if (estado === "confirmado") {
+              const notifMsg = [
+                `✅ *NUEVA RESERVA CONFIRMADA AUTOMÁTICAMENTE*`,
+                ``,
+                `👤 *Cliente:* ${cliente_nombre}`,
+                `👥 *Personas:* ${cantidad_personas}`,
+                `🗓 *Fecha:* ${dateStr}`,
+                `⏰ *Hora:* ${horaStr}`,
+                `📱 *Teléfono:* ${cleanPhone}`,
+                ``,
+                `_Esta reserva fue confirmada de forma autónoma por el agente._`
+              ].join("\n")
+
+              try {
+                await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
+                console.log(`[DISPATCHER]: Alerta de reserva confirmada enviada a despachador ${normalizedPhone}`)
+              } catch (notifErr: any) {
+                console.error(`[DISPATCHER_RESERVA_NOTIF_ERROR]:`, notifErr.message)
+              }
             }
           }
 

@@ -41,7 +41,8 @@ function formatToEcuadorTime(isoStr: string): string {
 function buildSystemPrompt(
   ctx: LoadedContext,
   sentryResult: SentryResult,
-  isNewConversation: boolean
+  isNewConversation: boolean,
+  activeReserva?: any
 ): string {
   const ecuadorDateStr = new Date().toLocaleString("en-US", { timeZone: "America/Guayaquil" });
   const ecuadorDate = new Date(ecuadorDateStr);
@@ -166,6 +167,48 @@ Nota: La fecha y hora debe estar en formato ISO YYYY-MM-DDTHH:MM:SS. Ajusta el a
 `
   }
 
+  let activeReservaStr = ""
+  if (activeReserva) {
+    const formatTime = (d: Date) => d.toLocaleTimeString("es-EC", {
+      timeZone: "America/Guayaquil",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    })
+    const formatDate = (d: Date) => d.toLocaleDateString("es-EC", {
+      timeZone: "America/Guayaquil",
+      weekday: "long",
+      day: "numeric",
+      month: "long"
+    })
+
+    const originalTime = formatTime(activeReserva.fecha_hora_deseada)
+    const originalDate = formatDate(activeReserva.fecha_hora_deseada)
+
+    if (activeReserva.estado === "reagendado" && activeReserva.propuesta_alternativa) {
+      const altTime = formatTime(activeReserva.propuesta_alternativa)
+      const altDate = formatDate(activeReserva.propuesta_alternativa)
+      activeReservaStr = `\n═══════════════════════════════════════
+⚠️ PROPUESTA DE REAGENDAMIENTO ACTIVA
+═══════════════════════════════════════
+El administrador propuso un nuevo horario para la reserva del cliente debido a falta de espacio:
+- Horario Original: ${originalDate} a las ${originalTime}
+- Nuevo Horario Propuesto: ${altDate} a las ${altTime}
+- Cantidad de personas: ${activeReserva.cantidad_personas}
+
+Si el cliente acepta esta nueva hora/fecha propuesta o expresa conformidad (ej: "sí", "está bien", "dale", "acepto", "perfecto"), DEBES confirmar la reserva en este nuevo horario y DEBES emitir OBLIGATORIAMENTE la etiqueta oculta al final de tu respuesta:
+SOLICITAR_RESERVA:{"cliente_nombre": "${activeReserva.cliente_nombre}", "cantidad_personas": ${activeReserva.cantidad_personas}, "fecha_hora_deseada": "${activeReserva.propuesta_alternativa.toISOString().split('.')[0]}"}
+`
+    } else if (activeReserva.estado === "pendiente_aprobacion") {
+      activeReservaStr = `\n═══════════════════════════════════════
+⏳ SOLICITUD DE RESERVA PENDIENTE
+═══════════════════════════════════════
+El cliente tiene una solicitud de reserva pendiente de aprobación para el ${originalDate} a las ${originalTime} para ${activeReserva.cantidad_personas} personas.
+Informa al cliente amablemente que el encargado del local está confirmando la disponibilidad de la mesa y en breve recibirá la confirmación. No tomes una nueva reserva a menos que el cliente indique cambiar los datos.
+`
+    }
+  }
+
   const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
 
 
@@ -244,6 +287,7 @@ Horarios: ${scheduleStr}
 ${contactParts}
 ${loyaltyStr}
 ${reservationsStr}
+${activeReservaStr}
 
 ═══════════════════════════════════════
 CONOCIMIENTO BASE
@@ -349,10 +393,20 @@ export async function runCore(
   }
 
   // ── 3. Ejecutar el modelo ─────────────────────────────────────────
+  const cleanPhone = msg.remoteJid.replace("@s.whatsapp.net", "")
+  const activeReserva = await prisma.reserva.findFirst({
+    where: {
+      organizationId: ctx.organizationId,
+      cliente_id: cleanPhone,
+      estado: { in: ["pendiente_aprobacion", "reagendado"] }
+    },
+    orderBy: { updatedAt: "desc" }
+  })
+
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: buildSystemPrompt(ctx, sentryResult, history.length === 0) },
+      { role: "system", content: buildSystemPrompt(ctx, sentryResult, history.length === 0, activeReserva) },
       ...historyMessages,
       { role: "user", content: userContent },
     ],
