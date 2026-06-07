@@ -101,6 +101,7 @@ const DashboardContent = () => {
 
   const [leads, setLeads] = React.useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = React.useState<Lead | null>(null);
+  const [seenLeadPhones, setSeenLeadPhones] = React.useState<string[]>([]);
 
   // States for loyalty/promotions configuration
   const [showLoyaltyModal, setShowLoyaltyModal] = React.useState(false);
@@ -190,6 +191,29 @@ const DashboardContent = () => {
     if (status === "authenticated") loadData();
   }, [status]);
 
+  React.useEffect(() => {
+    const stored = localStorage.getItem("seen_lead_phones");
+    if (stored) {
+      try {
+        setSeenLeadPhones(JSON.parse(stored));
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (activeView === "leads" && leads.length > 0) {
+      const currentPhones = leads.map(l => l.phone).filter(Boolean) as string[];
+      const hasNewPhones = currentPhones.some(phone => !seenLeadPhones.includes(phone));
+      if (hasNewPhones) {
+        const updatedSeen = Array.from(new Set([...seenLeadPhones, ...currentPhones]));
+        setSeenLeadPhones(updatedSeen);
+        localStorage.setItem("seen_lead_phones", JSON.stringify(updatedSeen));
+      }
+    }
+  }, [activeView, leads, seenLeadPhones]);
+
   const handleGoogleSync = async () => {
     await signIn("google-calendar", {
       callbackUrl: "/dashboard?calendar_success=1",
@@ -266,20 +290,25 @@ const DashboardContent = () => {
   React.useEffect(() => {
     if (status !== "authenticated") return;
 
-    // Poll reservations every 10 seconds to keep the local view updated in real-time
+    // Poll reservations and leads every 10 seconds to keep the local view updated in real-time
     const interval = setInterval(async () => {
       await fetchAndSetReservations();
+      const fetchedLeads = await getLeads();
+      setLeads(fetchedLeads);
     }, 10000);
 
     return () => clearInterval(interval);
   }, [status]);
 
+  const pendingReservationsCount = reservations.filter(r => r.estado === "pendiente_aprobacion").length;
+  const newLeadsCount = leads.filter(l => l.phone && !seenLeadPhones.includes(l.phone)).length;
+
   const menuItems = [
-    { icon: CheckSquare, view: "modules" as const, label: "AGENTE" },
-    { icon: Calendar, view: "reservations" as const, label: "RESERVACIONES" },
-    { icon: Search, view: "leads" as const, label: "CLIENTES" },
-    { icon: Users, view: "collaborators" as const, label: "EQUIPO" },
-    { icon: Settings, view: "config" as const, label: "AJUSTES" },
+    { icon: CheckSquare, view: "modules" as const, label: "AGENTE", badge: 0 },
+    { icon: Calendar, view: "reservations" as const, label: "RESERVACIONES", badge: pendingReservationsCount },
+    { icon: Search, view: "leads" as const, label: "CLIENTES", badge: newLeadsCount },
+    { icon: Users, view: "collaborators" as const, label: "EQUIPO", badge: 0 },
+    { icon: Settings, view: "config" as const, label: "AJUSTES", badge: 0 },
   ];
 
   if (loading || status === "loading") {
@@ -318,6 +347,11 @@ const DashboardContent = () => {
             )}
           >
             <item.icon className={cn("w-5 h-5 transition-colors", activeView === item.view ? "text-gray-900" : "text-gray-500")} strokeWidth={1.5} />
+            {item.badge > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 z-10 min-w-[18px] h-[18px] bg-orange-500 text-white text-[9px] font-bold rounded-full border border-white flex items-center justify-center px-1 shadow-[0_2px_8px_rgba(249,115,22,0.4)]">
+                {item.badge > 9 ? "+9" : item.badge}
+              </span>
+            )}
             <span className="absolute left-16 px-3 py-1 bg-gray-900/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
               {item.label}
             </span>
