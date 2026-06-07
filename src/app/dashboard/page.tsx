@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { 
   Settings, Search, Users, CheckSquare, X, Power, 
   Calendar, Heart, ShoppingBag, Eye, Map, Wifi, WifiOff,
-  LogOut, UserCircle
+  LogOut, UserCircle, HelpCircle
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -33,6 +33,44 @@ const MODULE_LIBRARY = [
   { id: "calendar", name: "Agenda", description: "Sincronización con Google Calendar y agendamiento automático.", icon: Calendar, niches: ["AGENDA"] },
   { id: "loyalty", name: "Promociones", description: "Configura ofertas especiales y recompensas para tus clientes.", icon: Heart, niches: ["VENTAS"] },
   { id: "reservations", name: "Reservaciones", description: "Gestiona las reservaciones de mesas de forma automatizada y con aprobación manual.", icon: Calendar, niches: ["VENTAS", "GASTRONOMY", "AGENDA"] },
+];
+
+const TOUR_STEPS = [
+  {
+    title: "1. Activar Habilidad de Reservas",
+    desc: "Ve a la sección AGENTE y activa el interruptor de 'Reservaciones'. Esto encenderá el motor inteligente de reservas para WhatsApp.",
+    view: "modules" as const,
+    highlight: "module-reservations",
+    actionDesc: "Abre la pestaña AGENTE y busca la tarjeta de Reservaciones."
+  },
+  {
+    title: "2. Configurar Reglas de Reserva",
+    desc: "Haz clic en 'Configurar Reservaciones'. Aquí defines el límite del grupo que la IA puede confirmar sola (ej: 6 personas) y el tope de personas por hora.",
+    view: "modules" as const,
+    highlight: "config-reservations-btn",
+    actionDesc: "Ajusta las reglas para automatizar reservas pequeñas y derivar grupos grandes."
+  },
+  {
+    title: "3. Conocer el Apartado de Clientes",
+    desc: "Entra a la pestaña CLIENTES en el menú lateral para ver el listado de clientes detectados por la IA en tiempo real, junto con su resumen de interés y Trust Score.",
+    view: "leads" as const,
+    highlight: "leads-view",
+    actionDesc: "Monitorea la intención de compra detectada por la inteligencia artificial."
+  },
+  {
+    title: "4. Controlar la IA por Cliente",
+    desc: "Usa el switch 'IA ACTIVA' / 'SOPORTE' de cualquier cliente para silenciar la IA y tomar el chat manualmente si lo consideras necesario.",
+    view: "leads" as const,
+    highlight: "agent-toggle",
+    actionDesc: "Pausa el agente para atender de forma humana o reactívalo en cualquier momento."
+  },
+  {
+    title: "5. Administrar Reservas en Tiempo Real",
+    desc: "En RESERVACIONES verás el calendario interactivo. Puedes hacer clic en 'Aceptar Mesa' para confirmar, o usar 'Proponer Alternativa' para sugerir otra hora por WhatsApp.",
+    view: "reservations" as const,
+    highlight: "reservations-view",
+    actionDesc: "Confirma, reagenda o elimina las mesas directamente en tu agenda."
+  }
 ];
 
 const getEcuadorHour = (date: Date | string) => {
@@ -124,6 +162,25 @@ const DashboardContent = () => {
   const [calendarViewMode, setCalendarViewMode] = React.useState<"month" | "day">("month");
   const [selectedCalendarDay, setSelectedCalendarDay] = React.useState<Date>(new Date(2026, 5, 4)); // 4 de Junio 2026
   const [activeReservationForAlternative, setActiveReservationForAlternative] = React.useState<string | null>(null);
+
+  const [tourStep, setTourStep] = React.useState<number | null>(null);
+
+  const goToTourStep = (stepIndex: number) => {
+    setTourStep(stepIndex);
+    const stepConfig = TOUR_STEPS[stepIndex];
+    if (stepConfig) {
+      setActiveView(stepConfig.view);
+    }
+  };
+
+  const getHighlightClass = (highlightId: string) => {
+    if (tourStep === null) return "";
+    const activeHighlight = TOUR_STEPS[tourStep]?.highlight;
+    if (activeHighlight === highlightId) {
+      return "ring-2 ring-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.5)] animate-pulse border-orange-500 bg-orange-50/10";
+    }
+    return "";
+  };
 
   React.useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -382,6 +439,19 @@ const DashboardContent = () => {
           </motion.button>
         ))}
 
+        <motion.button
+          onClick={() => goToTourStep(0)}
+          className={cn(
+            "w-12 h-12 rounded-xl backdrop-blur-xl border hover:bg-orange-50/60 hover:border-orange-200 hover:text-orange-600 transition-all duration-300 flex items-center justify-center group relative",
+            tourStep !== null ? "bg-orange-500/20 border-orange-300 text-orange-600 shadow-md shadow-orange-500/10" : "bg-white/40 border-white/60 text-gray-500 hover:text-gray-900"
+          )}
+        >
+          <HelpCircle className="w-5 h-5" strokeWidth={1.5} />
+          <span className="absolute left-16 px-3 py-1 bg-gray-900/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
+            Iniciar Guía
+          </span>
+        </motion.button>
+
         <div className="h-px bg-gray-200 w-8 mx-auto my-2" />
 
         <motion.button
@@ -450,7 +520,8 @@ const DashboardContent = () => {
                       "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)]",
                       module.enabled
                         ? "bg-white/70 border-white/90 shadow-xl"
-                        : "bg-white/20 border-white/40"
+                        : "bg-white/20 border-white/40",
+                      module.id === "reservations" && getHighlightClass("module-reservations")
                     )}
                   >
                     <div className="p-8">
@@ -510,10 +581,13 @@ const DashboardContent = () => {
                         </button>
                       )}
 
-                      {module.id === "reservations" && module.enabled && (
+                      {module.id === "reservations" && (module.enabled || tourStep === 1) && (
                         <button
                           onClick={() => setShowReservationsModal(true)}
-                          className="mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left"
+                          className={cn(
+                            "mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left rounded-lg p-2.5",
+                            getHighlightClass("config-reservations-btn")
+                          )}
                         >
                           Configurar Reservaciones
                         </button>
@@ -626,7 +700,10 @@ const DashboardContent = () => {
 
               {/* Monthly View Grid */}
               {calendarViewMode === "month" && (
-                <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-sm overflow-hidden">
+                <div className={cn(
+                  "bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-sm overflow-hidden transition-all duration-300",
+                  getHighlightClass("reservations-view")
+                )}>
                   <div className="grid grid-cols-7 gap-2 mb-4">
                     {["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"].map((dayName) => (
                       <div key={dayName} className="text-center text-xs font-bold text-gray-400 py-2">
@@ -690,7 +767,10 @@ const DashboardContent = () => {
 
               {/* Daily View Timeline */}
               {calendarViewMode === "day" && (
-                <div className="bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-sm">
+                <div className={cn(
+                  "bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-sm transition-all duration-300",
+                  getHighlightClass("reservations-view")
+                )}>
                   <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
                     <h2 className="text-xl font-semibold text-gray-900">
                       Horario de Reserva: {selectedCalendarDay.toLocaleDateString("es-EC", { weekday: "long", day: "numeric", month: "long" })}
@@ -915,7 +995,7 @@ const DashboardContent = () => {
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className={cn("space-y-4 p-2 rounded-3xl transition-all duration-300", getHighlightClass("leads-view"))}>
                 {leads.map((lead, idx) => (
                   <motion.div
                     key={idx}
@@ -945,7 +1025,13 @@ const DashboardContent = () => {
                       </div>
                       
                       {/* Agent Switch Toggle */}
-                      <div className="flex flex-col items-center mr-4" onClick={(e) => handleToggleAgent(e, lead)}>
+                      <div
+                        className={cn(
+                          "flex flex-col items-center mr-4 p-2 rounded-2xl transition-all duration-300",
+                          idx === 0 && getHighlightClass("agent-toggle")
+                        )}
+                        onClick={(e) => handleToggleAgent(e, lead)}
+                      >
                         <div className={cn(
                           "relative w-12 h-6 rounded-full transition-all duration-300 cursor-pointer shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
                           (lead.agentActive ?? true) ? "bg-gray-900" : "bg-gray-300"
@@ -1442,6 +1528,117 @@ const DashboardContent = () => {
                   </button>
                 </div>
               </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Floating Guide Card Wizard */}
+        <AnimatePresence>
+          {tourStep !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="fixed bottom-8 right-8 z-[100] w-[400px] rounded-3xl backdrop-blur-2xl bg-white/90 border border-white/80 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col gap-4"
+            >
+              {/* Decorative top orange gradient accent line */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 rounded-t-3xl" />
+              
+              {/* Header with Title and Close Button */}
+              <div className="flex items-start justify-between mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                    <HelpCircle className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">
+                    Guía de Inicio
+                  </span>
+                </div>
+                <button
+                  onClick={() => setTourStep(null)}
+                  className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Cerrar guía"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-2">
+                <h4 className="text-lg font-semibold text-gray-900 leading-snug">
+                  {TOUR_STEPS[tourStep].title}
+                </h4>
+                <p className="text-sm font-light text-gray-600 leading-relaxed">
+                  {TOUR_STEPS[tourStep].desc}
+                </p>
+              </div>
+
+              {/* Action Hint / Highlighted task */}
+              <div className="bg-orange-50/50 border border-orange-100/60 rounded-2xl p-4">
+                <div className="text-[10px] text-orange-700 font-bold uppercase tracking-wider mb-1">
+                  Qué hacer:
+                </div>
+                <p className="text-xs font-medium text-orange-950">
+                  {TOUR_STEPS[tourStep].actionDesc}
+                </p>
+              </div>
+
+              {/* Progress & Controls */}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                {/* Step Indicator (dots & text) */}
+                <div className="flex flex-col gap-1">
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">
+                    Paso {tourStep + 1} de {TOUR_STEPS.length}
+                  </div>
+                  <div className="flex gap-1.5">
+                    {TOUR_STEPS.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-300",
+                          idx === tourStep 
+                            ? "w-5 bg-orange-500" 
+                            : idx < tourStep 
+                              ? "w-2 bg-orange-300" 
+                              : "w-2 bg-gray-200"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex items-center gap-2">
+                  {tourStep > 0 ? (
+                    <button
+                      onClick={() => goToTourStep(tourStep - 1)}
+                      className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-xl text-xs font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      Atrás
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setTourStep(null)}
+                      className="px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-medium transition-colors"
+                    >
+                      Omitir
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      if (tourStep < TOUR_STEPS.length - 1) {
+                        goToTourStep(tourStep + 1);
+                      } else {
+                        setTourStep(null);
+                      }
+                    }}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-orange-500/10 transition-colors"
+                  >
+                    {tourStep === TOUR_STEPS.length - 1 ? "Finalizar" : "Siguiente"}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
