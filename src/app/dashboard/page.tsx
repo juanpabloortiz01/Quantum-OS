@@ -183,6 +183,15 @@ const DashboardContent = () => {
   };
 
   React.useEffect(() => {
+    if (status === "authenticated" && !loading) {
+      const completed = localStorage.getItem("onboarding_tour_completed");
+      if (completed !== "1") {
+        goToTourStep(0);
+      }
+    }
+  }, [status, loading]);
+
+  React.useEffect(() => {
     if (status === "unauthenticated") router.push("/");
   }, [status, router]);
 
@@ -440,7 +449,10 @@ const DashboardContent = () => {
         ))}
 
         <motion.button
-          onClick={() => goToTourStep(0)}
+          onClick={() => {
+            localStorage.removeItem("onboarding_tour_completed");
+            goToTourStep(0);
+          }}
           className={cn(
             "w-12 h-12 rounded-xl backdrop-blur-xl border hover:bg-orange-50/60 hover:border-orange-200 hover:text-orange-600 transition-all duration-300 flex items-center justify-center group relative",
             tourStep !== null ? "bg-orange-500/20 border-orange-300 text-orange-600 shadow-md shadow-orange-500/10" : "bg-white/40 border-white/60 text-gray-500 hover:text-gray-900"
@@ -1555,7 +1567,10 @@ const DashboardContent = () => {
                   </span>
                 </div>
                 <button
-                  onClick={() => setTourStep(null)}
+                  onClick={() => {
+                    setTourStep(null);
+                    localStorage.setItem("onboarding_tour_completed", "1");
+                  }}
                   className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Cerrar guía"
                 >
@@ -1618,7 +1633,10 @@ const DashboardContent = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => setTourStep(null)}
+                      onClick={() => {
+                        setTourStep(null);
+                        localStorage.setItem("onboarding_tour_completed", "1");
+                      }}
                       className="px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-medium transition-colors"
                     >
                       Omitir
@@ -1631,6 +1649,7 @@ const DashboardContent = () => {
                         goToTourStep(tourStep + 1);
                       } else {
                         setTourStep(null);
+                        localStorage.setItem("onboarding_tour_completed", "1");
                       }
                     }}
                     className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-orange-500/10 transition-colors"
