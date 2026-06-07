@@ -37,39 +37,32 @@ const MODULE_LIBRARY = [
 
 const TOUR_STEPS = [
   {
-    title: "1. Activar Habilidad de Reservas",
-    desc: "Ve a la sección AGENTE y activa el interruptor de 'Reservaciones'. Esto encenderá el motor inteligente de reservas para WhatsApp.",
+    title: "1. Activar y Configurar Reservas",
+    desc: "Activa el interruptor de 'Reservaciones' para encender el agente y haz clic en 'Configurar Reservaciones' para establecer límites de grupo y tope por hora.",
     view: "modules" as const,
     highlight: "module-reservations",
-    actionDesc: "Abre la pestaña AGENTE y busca la tarjeta de Reservaciones."
+    actionDesc: "Enciende la habilidad y ajusta las reglas de capacidad de tu negocio."
   },
   {
-    title: "2. Configurar Reglas de Reserva",
-    desc: "Haz clic en 'Configurar Reservaciones'. Aquí defines el límite del grupo que la IA puede confirmar sola (ej: 6 personas) y el tope de personas por hora.",
-    view: "modules" as const,
-    highlight: "config-reservations-btn",
-    actionDesc: "Ajusta las reglas para automatizar reservas pequeñas y derivar grupos grandes."
-  },
-  {
-    title: "3. Conocer el Apartado de Clientes",
-    desc: "Entra a la pestaña CLIENTES en el menú lateral para ver el listado de clientes detectados por la IA en tiempo real, junto con su resumen de interés y Trust Score.",
+    title: "2. Listado de Clientes",
+    desc: "En CLIENTES verás las personas identificadas por la IA, con un resumen de su interés y su nivel de confianza (Trust Score).",
     view: "leads" as const,
     highlight: "leads-view",
-    actionDesc: "Monitorea la intención de compra detectada por la inteligencia artificial."
+    actionDesc: "Monitorea los clientes potenciales y su intención de compra en tiempo real."
   },
   {
-    title: "4. Controlar la IA por Cliente",
-    desc: "Usa el switch 'IA ACTIVA' / 'SOPORTE' de cualquier cliente para silenciar la IA y tomar el chat manualmente si lo consideras necesario.",
+    title: "3. Controlar la IA por Cliente",
+    desc: "Usa el switch 'IA ACTIVA' / 'SOPORTE' para pausar temporalmente el agente de un cliente específico y chatear manualmente.",
     view: "leads" as const,
     highlight: "agent-toggle",
-    actionDesc: "Pausa el agente para atender de forma humana o reactívalo en cualquier momento."
+    actionDesc: "Pausa la IA para dar atención humana directa o reactívala cuando quieras."
   },
   {
-    title: "5. Administrar Reservas en Tiempo Real",
-    desc: "En RESERVACIONES verás el calendario interactivo. Puedes hacer clic en 'Aceptar Mesa' para confirmar, o usar 'Proponer Alternativa' para sugerir otra hora por WhatsApp.",
+    title: "4. Administrar Reservaciones",
+    desc: "Aquí gestionas las mesas. Si el grupo es menor al límite configurado, se confirma automáticamente; si es mayor, queda pendiente para tu aprobación.",
     view: "reservations" as const,
     highlight: "reservations-view",
-    actionDesc: "Confirma, reagenda o elimina las mesas directamente en tu agenda."
+    actionDesc: "Acepta reservas o propón alternativas de horario de forma interactiva."
   }
 ];
 
@@ -164,12 +157,50 @@ const DashboardContent = () => {
   const [activeReservationForAlternative, setActiveReservationForAlternative] = React.useState<string | null>(null);
 
   const [tourStep, setTourStep] = React.useState<number | null>(null);
+  const [mockLeadAgentActive, setMockLeadAgentActive] = React.useState(true);
+  const [mockResStatus, setMockResStatus] = React.useState<"pendiente_aprobacion" | "confirmado" | "reagendado">("pendiente_aprobacion");
+  const [mockResAlternative, setMockResAlternative] = React.useState<string | null>(null);
+
+  const displayedLeads = React.useMemo(() => {
+    if (tourStep !== null) {
+      const mockLead: Lead = {
+        name: "Carlos Mendoza (Prueba)",
+        trustScore: 92,
+        intent: "AGENDAMIENTO",
+        summary: "Quiere reservar una mesa para 4 personas este sábado a las 8 PM. Preguntó por opciones vegetarianas.",
+        phone: "593999999999@c.us",
+        agentActive: mockLeadAgentActive
+      };
+      return [mockLead, ...leads.filter(l => l.phone !== "593999999999@c.us")];
+    }
+    return leads;
+  }, [leads, tourStep, mockLeadAgentActive]);
+
+  const displayedReservations = React.useMemo(() => {
+    if (tourStep !== null) {
+      const mockRes = {
+        id: "mock-res-id",
+        cliente_nombre: "Sofía Martínez (Prueba)",
+        cliente_id: "593988888888",
+        cantidad_personas: 4,
+        fecha_hora_deseada: "2026-06-04T20:00:00-05:00", // 8 PM Ecuador
+        estado: mockResStatus,
+        propuesta_alternativa: mockResAlternative
+      };
+      return [mockRes, ...reservations.filter(r => r.id !== "mock-res-id")];
+    }
+    return reservations;
+  }, [reservations, tourStep, mockResStatus, mockResAlternative]);
 
   const goToTourStep = (stepIndex: number) => {
     setTourStep(stepIndex);
     const stepConfig = TOUR_STEPS[stepIndex];
     if (stepConfig) {
       setActiveView(stepConfig.view);
+      if (stepConfig.view === "reservations") {
+        setCalendarViewMode("day");
+        setSelectedCalendarDay(new Date(2026, 5, 4));
+      }
     }
   };
 
@@ -347,6 +378,12 @@ const DashboardContent = () => {
   const handleToggleAgent = async (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation(); // Evitar abrir el modal
     const newState = !(lead.agentActive ?? true);
+    
+    if (lead.phone === "593999999999@c.us") {
+      setMockLeadAgentActive(newState);
+      setSelectedLead(prev => prev ? { ...prev, agentActive: newState } : null);
+      return;
+    }
     
     // Update local state optimistic
     setLeads(prev => prev.map(l => l.phone === lead.phone ? { ...l, agentActive: newState } : l));
@@ -731,7 +768,7 @@ const DashboardContent = () => {
                       const cellD = String(cell.date.getDate()).padStart(2, "0");
                       const cellDateStr = `${cellY}-${cellM}-${cellD}`;
 
-                      const dayRes = reservations.filter((r) => {
+                      const dayRes = displayedReservations.filter((r) => {
                         const rDateStr = getEcuadorDateString(r.fecha_hora_deseada);
                         return rDateStr === cellDateStr;
                       });
@@ -837,7 +874,7 @@ const DashboardContent = () => {
                       const selectedD = String(selectedCalendarDay.getDate()).padStart(2, "0");
                       const targetDateStr = `${selectedY}-${selectedM}-${selectedD}`;
 
-                      const hourRes = reservations.filter((r) => {
+                      const hourRes = displayedReservations.filter((r) => {
                         const rDateStr = getEcuadorDateString(r.fecha_hora_deseada);
                         const rHour = getEcuadorHour(r.fecha_hora_deseada);
                         return rDateStr === targetDateStr && rHour === hour;
@@ -918,6 +955,10 @@ const DashboardContent = () => {
                                       <>
                                         <button
                                           onClick={async () => {
+                                            if (res.id === "mock-res-id") {
+                                              setMockResStatus("confirmado");
+                                              return;
+                                            }
                                             const updateRes = await updateReservationStatus(res.id, "confirmado");
                                             if (updateRes.success) {
                                               await fetchAndSetReservations();
@@ -948,7 +989,17 @@ const DashboardContent = () => {
                                             {[1, 1.5, 2, 2.5].map((hours) => (
                                               <button
                                                 key={hours}
-                                                onClick={() => handleProposeAlternative(res.id, res.fecha_hora_deseada, hours)}
+                                                onClick={() => {
+                                                  if (res.id === "mock-res-id") {
+                                                    const originalDate = new Date(res.fecha_hora_deseada);
+                                                    const altDate = new Date(originalDate.getTime() + hours * 60 * 60 * 1000);
+                                                    setMockResStatus("reagendado");
+                                                    setMockResAlternative(altDate.toISOString());
+                                                    setActiveReservationForAlternative(null);
+                                                    return;
+                                                  }
+                                                  handleProposeAlternative(res.id, res.fecha_hora_deseada, hours);
+                                                }}
                                                 className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                                               >
                                                 {hours === 1 ? "+1 hora" : `+${hours} horas`}
@@ -961,6 +1012,11 @@ const DashboardContent = () => {
 
                                     <button
                                       onClick={async () => {
+                                        if (res.id === "mock-res-id") {
+                                          setMockResStatus("pendiente_aprobacion");
+                                          setMockResAlternative(null);
+                                          return;
+                                        }
                                         if (confirm("¿Estás seguro de que deseas eliminar esta reservación?")) {
                                           const deleteRes = await deleteReservation(res.id);
                                           if (deleteRes.success) {
@@ -1008,7 +1064,7 @@ const DashboardContent = () => {
               </div>
 
               <div className={cn("space-y-4 p-2 rounded-3xl transition-all duration-300", getHighlightClass("leads-view"))}>
-                {leads.map((lead, idx) => (
+                {displayedLeads.map((lead, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, x: -20 }}
