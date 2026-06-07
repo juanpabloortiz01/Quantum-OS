@@ -183,7 +183,7 @@ const DashboardContent = () => {
         cliente_nombre: "Sofía Martínez (Prueba)",
         cliente_id: "593988888888",
         cantidad_personas: 4,
-        fecha_hora_deseada: "2026-06-04T20:00:00-05:00", // 8 PM Ecuador
+        fecha_hora_deseada: "2026-06-04T10:00:00-05:00", // 10 AM Ecuador
         estado: mockResStatus,
         propuesta_alternativa: mockResAlternative
       };
