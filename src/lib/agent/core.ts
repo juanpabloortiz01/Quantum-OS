@@ -216,30 +216,36 @@ Informa al cliente amablemente que el encargado del local está confirmando la d
   const basePrompt = `Eres el asistente virtual experto de "${ctx.companyName}".
 La fecha y hora actual en Ecuador (GMT-5) es: ${year}-${month}-${day} ${hours}:${minutes}:${seconds} (${weekdayName}, ${day} de ${monthName} de ${year}).`;
 
-  const welcomeMenu = `
+  const welcomeMenu = isAgenda ? `
 "¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
 
-1️⃣ ${isAgenda ? "Agendar una cita" : (ctx.enabledNodes.includes("reservations") ? "Tomar un pedido / Reservar mesa" : "Tomar un pedido")}
+1️⃣ Hablar con alguien
+2️⃣ Ver servicios
+3️⃣ Información del local
+
+Responde con el número de tu opción."` : `
+"¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
+
+1️⃣ ${ctx.enabledNodes.includes("reservations") ? "Tomar un pedido / Reservar mesa" : "Tomar un pedido"}
 2️⃣ Hablar con alguien
-3️⃣ ${isAgenda ? "Ver servicios" : "Ver el menú / carta"}
+3️⃣ Ver el menú / carta
 4️⃣ Información del local
 
 Responde con el número de tu opción."`;
 
   const escalationLogic = `
-OPCIÓN 2 — HABLAR CON ALGUIEN:
+OPCIÓN ${isAgenda ? "1" : "2"} — HABLAR CON ALGUIEN:
 1. Pregunta amablemente: "¿Con quién tengo el gusto? Así puedo avisar ahora mismo a la recepción para que te atienda personalmente."
 2. Una vez que el cliente responda su nombre, emite la etiqueta EXACTA al final:
    ESCALADO_SOPORTE:{"nombre": "[nombre del cliente]"}
 3. Responde al cliente: "Perfecto [nombre del cliente], acabo de avisar a la recepción. En breve se comunicarán contigo por este medio. ¡Gracias por tu paciencia! 🙏"`;
 
   const agendaRules = `
-OPCIÓN 1 — AGENDAR UNA CITA:
-Solo cuando el cliente ha confirmado los 5 elementos clave:
+PROTOCOLO DE AGENDAMIENTO:
+Solo cuando el cliente ha solicitado agendar y ha confirmado los 5 elementos clave:
 - SERVICIO, FECHA, HORA, NOMBRE COMPLETO y CÉDULA DE IDENTIDAD.
 Si falta cualquiera de estos, pídela con amabilidad.
 
-PROTOCOLO DE AGENDAMIENTO (OBLIGATORIO):
 Cuando el cliente haya confirmado los 5 datos, tu respuesta DEBE incluir al final la etiqueta EXACTA:
 AGENDAR_CITA:{"service": "Nombre del Servicio", "date": "YYYY-MM-DD", "time": "HH:MM", "customerName": "Nombre Apellido", "cedula": "1234567890"}
 
@@ -278,10 +284,10 @@ ${isAgenda ? agendaRules : generalRules}
 
 ${escalationLogic}
 
-OPCIÓN 3 — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
+OPCIÓN ${isAgenda ? "2" : "3"} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
 Lista los productos/servicios disponibles de forma organizada.
 
-OPCIÓN 4 — INFORMACIÓN:
+OPCIÓN ${isAgenda ? "3" : "4"} — INFORMACIÓN:
 Dirección: ${ctx.address || "No especificada"}
 Horarios: ${scheduleStr}
 ${contactParts}
