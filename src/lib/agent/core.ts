@@ -98,11 +98,12 @@ function buildSystemPrompt(
       ? ctx.products
           .filter(p => p.primaryColor !== "Menú" && p.category !== "MENÚ_COMPLETO" && p.category !== "SERVICIO") 
           .map((p, i) => {
+            const hasDesc = p.characteristics && p.characteristics.trim().toLowerCase() !== "entrada manual"
             const parts = [
               `[Item ${i + 1}]`,
               p.category ? `Categoría: ${p.category}` : null,
               p.brand ? `Información/Precio: ${p.brand}` : null,
-              p.characteristics ? `Descripción: ${p.characteristics}` : null,
+              hasDesc ? `Descripción: ${p.characteristics}` : null,
               p.imageUrl ? `Foto: ${p.imageUrl}` : null,
             ].filter(Boolean)
             return parts.join("\n")
@@ -129,10 +130,11 @@ function buildSystemPrompt(
     p.category === "MENÚ_COMPLETO" || p.primaryColor === "Menú" || p.category === "SERVICIO"
   )
   const menuInfo = menuProducts.map(m => {
+    const hasDesc = m.characteristics && m.characteristics.trim().toLowerCase() !== "entrada manual"
     const parts = [
       m.category ? `Nombre: ${m.category}` : null,
       m.brand ? `Precio/Valor: ${m.brand}` : null,
-      m.characteristics ? `Descripción: ${m.characteristics}` : null,
+      hasDesc ? `Descripción: ${m.characteristics}` : null,
     ].filter(Boolean)
     return parts.join(" | ")
   }).join("\n")
