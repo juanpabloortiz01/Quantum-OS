@@ -101,7 +101,7 @@ function buildSystemPrompt(
             const hasDesc = p.characteristics && p.characteristics.trim().toLowerCase() !== "entrada manual"
             const parts = [
               `[Item ${i + 1}]`,
-              p.category ? `Categoría: ${p.category}` : null,
+              p.category ? `Nombre: ${p.category}` : null,
               p.brand ? `Información/Precio: ${p.brand}` : null,
               hasDesc ? `Descripción: ${p.characteristics}` : null,
               p.imageUrl ? `Foto: ${p.imageUrl}` : null,
