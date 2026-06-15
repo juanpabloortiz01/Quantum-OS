@@ -212,8 +212,7 @@ Informa al cliente amablemente que el encargado del local está confirmando la d
   }
 
   const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
-
-
+  const hasReservations = ctx.enabledNodes.includes("reservations");
 
   const basePrompt = `Eres el asistente virtual experto de "${ctx.companyName}".
 La fecha y hora actual en Ecuador (GMT-5) es: ${year}-${month}-${day} ${hours}:${minutes}:${seconds} (${weekdayName}, ${day} de ${monthName} de ${year}).`;
@@ -225,18 +224,27 @@ La fecha y hora actual en Ecuador (GMT-5) es: ${year}-${month}-${day} ${hours}:$
 2️⃣ Ver servicios
 3️⃣ Información del local
 
+Responde con el número de tu opción."` : (hasReservations ? `
+"¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
+
+1️⃣ Hacer un pedido
+2️⃣ Reservar una mesa
+3️⃣ Hablar con alguien
+4️⃣ Ver el menú / carta
+5️⃣ Información del local
+
 Responde con el número de tu opción."` : `
 "¡Hola! 👋 Bienvenido a *${ctx.companyName}*. ¿En qué puedo ayudarte hoy?
 
-1️⃣ ${ctx.enabledNodes.includes("reservations") ? "Tomar un pedido / Reservar mesa" : "Tomar un pedido"}
+1️⃣ Tomar un pedido
 2️⃣ Hablar con alguien
 3️⃣ Ver el menú / carta
 4️⃣ Información del local
 
-Responde con el número de tu opción."`;
+Responde con el número de tu opción."`);
 
   const escalationLogic = `
-OPCIÓN ${isAgenda ? "1" : "2"} — HABLAR CON ALGUIEN:
+OPCIÓN ${isAgenda ? "1" : (hasReservations ? "3" : "2")} — HABLAR CON ALGUIEN:
 1. Pregunta amablemente: "¿Con quién tengo el gusto? Así puedo avisar ahora mismo a la recepción para que te atienda personalmente."
 2. Una vez que el cliente responda su nombre, emite la etiqueta EXACTA al final:
    ESCALADO_SOPORTE:{"nombre": "[nombre del cliente]"}
@@ -244,7 +252,7 @@ OPCIÓN ${isAgenda ? "1" : "2"} — HABLAR CON ALGUIEN:
 
   const agendaRules = `
 PROTOCOLO DE AGENDAMIENTO:
-Solo cuando el cliente ha solicitado agendar y ha confirmado los 5 elementos clave:
+Solo cuando el cliente ha solicitado agendar y ha confirmado los 5 elements clave:
 - SERVICIO, FECHA, HORA, NOMBRE COMPLETO y CÉDULA DE IDENTIDAD.
 Si falta cualquiera de estos, pídela con amabilidad.
 
@@ -259,10 +267,20 @@ ${ctx.calendarAvailability && ctx.calendarAvailability.length > 0
     : "Sin reservaciones previas."}
 - Duración: 60 min por cita.`;
 
-  const generalRules = `
-OPCIÓN 1 — TOMAR UN PEDIDO ${ctx.enabledNodes.includes("reservations") ? "O RESERVAR MESA" : ""}:
-${ctx.enabledNodes.includes("reservations") ? `Si el cliente desea reservar una mesa, sigue el protocolo de RESERVACIONES (pide Nombre, Personas, Fecha y Hora).
-Si desea pedir comida para llevar o domicilio, sigue este protocolo de recolección de pedido:` : "Sigue este protocolo de recolección:"}
+  const generalRules = hasReservations ? `
+OPCIÓN 1 — HACER UN PEDIDO:
+Sigue este protocolo de recolección:
+1. ¿Qué plato(s) deseas pedir?
+2. Nombre completo.
+3. Dirección de entrega (si mandan ubicación por WhatsApp, trátala como dirección).
+4. Resumen y confirmación: "Responde *CONFIRMAR* para finalizar."
+Al confirmar el cliente, emite:
+PEDIDO_CONFIRMADO:{"plato":"[plato]","nombre":"[nombre]","direccion":"[direccion]"}
+
+OPCIÓN 2 — RESERVAR UNA MESA:
+Sigue el protocolo de RESERVACIONES (pide Nombre, Personas, Fecha y Hora). Cuando tengas los 3 datos confirmados, genera la etiqueta SOLICITAR_RESERVA.` : `
+OPCIÓN 1 — TOMAR UN PEDIDO:
+Sigue este protocolo de recolección:
 1. ¿Qué plato(s) deseas pedir?
 2. Nombre completo.
 3. Dirección de entrega (si mandan ubicación por WhatsApp, trátala como dirección).
@@ -286,10 +304,10 @@ ${isAgenda ? agendaRules : generalRules}
 
 ${escalationLogic}
 
-OPCIÓN ${isAgenda ? "2" : "3"} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
+OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
 Lista los productos/servicios disponibles de forma organizada.
 
-OPCIÓN ${isAgenda ? "3" : "4"} — INFORMACIÓN:
+OPCIÓN ${isAgenda ? "3" : (hasReservations ? "5" : "4")} — INFORMACIÓN:
 Dirección: ${ctx.address || "No especificada"}
 Horarios: ${scheduleStr}
 ${contactParts}
