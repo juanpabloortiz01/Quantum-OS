@@ -231,6 +231,19 @@ function OnboardingContent() {
       const cloudinaryData = await cloudinaryRes.json()
       const imageUrl = cloudinaryData.secure_url
 
+      if (formData.niche === "ventas") {
+        setFormData((prev: any) => ({
+          ...prev,
+          contextData: {
+            ...prev.contextData,
+            menuImageUrl: imageUrl
+          }
+        }))
+        setAnalyzingStep("COMPLETADO")
+        setIsLoading(false)
+        return
+      }
+
       setCurrentProduct((prev: any) => ({ ...prev, url_foto: imageUrl }))
       setAnalyzingStep("ANALIZANDO")
 
@@ -1225,7 +1238,9 @@ function OnboardingContent() {
                   {/* TÍTULO DINÁMICO */}
                   <motion.div variants={itemVariants} className="flex flex-col gap-1">
                     <h2 className="text-sm font-bold text-[#1A1A1A]">
-                      {ventasMethod === "choose" ? 
+                      {formData.niche === "ventas" ?
+                        "Sube la foto de tu menú" :
+                        ventasMethod === "choose" ? 
                         ((formData.niche as string) === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : (formData.niche as string) === "agenda" ? "¿Cómo prefieres subir tus servicios?" : "¿Cómo prefieres subir tu menú?") :
                         ventasMethod === "ai" ? 
                         ((formData.niche as string) === "showroom" ? "Sube tu catálogo de productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios" : "Sube fotos de tu menú") : 
@@ -1233,16 +1248,88 @@ function OnboardingContent() {
                       }
                     </h2>
                     <p className="text-xs text-[#6B7280] leading-relaxed">
-                      {ventasMethod === "ai" && "Nuestra IA analizará las fotos y extraerá las características automáticamente."}
-                      {ventasMethod === "manual" && ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.")}
+                      {formData.niche === "ventas" ?
+                        "Carga una imagen legible de tu menú o carta física. El asistente virtual se la enviará automáticamente a tus clientes cuando la soliciten." :
+                        ventasMethod === "ai" ?
+                        "Nuestra IA analizará las fotos y extraerá las características automáticamente." :
+                        ventasMethod === "manual" ?
+                        ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.") : ""
+                      }
                     </p>
                   </motion.div>
 
                   <div className="max-h-[55vh] overflow-y-auto pr-2 flex flex-col gap-5 custom-scrollbar pb-4">
 
                     <AnimatePresence mode="wait">
+                      {/* SECCIÓN DE MENÚ PARA RESTAURANTE */}
+                      {formData.niche === "ventas" && (
+                        <motion.div
+                          key="restaurant-menu"
+                          variants={containerVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          className="flex flex-col gap-4 w-full"
+                        >
+                          {!formData.contextData.menuImageUrl ? (
+                            <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-40">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                title=""
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                disabled={isLoading}
+                              />
+                              {analyzingStep === "SUBIENDO" ? (
+                                <div className="flex flex-col items-center gap-3 text-[#1A1A1A]">
+                                  <Loader2 size={24} className="animate-spin text-[#1A1A1A]" />
+                                  <span className="text-xs font-medium animate-pulse">Subiendo menú...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-3 text-[#6B7280] group-hover:text-[#1A1A1A]">
+                                  <div className="w-10 h-10 bg-white border border-[#E2E8F0] shadow-sm flex items-center justify-center rounded-full">
+                                    <Upload size={18} />
+                                  </div>
+                                  <span className="text-xs font-medium">Sube el archivo de tu menú aquí</span>
+                                </div>
+                              )}
+                              {analyzingStep === "ERROR" && <span className="text-xs font-semibold text-red-500 mt-3">Error al subir. Intenta de nuevo.</span>}
+                            </div>
+                          ) : (
+                            <div className="border border-[#E2E8F0] bg-white rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <span className="text-xs font-bold text-[#1A1A1A] uppercase tracking-wider">Menú Guardado con Éxito</span>
+                              </div>
+                              <div className="flex gap-5 items-center">
+                                <img src={formData.contextData.menuImageUrl} alt="Menú" className="w-32 h-32 object-cover border border-[#E2E8F0] rounded-xl shadow-sm" />
+                                <div className="flex-1 flex flex-col gap-2">
+                                  <span className="text-xs text-[#6B7280] font-light">Este menú será enviado por el bot automáticamente.</span>
+                                  <button
+                                    onClick={() => {
+                                      setFormData((prev: any) => ({
+                                        ...prev,
+                                        contextData: {
+                                          ...prev.contextData,
+                                          menuImageUrl: ""
+                                        }
+                                      }))
+                                      setAnalyzingStep("IDLE")
+                                    }}
+                                    className="w-fit text-xs font-semibold text-red-600 hover:text-red-700 underline transition-colors"
+                                  >
+                                    Eliminar y subir otro
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+
                       {/* 1. SELECCIÓN PARA CATÁLOGOS */}
-                      {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
+                      {formData.niche !== "ventas" && (formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
                         <motion.div 
                           key="choose"
                           variants={containerVariants}
@@ -1549,7 +1636,9 @@ function OnboardingContent() {
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => {
-                        if (ventasMethod !== "choose") {
+                        if (formData.niche === "ventas") {
+                          setStep(3)
+                        } else if (ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
                           setStep(3)
@@ -1562,7 +1651,9 @@ function OnboardingContent() {
                     <button
                       onClick={() => setStep(5)}
                       disabled={
-                        ventasMethod === "choose" || formData.products.length === 0
+                        formData.niche === "ventas" ?
+                        !formData.contextData.menuImageUrl :
+                        (ventasMethod === "choose" || formData.products.length === 0)
                       }
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
                     >

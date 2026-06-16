@@ -309,7 +309,10 @@ ${isAgenda ? agendaRules : generalRules}
 ${escalationLogic}
 
 OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
-Lista los productos/servicios disponibles de forma organizada.
+${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImageUrl)
+  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando una frase amable (ej: "Aquí tienes el menú de hoy:") y DEBES agregar obligatoriamente la etiqueta exacta al final de tu respuesta: FOTO_URL:${ctx.menuImageUrl}`
+  : "Lista los productos/servicios disponibles de forma organizada."
+}
 
 OPCIÓN ${isAgenda ? "3" : (hasReservations ? "5" : "4")} — INFORMACIÓN:
 Dirección: ${ctx.address || "No especificada"}
