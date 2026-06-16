@@ -1275,12 +1275,19 @@ function OnboardingContent() {
                           exit="exit"
                           className="flex flex-col gap-4 w-full"
                         >
+                          {/* CONTADOR DE IMÁGENES */}
+                          <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
+                            <span className="text-xs font-semibold text-[#4B5563] uppercase tracking-wider">
+                              Páginas del menú
+                            </span>
+                            <span className="text-xs font-bold bg-[#F3F4F6] px-2.5 py-1 rounded-full text-[#1A1A1A]">
+                              {(formData.contextData.menuImages || []).length}/5
+                            </span>
+                          </div>
+
                           {/* LISTADO DE IMÁGENES CARGADAS */}
                           {formData.contextData.menuImages && formData.contextData.menuImages.length > 0 && (
                             <div className="flex flex-col gap-3">
-                              <span className="text-xs font-semibold text-[#4B5563] uppercase tracking-wider">
-                                Páginas del menú ({formData.contextData.menuImages.length}/5)
-                              </span>
                               <div className="grid grid-cols-5 gap-2.5">
                                 {formData.contextData.menuImages.map((url: string, index: number) => (
                                   <div key={index} className="relative w-full aspect-square border border-[#E2E8F0] rounded-xl overflow-hidden group shadow-sm bg-white">
@@ -1480,15 +1487,19 @@ function OnboardingContent() {
                           className="flex flex-col gap-5"
                         >
 
-
-                        {/* Contador de imágenes escaneadas — ventas, agenda y showroom */}
-                        {(["ventas", "agenda", "showroom"] as string[]).includes(formData.niche) && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-[#6B7280] font-medium">Imágenes escaneadas</span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${scannedImageCount >= 2 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
-                              }`}>{scannedImageCount}/2</span>
-                          </div>
-                        )}
+                          {/* CONTADOR DE IMÁGENES ESCANEADAS */}
+                          {((["ventas", "agenda", "showroom"] as string[]).includes(formData.niche)) && (
+                            <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
+                              <span className="text-xs font-semibold text-[#4B5563] uppercase tracking-wider">
+                                Imágenes escaneadas
+                              </span>
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                                scannedImageCount >= 2 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
+                              }`}>
+                                {scannedImageCount}/2
+                              </span>
+                            </div>
+                          )}
 
                         {scannedImageCount < (((["ventas", "agenda", "showroom"] as string[]).includes(formData.niche)) ? 2 : 99) ? (
 
