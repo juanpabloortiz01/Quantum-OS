@@ -122,6 +122,7 @@ function OnboardingContent() {
       contactPhone: "",
       notifPhone: "",
       shippingZones: "",
+      menuImageUrl: "",
       scheduleType: "custom" as "custom" | "24h",
       scheduleConfig: {
         LU: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
