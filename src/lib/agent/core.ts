@@ -157,12 +157,16 @@ Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si es
     reservationsStr = `\n═══════════════════════════════════════
 📅 PROCESO DE RESERVACIONES DE MESAS (ACTIVO)
 ═══════════════════════════════════════
-Si el cliente desea reservar una mesa, debes solicitar obligatoriamente los siguientes datos:
-1. Nombre completo del cliente
-2. Cantidad de personas
-3. Fecha y hora deseada para la reserva
+⚠️ REGLAS OBLIGATORIAS DE RESERVAS:
+1. REGISTRO COMPLETO: No importa si es el mismo cliente o si ya se conoce su nombre de chats previos o del historial: SIEMPRE, para cada reservación, debes preguntar y confirmar de manera explícita las 3 cosas fundamentales antes de generar la etiqueta SOLICITAR_RESERVA:
+   - El nombre completo de la persona que reserva (pídelo explícitamente para esta reserva).
+   - La cantidad de personas.
+   - La fecha y hora deseada para la reserva.
+   No asumas ni omitas ninguno de estos 3 datos.
 
-Solo cuando tengas estos 3 datos confirmados, debes generar la siguiente etiqueta oculta al final de tu respuesta:
+2. REGLA DE DÍAS NO LABORABLES: El horario de atención del local es: ${scheduleStr}. No debes proceder a realizar ninguna reservación para un día de la semana o fecha en la que el local no trabaje. Si el cliente quiere reservar en un día no laborable (ej: si el lunes no se trabaja y pide lunes), debes rechazar cordialmente la solicitud, explicarle que ese día no se labora, y enviarle los horarios de atención del local.
+
+Solo cuando el cliente te haya proporcionado y confirmado explícitamente los 3 datos fundamentales Y la fecha solicitada sea en un día laborable del local, debes generar la siguiente etiqueta oculta al final de tu respuesta:
 SOLICITAR_RESERVA:{"cliente_nombre": "Nombre del Cliente", "cantidad_personas": Número, "fecha_hora_deseada": "YYYY-MM-DDTHH:MM:SS"}
 
 Nota: La fecha y hora debe estar en formato ISO YYYY-MM-DDTHH:MM:SS. Ajusta el año, mes y día de acuerdo a la fecha actual: ${year}-${month}-${day} y la hora actual: ${hours}:${minutes}.

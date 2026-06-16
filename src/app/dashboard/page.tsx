@@ -223,6 +223,15 @@ const DashboardContent = () => {
   }, [status, loading]);
 
   React.useEffect(() => {
+    const completed = localStorage.getItem("onboarding_tour_completed");
+    if (completed === "1") {
+      const today = new Date();
+      setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+      setSelectedCalendarDay(today);
+    }
+  }, []);
+
+  React.useEffect(() => {
     if (status === "unauthenticated") router.push("/");
   }, [status, router]);
 
@@ -683,8 +692,8 @@ const DashboardContent = () => {
                 <div className="flex items-center gap-3 self-start md:self-auto">
                   <button
                     onClick={() => {
-                      const today = new Date(2026, 5, 4);
-                      setCalendarMonth(new Date(2026, 5, 1));
+                      const today = new Date();
+                      setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
                       setSelectedCalendarDay(today);
                     }}
                     className="px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
