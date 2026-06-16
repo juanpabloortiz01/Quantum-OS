@@ -1239,20 +1239,19 @@ function OnboardingContent() {
                   {/* TÍTULO DINÁMICO */}
                   <motion.div variants={itemVariants} className="flex flex-col gap-1">
                     <h2 className="text-sm font-bold text-[#1A1A1A]">
-                      {formData.niche === "ventas" ?
-                        "Sube la foto de tu menú" :
-                        ventasMethod === "choose" ? 
+                      {ventasMethod === "choose" ? 
                         ((formData.niche as string) === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : (formData.niche as string) === "agenda" ? "¿Cómo prefieres subir tus servicios?" : "¿Cómo prefieres subir tu menú?") :
                         ventasMethod === "ai" ? 
-                        ((formData.niche as string) === "showroom" ? "Sube tu catálogo de productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios" : "Sube fotos de tu menú") : 
+                        ((formData.niche as string) === "showroom" ? "Sube tu catálogo de productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios" : "Sube la foto de tu menú") : 
                         ((formData.niche as string) === "showroom" ? "Enlista tus productos y precios" : (formData.niche as string) === "agenda" ? "Enlista tus servicios y precios" : "Enlista tus platos y precios")
                       }
                     </h2>
                     <p className="text-xs text-[#6B7280] leading-relaxed">
-                      {formData.niche === "ventas" ?
+                      {ventasMethod === "ai" ? (
+                        (formData.niche as string) === "ventas" ?
                         "Carga una imagen legible de tu menú o carta física. El asistente virtual se la enviará automáticamente a tus clientes cuando la soliciten." :
-                        ventasMethod === "ai" ?
-                        "Nuestra IA analizará las fotos y extraerá las características automáticamente." :
+                        "Nuestra IA analizará las fotos y extraerá las características automáticamente."
+                      ) :
                         ventasMethod === "manual" ?
                         ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.") : ""
                       }
@@ -1263,7 +1262,7 @@ function OnboardingContent() {
 
                     <AnimatePresence mode="wait">
                       {/* SECCIÓN DE MENÚ PARA RESTAURANTE */}
-                      {formData.niche === "ventas" && (
+                      {formData.niche === "ventas" && ventasMethod === "ai" && (
                         <motion.div
                           key="restaurant-menu"
                           variants={containerVariants}
@@ -1330,14 +1329,14 @@ function OnboardingContent() {
                       )}
 
                       {/* 1. SELECCIÓN PARA CATÁLOGOS */}
-                      {formData.niche !== "ventas" && (formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
+                      {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
                         <motion.div 
                           key="choose"
                           variants={containerVariants}
                           initial="hidden"
                           animate="visible"
                           exit="exit"
-                          className="flex flex-col gap-3"
+                          className="flex flex-col gap-3 w-full"
                         >
                           <motion.button
                             variants={itemVariants}
@@ -1349,8 +1348,12 @@ function OnboardingContent() {
                               <Scan size={20} />
                             </div>
                             <div className="flex flex-col text-left">
-                              <span className="text-sm font-bold text-[#1A1A1A]">Usar Cámara / IA</span>
-                              <span className="text-[10px] text-[#6B7280]">{(formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios o folletos" : "Sube una foto de tu menú físico"}</span>
+                              <span className="text-sm font-bold text-[#1A1A1A]">
+                                {formData.niche === "ventas" ? "Subir imagen de tu menú" : "Usar Cámara / IA"}
+                              </span>
+                              <span className="text-[10px] text-[#6B7280]">
+                                {formData.niche === "ventas" ? "Sube una foto de tu menú para enviarla por WhatsApp" : (formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : "Sube fotos de tus servicios o folletos"}
+                              </span>
                             </div>
                           </motion.button>
                           <motion.button
@@ -1637,9 +1640,7 @@ function OnboardingContent() {
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => {
-                        if (formData.niche === "ventas") {
-                          setStep(3)
-                        } else if (ventasMethod !== "choose") {
+                        if (ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
                           setStep(3)
@@ -1652,9 +1653,9 @@ function OnboardingContent() {
                     <button
                       onClick={() => setStep(5)}
                       disabled={
-                        formData.niche === "ventas" ?
-                        !formData.contextData.menuImageUrl :
-                        (ventasMethod === "choose" || formData.products.length === 0)
+                        ventasMethod === "choose" ||
+                        (formData.niche === "ventas" && ventasMethod === "ai" && !formData.contextData.menuImageUrl) ||
+                        ((formData.niche !== "ventas" || ventasMethod === "manual") && formData.products.length === 0)
                       }
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
                     >
