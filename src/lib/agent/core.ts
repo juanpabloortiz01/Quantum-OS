@@ -309,8 +309,8 @@ ${isAgenda ? agendaRules : generalRules}
 ${escalationLogic}
 
 OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
-${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImageUrl)
-  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando una frase amable (ej: "Aquí tienes el menú de hoy:") y DEBES agregar obligatoriamente la etiqueta exacta al final de tu respuesta: FOTO_URL:${ctx.menuImageUrl}`
+${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImages && ctx.menuImages.length > 0)
+  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando una frase amable (ej: "Aquí tienes el menú de hoy:") y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden):\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
   : "Lista los productos/servicios disponibles de forma organizada."
 }
 
@@ -347,6 +347,7 @@ export interface CoreResult {
   rawResponse: string
   hasImage: boolean
   imageUrl: string | null
+  imageUrls?: string[]
   isPedidoConfirmado: boolean
   pedidoData: { plato: string; nombre: string; direccion: string } | null
   isPagoSolicitado: boolean
@@ -451,8 +452,10 @@ export async function runCore(
   const tokensUsed = completion.usage?.total_tokens ?? 0
 
   // ── 4. Parsear etiquetas de control ──────────────────────────────
-  const fotoMatch = rawResponse.match(/FOTO_URL:(https?:\/\/\S+)/i)
-  const imageUrl = fotoMatch ? fotoMatch[1].trim() : null
+  const fotoMatches = Array.from(rawResponse.matchAll(/FOTO_URL:(https?:\/\/\S+)/gi))
+  const imageUrls = fotoMatches.map(m => m[1].trim())
+  const hasImage = imageUrls.length > 0
+  const imageUrl = hasImage ? imageUrls[0] : null
   const isPagoSolicitado = /PAGO_SOLICITADO:/i.test(rawResponse)
 
   // Parsear PEDIDO_CONFIRMADO con datos opcionales
@@ -567,8 +570,9 @@ export async function runCore(
 
   return {
     rawResponse,
-    hasImage: !!imageUrl,
+    hasImage: hasImage,
     imageUrl,
+    imageUrls,
     isPedidoConfirmado,
     pedidoData,
     isPagoSolicitado,

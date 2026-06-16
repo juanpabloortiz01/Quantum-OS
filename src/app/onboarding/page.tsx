@@ -123,6 +123,7 @@ function OnboardingContent() {
       notifPhone: "",
       shippingZones: "",
       menuImageUrl: "",
+      menuImages: [] as string[],
       scheduleType: "custom" as "custom" | "24h",
       scheduleConfig: {
         LU: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
@@ -233,13 +234,16 @@ function OnboardingContent() {
       const imageUrl = cloudinaryData.secure_url
 
       if (formData.niche === "ventas") {
-        setFormData((prev: any) => ({
-          ...prev,
-          contextData: {
-            ...prev.contextData,
-            menuImageUrl: imageUrl
-          }
-        }))
+        setFormData((prev: any) => {
+          const currentImages = prev.contextData.menuImages || [];
+          return {
+            ...prev,
+            contextData: {
+              ...prev.contextData,
+              menuImages: [...currentImages, imageUrl].slice(0, 5)
+            }
+          };
+        });
         setAnalyzingStep("COMPLETADO")
         setIsLoading(false)
         return
@@ -1271,7 +1275,38 @@ function OnboardingContent() {
                           exit="exit"
                           className="flex flex-col gap-4 w-full"
                         >
-                          {!formData.contextData.menuImageUrl ? (
+                          {/* LISTADO DE IMÁGENES CARGADAS */}
+                          {formData.contextData.menuImages && formData.contextData.menuImages.length > 0 && (
+                            <div className="flex flex-col gap-3">
+                              <span className="text-xs font-semibold text-[#4B5563] uppercase tracking-wider">
+                                Páginas del menú ({formData.contextData.menuImages.length}/5)
+                              </span>
+                              <div className="grid grid-cols-5 gap-2.5">
+                                {formData.contextData.menuImages.map((url: string, index: number) => (
+                                  <div key={index} className="relative w-full aspect-square border border-[#E2E8F0] rounded-xl overflow-hidden group shadow-sm bg-white">
+                                    <img src={url} alt={`Página ${index + 1}`} className="w-full h-full object-cover" />
+                                    <button
+                                      onClick={() => {
+                                        setFormData((prev: any) => ({
+                                          ...prev,
+                                          contextData: {
+                                            ...prev.contextData,
+                                            menuImages: prev.contextData.menuImages.filter((_: any, i: number) => i !== index)
+                                          }
+                                        }))
+                                      }}
+                                      className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center w-5 h-5"
+                                      title="Eliminar imagen"
+                                    >
+                                      <X size={10} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {(!formData.contextData.menuImages || formData.contextData.menuImages.length < 5) && (
                             <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-40">
                               <input
                                 type="file"
@@ -1284,45 +1319,17 @@ function OnboardingContent() {
                               {analyzingStep === "SUBIENDO" ? (
                                 <div className="flex flex-col items-center gap-3 text-[#1A1A1A]">
                                   <Loader2 size={24} className="animate-spin text-[#1A1A1A]" />
-                                  <span className="text-xs font-medium animate-pulse">Subiendo menú...</span>
+                                  <span className="text-xs font-medium animate-pulse">Subiendo imagen...</span>
                                 </div>
                               ) : (
                                 <div className="flex flex-col items-center gap-3 text-[#6B7280] group-hover:text-[#1A1A1A]">
                                   <div className="w-10 h-10 bg-white border border-[#E2E8F0] shadow-sm flex items-center justify-center rounded-full">
                                     <Upload size={18} />
                                   </div>
-                                  <span className="text-xs font-medium">Sube el archivo de tu menú aquí</span>
+                                  <span className="text-xs font-medium">Sube las imágenes de tu menú (Máx 5)</span>
                                 </div>
                               )}
                               {analyzingStep === "ERROR" && <span className="text-xs font-semibold text-red-500 mt-3">Error al subir. Intenta de nuevo.</span>}
-                            </div>
-                          ) : (
-                            <div className="border border-[#E2E8F0] bg-white rounded-2xl p-5 shadow-sm flex flex-col gap-4">
-                              <div className="flex items-center gap-2 mb-1">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span className="text-xs font-bold text-[#1A1A1A] uppercase tracking-wider">Menú Guardado con Éxito</span>
-                              </div>
-                              <div className="flex gap-5 items-center">
-                                <img src={formData.contextData.menuImageUrl} alt="Menú" className="w-32 h-32 object-cover border border-[#E2E8F0] rounded-xl shadow-sm" />
-                                <div className="flex-1 flex flex-col gap-2">
-                                  <span className="text-xs text-[#6B7280] font-light">Este menú será enviado por el bot automáticamente.</span>
-                                  <button
-                                    onClick={() => {
-                                      setFormData((prev: any) => ({
-                                        ...prev,
-                                        contextData: {
-                                          ...prev.contextData,
-                                          menuImageUrl: ""
-                                        }
-                                      }))
-                                      setAnalyzingStep("IDLE")
-                                    }}
-                                    className="w-fit text-xs font-semibold text-red-600 hover:text-red-700 underline transition-colors"
-                                  >
-                                    Eliminar y subir otro
-                                  </button>
-                                </div>
-                              </div>
                             </div>
                           )}
                         </motion.div>
@@ -1463,7 +1470,7 @@ function OnboardingContent() {
                       )}
 
                       {/* 3. CATÁLOGO IA */}
-                      {ventasMethod === "ai" && (
+                      {formData.niche !== "ventas" && ventasMethod === "ai" && (
                         <motion.div 
                           key="ai"
                           variants={containerVariants}
@@ -1654,7 +1661,7 @@ function OnboardingContent() {
                       onClick={() => setStep(5)}
                       disabled={
                         ventasMethod === "choose" ||
-                        (formData.niche === "ventas" && ventasMethod === "ai" && !formData.contextData.menuImageUrl) ||
+                        (formData.niche === "ventas" && ventasMethod === "ai" && (!formData.contextData.menuImages || formData.contextData.menuImages.length === 0)) ||
                         ((formData.niche !== "ventas" || ventasMethod === "manual") && formData.products.length === 0)
                       }
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"

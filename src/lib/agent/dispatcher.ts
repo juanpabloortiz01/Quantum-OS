@@ -153,15 +153,31 @@ export async function runDispatcher(
 
   try {
     if (coreResult.hasImage && coreResult.imageUrl) {
-      console.log(`[DISPATCHER]: Payload Media -> IMAGEN + CAPTION (${coreResult.cleanText?.length ?? 0} chars)`)
+      const urls = coreResult.imageUrls && coreResult.imageUrls.length > 0 ? coreResult.imageUrls : [coreResult.imageUrl];
+      console.log(`[DISPATCHER]: Payload Media -> IMAGENES (${urls.length}) + CAPTION (${coreResult.cleanText?.length ?? 0} chars)`)
+      
+      // Enviar la primera imagen con el texto descriptivo
       await sendMedia(
         EVO_URL,
         instanceName,
         authKey,
         targetNumber,
-        coreResult.imageUrl,
+        urls[0],
         coreResult.cleanText
       )
+
+      // Enviar el resto de las imágenes secuencialmente sin caption
+      for (let i = 1; i < urls.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 800))
+        await sendMedia(
+          EVO_URL,
+          instanceName,
+          authKey,
+          targetNumber,
+          urls[i],
+          ""
+        )
+      }
       return { success: true, method: "sendMedia" }
     } else {
       // ── EJECUTAR AGENDAMIENTO REAL ─────────────────────────────────
