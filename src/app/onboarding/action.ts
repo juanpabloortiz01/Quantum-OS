@@ -64,11 +64,14 @@ export async function finalizeOnboarding(data: {
   contextData: any
   products: any[]
   testPhone: string
+  tempId?: string
 }) {
   // Validar que el userId existe
   if (!data.userId) return { error: "AUTH_ERROR: Usuario no identificado." }
 
-  const businessName = data.contextData.companyName?.trim() || (data.testPhone ? `NODO_${data.testPhone.slice(-4).toUpperCase()}` : `NODO_${data.userId.slice(-4).toUpperCase()}`)
+  const businessName = data.contextData.companyName?.trim() || (data.testPhone ? `NODO_${data.testPhone.slice(-4).toUpperCase()}` : `NODO_${(data.tempId || data.userId).slice(-4).toUpperCase()}`)
+
+  const instanceName = `quos_${data.tempId || data.userId}`
 
   try {
     await prisma.organization.create({
@@ -77,8 +80,8 @@ export async function finalizeOnboarding(data: {
         whatsappNumber: data.testPhone,
         onboardingStep: 3,
         protocolActive: true,
-        evolutionInstance: `quos_${data.userId}`,
-        evolutionToken: `quos_${data.userId}`,
+        evolutionInstance: instanceName,
+        evolutionToken: instanceName,
         userId: data.userId,
         businessConfig: {
           create: {

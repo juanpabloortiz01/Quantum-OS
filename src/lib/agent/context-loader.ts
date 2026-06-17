@@ -79,14 +79,65 @@ export async function loadContext(
 ): Promise<LoadedContext | null> {
   try {
     // Buscar organización por nombre de instancia de Evolution
-    const org = await prisma.organization.findFirst({
+    let org = await prisma.organization.findFirst({
       where: { evolutionInstance: instanceName },
       include: {
         businessConfig: true,
         products: { orderBy: { createdAt: "asc" } }
       },
-
     })
+
+    if (!org) {
+      console.warn(`[CONTEXT_LOADER]: Instancia "${instanceName}" no encontrada en DB. Intentando fallback por número de WhatsApp...`)
+      try {
+        const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
+        const EVO_API_KEY = process.env.EVOLUTION_API_KEY
+        if (EVO_URL && EVO_API_KEY) {
+          const cleanUrl = EVO_URL.replace(/['"]/g, "").replace(/\/$/, "");
+          const res = await fetch(`${cleanUrl}/instance/connectionState/${instanceName}`, {
+            headers: { "apikey": EVO_API_KEY },
+            cache: "no-store"
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const ownerJid = data?.instance?.owner || data?.owner
+            if (ownerJid) {
+              const whatsappNumber = ownerJid.split("@")[0].split(":")[0]
+              console.log(`[CONTEXT_LOADER]: Consultando org para número de WhatsApp: ${whatsappNumber}`)
+              org = await prisma.organization.findFirst({
+                where: { whatsappNumber: whatsappNumber },
+                include: {
+                  businessConfig: true,
+                  products: { orderBy: { createdAt: "asc" } }
+                }
+              })
+              if (org) {
+                console.log(`[CONTEXT_LOADER]: Auto-corrigiendo evolutionInstance para org "${org.name}" (ID: ${org.id}) a "${instanceName}"`)
+                org = await prisma.organization.update({
+                  where: { id: org.id },
+                  data: {
+                    evolutionInstance: instanceName,
+                    evolutionToken: instanceName
+                  },
+                  include: {
+                    businessConfig: true,
+                    products: { orderBy: { createdAt: "asc" } }
+                  }
+                })
+              }
+            } else {
+              console.warn(`[CONTEXT_LOADER_WARN]: No se pudo obtener el owner de connectionState para "${instanceName}".`, data)
+            }
+          } else {
+            console.warn(`[CONTEXT_LOADER_WARN]: Fallo al consultar connectionState en Evolution para "${instanceName}". Status: ${res.status}`)
+          }
+        } else {
+          console.warn("[CONTEXT_LOADER_WARN]: Credenciales de Evolution no configuradas para fallback.")
+        }
+      } catch (fallbackErr: any) {
+        console.error("[CONTEXT_LOADER_FALLBACK_ERROR]:", fallbackErr?.message ?? fallbackErr)
+      }
+    }
 
     if (!org) {
       console.error(`[CONTEXT_LOADER_ERROR]: No se encontró organización para instancia: ${instanceName}`)

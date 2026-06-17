@@ -650,6 +650,7 @@ function OnboardingContent() {
         contextData: formData.contextData,
         products: formData.products,
         testPhone: formData.testPhone,
+        tempId: tempId || undefined,
       })
       if (result && "error" in result) {
         setError(result.error as string)
