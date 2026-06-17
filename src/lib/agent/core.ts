@@ -310,7 +310,7 @@ ${escalationLogic}
 
 OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
 ${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImages && ctx.menuImages.length > 0)
-  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando una frase amable (ej: "Aquí tienes el menú de hoy:") y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden):\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
+  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando una frase amable (ej: "Aquí tienes el menú de hoy:") y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden). IMPORTANTE: NO incluyas ninguna de estas URLs en el texto de tu respuesta (ej: no digas "puedes verlo en esta URL..."), ya que el sistema enviará la imagen directamente y el cliente la verá de forma visual. Limítate a usar la etiqueta FOTO_URL al final de tu mensaje:\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
   : "Lista los productos/servicios disponibles de forma organizada."
 }
 
@@ -452,7 +452,7 @@ export async function runCore(
   const tokensUsed = completion.usage?.total_tokens ?? 0
 
   // ── 4. Parsear etiquetas de control ──────────────────────────────
-  const fotoMatches = Array.from(rawResponse.matchAll(/FOTO_URL:(https?:\/\/\S+)/gi))
+  const fotoMatches = Array.from(rawResponse.matchAll(/FOTO_URL:\s*(https?:\/\/\S+)/gi))
   const imageUrls = fotoMatches.map(m => m[1].trim())
   const hasImage = imageUrls.length > 0
   const imageUrl = hasImage ? imageUrls[0] : null
@@ -531,8 +531,8 @@ export async function runCore(
   if (summaryMatch) summary = summaryMatch[1].trim()
 
   // ── 5. Limpiar texto para el cliente ──────────────────────────────
-  const cleanText = rawResponse
-    .replace(/FOTO_URL:(https?:\/\/\S+)/gi, "")
+  let cleanText = rawResponse
+    .replace(/FOTO_URL:\s*(https?:\/\/\S+)/gi, "")
     .replace(/PEDIDO_CONFIRMADO:({.+})/gi, "")
     .replace(/PEDIDO_CONFIRMADO:/gi, "")
     .replace(/PAGO_SOLICITADO:/gi, "")
@@ -545,8 +545,21 @@ export async function runCore(
     .replace(/\[USER_NAME:\s*(.+?)\]/gi, "")
     .replace(/\[SUMMARY:\s*(.+?)\]/gi, "")
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "")
- // Limpiar prefijos de intención
+    // Limpiar prefijos de intención
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO)\s+/gi, "") // Limpiar palabras sueltas al inicio
+
+  // Limpiar cualquier URL del menú que haya podido quedar en el texto
+  if (ctx.menuImages && ctx.menuImages.length > 0) {
+    ctx.menuImages.forEach(url => {
+      const escapedUrl = url.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`(?:FOTO_URL:\\s*)?\\(?[\\s]*${escapedUrl}[\\s]*\\)?`, 'gi');
+      cleanText = cleanText.replace(regex, "");
+    });
+  }
+
+  // Limpiar espacios múltiples y saltos de línea sobrantes
+  cleanText = cleanText
+    .replace(/:\s*$/g, "") // Eliminar dos puntos al final de una frase si queda vacía la continuación
     .replace(/\n{3,}/g, "\n\n")
     .trim()
 
