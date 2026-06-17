@@ -310,7 +310,7 @@ ${escalationLogic}
 
 OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
 ${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImages && ctx.menuImages.length > 0)
-  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando una frase amable (ej: "Aquí tienes el menú de hoy:") y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden). IMPORTANTE: NO incluyas ninguna de estas URLs en el texto de tu respuesta (ej: no digas "puedes verlo en esta URL..."), ya que el sistema enviará la imagen directamente y el cliente la verá de forma visual. Limítate a usar la etiqueta FOTO_URL al final de tu mensaje:\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
+  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando únicamente la frase "Claro! Aquí tienes nuestro menú" y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden). IMPORTANTE: NO incluyas ninguna de estas URLs en el texto de tu respuesta (ej: no digas "puedes verlo en esta URL..."), ya que el sistema enviará la imagen directamente y el cliente la verá de forma visual. Limítate a usar la etiqueta FOTO_URL al final de tu mensaje:\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
   : "Lista los productos/servicios disponibles de forma organizada."
 }
 
