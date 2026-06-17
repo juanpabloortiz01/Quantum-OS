@@ -175,11 +175,11 @@ Nota: La fecha y hora debe estar en formato ISO YYYY-MM-DDTHH:MM:SS. Ajusta el a
 
   let activeReservaStr = ""
   if (activeReserva) {
-    const formatTime = (d: Date) => d.toLocaleTimeString("es-EC", {
+    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", {
       timeZone: "America/Guayaquil",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false
+      hour12: true
     })
     const formatDate = (d: Date) => d.toLocaleDateString("es-EC", {
       timeZone: "America/Guayaquil",
@@ -274,23 +274,23 @@ ${ctx.calendarAvailability && ctx.calendarAvailability.length > 0
   const generalRules = hasReservations ? `
 OPCIÓN 1 — HACER UN PEDIDO:
 Sigue este protocolo de recolección:
-1. ¿Qué plato(s) deseas pedir?
+1. ¿Qué plato(s) deseas pedir? (Pide obligatoriamente la cantidad exacta de cada plato que desea ordenar, ej: "2 Hamburguesas, 1 Papa frita").
 2. Nombre completo.
 3. Dirección de entrega (si mandan ubicación por WhatsApp, trátala como dirección).
 4. Resumen y confirmación: "Responde *CONFIRMAR* para finalizar."
 Al confirmar el cliente, emite:
-PEDIDO_CONFIRMADO:{"plato":"[plato]","nombre":"[nombre]","direccion":"[direccion]"}
+PEDIDO_CONFIRMADO:{"plato":"[detalle de los platos con sus cantidades, ej: 2x Hamburguesa, 1x Papa frita]","nombre":"[nombre]","direccion":"[direccion]"}
 
 OPCIÓN 2 — RESERVAR UNA MESA:
 Sigue el protocolo de RESERVACIONES (pide Nombre, Personas, Fecha y Hora). Cuando tengas los 3 datos confirmados, genera la etiqueta SOLICITAR_RESERVA.` : `
 OPCIÓN 1 — TOMAR UN PEDIDO:
 Sigue este protocolo de recolección:
-1. ¿Qué plato(s) deseas pedir?
+1. ¿Qué plato(s) deseas pedir? (Pide obligatoriamente la cantidad exacta de cada plato que desea ordenar, ej: "2 Hamburguesas, 1 Papa frita").
 2. Nombre completo.
 3. Dirección de entrega (si mandan ubicación por WhatsApp, trátala como dirección).
 4. Resumen y confirmación: "Responde *CONFIRMAR* para finalizar."
 Al confirmar el cliente, emite:
-PEDIDO_CONFIRMADO:{"plato":"[plato]","nombre":"[nombre]","direccion":"[direccion]"}`;
+PEDIDO_CONFIRMADO:{"plato":"[detalle de los platos con sus cantidades, ej: 2x Hamburguesa, 1x Papa frita]","nombre":"[nombre]","direccion":"[direccion]"}`;
 
   return `${basePrompt}
 Tu rol: ${isAgenda ? "Recepcionista y Gestor de Citas" : "Asistente de Ventas"}.

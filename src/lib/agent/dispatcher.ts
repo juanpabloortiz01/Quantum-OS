@@ -320,11 +320,11 @@ export async function runDispatcher(
             }
           }
 
-          const formatTime = (d: Date) => d.toLocaleTimeString("es-EC", {
+          const formatTime = (d: Date) => d.toLocaleTimeString("en-US", {
             timeZone: "America/Guayaquil",
             hour: "2-digit",
             minute: "2-digit",
-            hour12: false
+            hour12: true
           })
           const formatDate = (d: Date) => d.toLocaleDateString("es-EC", {
             timeZone: "America/Guayaquil",
@@ -502,7 +502,7 @@ export async function runDispatcher(
         const notifMsg = [
           `🛒 *NUEVO PEDIDO — ${ctx.companyName}*`,
           ``,
-          `🍽 *Plato:* ${pedido?.plato || "No especificado"}`,
+          `🍽 *Detalle del Pedido:* ${pedido?.plato || "No especificado"}`,
           `👤 *Cliente:* ${pedido?.nombre || "No especificado"}`,
           `📍 *Dirección:* ${pedido?.direccion || "No especificada"}`,
           `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
