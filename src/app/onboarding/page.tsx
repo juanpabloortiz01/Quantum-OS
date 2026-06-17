@@ -93,16 +93,10 @@ function OnboardingContent() {
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [evoLoading, setEvoLoading] = useState(false)
   const [evoConnected, setEvoConnected] = useState(false)
-   const [evoError, setEvoError] = useState<string | null>(null)
-   const [tempId, setTempId] = useState<string | null>(null)
-   const [activeInstanceName, setActiveInstanceName] = useState<string | null>(null)
-
-
-  useEffect(() => {
-    // Generar un ID temporal para rastrear la sesión de onboarding sin DB
-    setTempId(crypto.randomUUID())
-  }, [])
-
+  const [evoError, setEvoError] = useState<string | null>(null)
+  const [tempId, setTempId] = useState<string | null>(null)
+  const [activeInstanceName, setActiveInstanceName] = useState<string | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   const [formData, setFormData] = useState({
     niche: "",
@@ -154,6 +148,97 @@ function OnboardingContent() {
   const [ventasMethod, setVentasMethod] = useState<"choose" | "ai" | "manual">("choose")
   const [manualItem, setManualItem] = useState({ name: "", price: "", info: "" })
 
+  // Cargar estado inicial desde localStorage al montar
+  useEffect(() => {
+    try {
+      const urlStep = searchParams.get("step")
+      if (urlStep) {
+        setStep(parseInt(urlStep, 10))
+      } else {
+        const savedStep = localStorage.getItem("onboarding_step")
+        if (savedStep !== null) setStep(parseInt(savedStep, 10))
+      }
+
+      const savedEmail = localStorage.getItem("onboarding_email")
+      if (savedEmail) setEmail(savedEmail)
+
+      const savedFormData = localStorage.getItem("onboarding_formData")
+      if (savedFormData) setFormData(JSON.parse(savedFormData))
+
+      const savedTempId = localStorage.getItem("onboarding_tempId")
+      if (savedTempId) {
+        setTempId(savedTempId)
+      } else {
+        const newTempId = crypto.randomUUID()
+        setTempId(newTempId)
+        localStorage.setItem("onboarding_tempId", newTempId)
+      }
+
+      const savedActiveInstanceName = localStorage.getItem("onboarding_activeInstanceName")
+      if (savedActiveInstanceName) setActiveInstanceName(savedActiveInstanceName)
+
+      const savedConnectionMethod = localStorage.getItem("onboarding_connectionMethod")
+      if (savedConnectionMethod) setConnectionMethod(savedConnectionMethod as any)
+
+      const savedVentasMethod = localStorage.getItem("onboarding_ventasMethod")
+      if (savedVentasMethod) setVentasMethod(savedVentasMethod as any)
+
+      const savedAgentPhoneRaw = localStorage.getItem("onboarding_agentPhoneRaw")
+      if (savedAgentPhoneRaw) setAgentPhoneRaw(savedAgentPhoneRaw)
+
+      const savedAgentPhoneCountry = localStorage.getItem("onboarding_agentPhoneCountry")
+      if (savedAgentPhoneCountry) setAgentPhoneCountry(savedAgentPhoneCountry)
+
+      const savedEvoConnected = localStorage.getItem("onboarding_evoConnected")
+      if (savedEvoConnected) setEvoConnected(savedEvoConnected === "true")
+    } catch (e) {
+      console.error("Error loading onboarding state from localStorage", e)
+    } finally {
+      setIsLoaded(true)
+    }
+  }, [])
+
+  // Guardar estado en localStorage cuando cambie
+  useEffect(() => {
+    if (!isLoaded) return
+    try {
+      localStorage.setItem("onboarding_step", step.toString())
+      localStorage.setItem("onboarding_email", email)
+      localStorage.setItem("onboarding_formData", JSON.stringify(formData))
+      if (tempId) localStorage.setItem("onboarding_tempId", tempId)
+      
+      if (activeInstanceName) localStorage.setItem("onboarding_activeInstanceName", activeInstanceName)
+      else localStorage.removeItem("onboarding_activeInstanceName")
+      
+      if (connectionMethod) localStorage.setItem("onboarding_connectionMethod", connectionMethod)
+      else localStorage.removeItem("onboarding_connectionMethod")
+
+      localStorage.setItem("onboarding_ventasMethod", ventasMethod)
+      localStorage.setItem("onboarding_agentPhoneRaw", agentPhoneRaw)
+      localStorage.setItem("onboarding_agentPhoneCountry", agentPhoneCountry)
+      localStorage.setItem("onboarding_evoConnected", evoConnected.toString())
+    } catch (e) {
+      console.error("Error saving onboarding state to localStorage", e)
+    }
+  }, [isLoaded, step, email, formData, tempId, activeInstanceName, connectionMethod, ventasMethod, agentPhoneRaw, agentPhoneCountry, evoConnected])
+
+  const clearOnboardingLocalStorage = () => {
+    try {
+      localStorage.removeItem("onboarding_step")
+      localStorage.removeItem("onboarding_email")
+      localStorage.removeItem("onboarding_formData")
+      localStorage.removeItem("onboarding_tempId")
+      localStorage.removeItem("onboarding_activeInstanceName")
+      localStorage.removeItem("onboarding_connectionMethod")
+      localStorage.removeItem("onboarding_ventasMethod")
+      localStorage.removeItem("onboarding_agentPhoneRaw")
+      localStorage.removeItem("onboarding_agentPhoneCountry")
+      localStorage.removeItem("onboarding_evoConnected")
+    } catch (e) {
+      console.error("Error clearing onboarding localStorage", e)
+    }
+  }
+
   // Cuenta cuántas imágenes distintas han sido escaneadas con IA
   // (aplica a ventas, agenda Y showroom)
   const scannedImageCount = new Set(
@@ -162,24 +247,32 @@ function OnboardingContent() {
       .map(p => p.url_foto)
   ).size
 
-
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (step === 6 && connectionMethod && !evoConnected) {
+    if (step === 5 && connectionMethod && !evoConnected) {
       interval = setInterval(async () => {
         const res = await checkEvolutionConnectionState(tempId || undefined, activeInstanceName || undefined)
         if (res.connected) {
           setEvoConnected(true)
           clearInterval(interval)
-          // Automático a dashboard tras 1.5s
+          // Automático al paso de creación de cuenta tras 1.5s
           setTimeout(() => {
-            handleFinalize()
+            setStep(6)
           }, 1500)
         }
       }, 3000)
     }
     return () => clearInterval(interval)
   }, [step, connectionMethod, evoConnected, activeInstanceName])
+
+  useEffect(() => {
+    if (step === 5 && evoConnected) {
+      const timer = setTimeout(() => {
+        setStep(6)
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [step, evoConnected])
 
   const handleEvoConnect = async (method: "qr" | "code") => {
     setEvoLoading(true)
@@ -194,7 +287,7 @@ function OnboardingContent() {
       if (res.connected) {
         setEvoConnected(true)
         setTimeout(() => {
-          handleFinalize()
+          setStep(6)
         }, 1500)
       } else {
         if (method === "qr") setQrBase64(res.base64!)
@@ -431,7 +524,7 @@ function OnboardingContent() {
       }
     }))
 
-    setStep(4)
+    setStep(3)
   }
 
   // Leer errores de NextAuth en la URL (ej. OAuthAccountNotLinked o Configuration)
@@ -442,26 +535,19 @@ function OnboardingContent() {
     }
   }, [searchParams])
 
-  // Si está autenticado, redirigir al dashboard o avanzar a paso 1
+  // Si está autenticado, redirigir al dashboard si ya completó el onboarding
   useEffect(() => {
     if (status === "authenticated") {
-      // Si ya hay sesión, verificamos si completó el onboarding
       fetch("/api/check-onboarding")
         .then((r) => r.json())
         .then((data) => {
           if (data.completed) {
             router.push("/dashboard")
-          } else {
-            // Si está autenticado pero no tiene organización, forzamos permanencia en onboarding
-            // No avanzamos automáticamente al paso 1 si no queremos, pero aquí permitimos el paso 1-4
-            if (step === 0) setStep(1)
           }
         })
-        .catch(() => {
-          if (step === 0) setStep(1)
-        })
+        .catch(() => {})
     }
-  }, [status, router]) // Eliminamos dependency 'step' para evitar loops si forzamos step
+  }, [status, router])
 
 
   const toggleNeed = (id: string) => {
@@ -471,32 +557,6 @@ function OnboardingContent() {
         ? prev.needs.filter((n) => n !== id)
         : [...prev.needs, id],
     }))
-  }
-
-  const handleContinue = async () => {
-    setError("")
-
-    if (!isValidEmail(email)) {
-      setError("Por favor ingresa un correo válido.")
-      return
-    }
-    if (password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.")
-      return
-    }
-    if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.")
-      return
-    }
-
-    setIsLoading(true)
-    // YA NO REGISTRAMOS AQUÍ. Solo validamos y avanzamos.
-    // El registro ocurrirá al final junto con la creación de la organización.
-
-    // Verificamos disponibilidad de email (opcional, pero recomendado)
-    // Para simplificar, asumimos que es válido y seguimos.
-    setIsLoading(false)
-    setStep(1)
   }
 
   const validateAgentPhone = () => {
@@ -541,8 +601,25 @@ function OnboardingContent() {
 
   const handleFinalize = async () => {
     setIsLoading(true)
+    setError("")
 
     if (status === "unauthenticated") {
+      if (!isValidEmail(email)) {
+        setError("Por favor ingresa un correo válido.")
+        setIsLoading(false)
+        return
+      }
+      if (password.length < 8) {
+        setError("La contraseña debe tener al menos 8 caracteres.")
+        setIsLoading(false)
+        return
+      }
+      if (password !== confirmPassword) {
+        setError("Las contraseñas no coinciden.")
+        setIsLoading(false)
+        return
+      }
+
       // REGISTRO DIFERIDO + FINALIZACIÓN
       const result = await registerAndFinalizeOnboarding(
         { email, password },
@@ -566,7 +643,7 @@ function OnboardingContent() {
       })
     } else if (session?.user?.id) {
       // Ya autenticado (Google), solo finalizamos
-      await finalizeOnboarding({
+      const result = await finalizeOnboarding({
         userId: session.user.id,
         niche: formData.niche,
         needs: formData.needs,
@@ -574,10 +651,16 @@ function OnboardingContent() {
         products: formData.products,
         testPhone: formData.testPhone,
       })
+      if (result && "error" in result) {
+        setError(result.error as string)
+        setIsLoading(false)
+        return
+      }
     }
 
-    setIsLoading(false);
-    router.push("/dashboard");
+    clearOnboardingLocalStorage()
+    setIsLoading(false)
+    router.push("/dashboard")
   };
 
   return (
@@ -593,16 +676,16 @@ function OnboardingContent() {
         }}
       />
 
-      <div className={`relative z-10 w-full transition-all duration-500 ${step === 2 || step === 3 ? "max-w-2xl" : "max-w-md"}`}>
+      <div className={`relative z-10 w-full transition-all duration-500 ${step === 1 || step === 2 ? "max-w-2xl" : "max-w-md"}`}>
 
         {/* HEADER MINI */}
         <div className="mb-6 flex items-center justify-between">
           <div className="text-xs font-semibold tracking-wide text-[#1A1A1A]">
             Quantum OS
           </div>
-          {step > 0 && (
+          {step >= 0 && (
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
-              Paso {step}/6
+              Paso {step + 1}/7
             </div>
           )}
         </div>
@@ -611,12 +694,12 @@ function OnboardingContent() {
         <div className="border border-[#E2E8F0] bg-white rounded-xl shadow-sm relative overflow-hidden">
 
           {/* Barra de progreso superior */}
-          {step > 0 && (
+          {step >= 0 && (
             <div className="h-1 flex bg-[#F3F4F6] overflow-hidden">
               <motion.div 
                 className="h-full bg-[#1A1A1A]"
-                initial={{ width: "16.6%" }}
-                animate={{ width: `${(step / 6) * 100}%` }}
+                initial={{ width: "14.2%" }}
+                animate={{ width: `${((step + 1) / 7) * 100}%` }}
                 transition={{ duration: 0.6, ease: smoothEase }}
               />
             </div>
@@ -625,7 +708,7 @@ function OnboardingContent() {
           <div className="p-8">
             {/* Título */}
             <div className="mb-8 text-center flex flex-col gap-1 overflow-hidden">
-              {step !== 5 && step !== 6 && (
+              {step !== 6 && (
                 <motion.span 
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -643,19 +726,19 @@ function OnboardingContent() {
                   exit={{ opacity: 0, scale: 1.05 }}
                   className="text-2xl font-bold tracking-tight text-[#1A1A1A]"
                 >
-                  {step === 0 && "Crear una cuenta"}
-                  {step === 1 && "Sector del negocio"}
-                  {step === 2 && "Describe tu negocio"}
-                  {step === 3 && "Horarios de atención"}
-                  {step === 4 && "Sube tu menú"}
-                  {step === 5 && "Conexión del Agente IA"}
-                  {step === 6 && "Conecta tu WhatsApp"}
+                  {step === 0 && "Sector del negocio"}
+                  {step === 1 && "Describe tu negocio"}
+                  {step === 2 && "Horarios de atención"}
+                  {step === 3 && "Sube tu menú"}
+                  {step === 4 && "Conexión del Agente IA"}
+                  {step === 5 && "Conecta tu WhatsApp"}
+                  {step === 6 && "Crear una cuenta"}
                 </motion.h1>
               </AnimatePresence>
               <AnimatePresence mode="wait">
-                {step === 2 && (
+                {step === 1 && (
                   <motion.p
-                    key="step2-desc"
+                    key="step1-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -664,9 +747,9 @@ function OnboardingContent() {
                     Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
                   </motion.p>
                 )}
-                {step === 3 && (
+                {step === 2 && (
                   <motion.p
-                    key="step3-desc"
+                    key="step2-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -675,9 +758,9 @@ function OnboardingContent() {
                     Define los horarios de funcionamiento de tu negocio para que el asistente pueda responder e informar adecuadamente.
                   </motion.p>
                 )}
-                {step === 5 && (
+                {step === 4 && (
                   <motion.p
-                    key="step5-desc"
+                    key="step4-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -686,9 +769,9 @@ function OnboardingContent() {
                     Configura el número de teléfono desde el cual el agente interactuará con tus clientes.
                   </motion.p>
                 )}
-                {step === 6 && (
+                {step === 5 && (
                   <motion.p
-                    key="step6-desc"
+                    key="step5-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -701,117 +784,10 @@ function OnboardingContent() {
             </div>
 
             <AnimatePresence mode="wait">
-              {/* ── PASO 0: AUTH ── */}
-              {step === 0 && status === "unauthenticated" && (
+              {/* ── PASO 0: SELECCIÓN DE NODO CUÁNTICO ── */}
+              {step === 0 && (
                 <motion.div
                   key="step0"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="flex flex-col gap-4"
-                >
-                  <motion.div variants={itemVariants}>
-                    <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
-                      Correo electrónico
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="nombre@empresa.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
-                    />
-                  </motion.div>
-
-                  <AnimatePresence>
-                    {email.length > 2 && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="flex flex-col gap-4 overflow-hidden"
-                      >
-                        <div>
-                          <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
-                            Contraseña
-                          </label>
-                          <input
-                            type="password"
-                            placeholder="Mínimo 8 caracteres"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
-                            Confirmar Contraseña
-                          </label>
-                          <input
-                            type="password"
-                            placeholder="Repite tu contraseña"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {error && (
-                    <p className="text-xs text-red-600 font-medium bg-red-50 p-2 rounded-md">
-                      {error}
-                    </p>
-                  )}
-
-                  <motion.button
-                    variants={itemVariants}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={handleContinue}
-                    disabled={isLoading}
-                    className="w-full bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors disabled:opacity-50 mt-2 shadow-sm"
-                  >
-                    {isLoading ? "Procesando..." : "Crear cuenta y continuar"}
-                  </motion.button>
-
-                  <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-[#E2E8F0]" />
-                    </div>
-                    <div className="relative flex justify-center">
-                      <span className="bg-white px-4 text-xs font-medium text-[#94A3B8]">
-                        Continuar con
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => signIn("google", { callbackUrl: "/onboarding?step=1" })}
-                    className="w-full border border-[#E2E8F0] bg-white rounded-lg py-3 flex items-center justify-center gap-3 hover:bg-[#F9FAFB] transition-colors group shadow-sm"
-                  >
-                    <svg className="w-5 h-5 text-[#4B5563]" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    <span className="text-sm font-medium text-[#4B5563] group-hover:text-[#1A1A1A]">
-                      Google
-                    </span>
-                  </button>
-
-                  <p className="text-center text-xs text-[#6B7280] mt-2">
-                    ¿Ya tienes cuenta? <Link href="/login" className="text-[#1A1A1A] font-semibold hover:underline">Iniciar sesión</Link>
-                  </p>
-                </motion.div>
-              )}
-
-              {/* ── PASO 1: SELECCIÓN DE NODO CUÁNTICO ── */}
-              {step === 1 && (
-                <motion.div
-                  key="step1"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -890,7 +866,7 @@ function OnboardingContent() {
                   <motion.button
                     variants={itemVariants}
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(1)}
                     disabled={!formData.niche}
                     className="w-full py-4 text-sm font-bold transition-all rounded-xl mt-4 disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] shadow-lg shadow-black/10 flex items-center justify-center gap-2 group"
                   >
@@ -901,10 +877,10 @@ function OnboardingContent() {
               )}
 
 
-              {/* ── PASO 2: MEMORIA BASE ── */}
-              {step === 2 && (
+              {/* ── PASO 1: MEMORIA BASE ── */}
+              {step === 1 && (
                 <motion.div
-                  key="step2"
+                  key="step1"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -1022,13 +998,13 @@ function OnboardingContent() {
 
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
-                      onClick={() => setStep(1)}
+                      onClick={() => setStep(0)}
                       className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                     >
                       ← Atrás
                     </button>
                     <button
-                      onClick={() => setStep(3)}
+                      onClick={() => setStep(2)}
                       disabled={
                         !formData.contextData.companyName || 
                         !formData.contextData.description ||
@@ -1045,10 +1021,10 @@ function OnboardingContent() {
 
 
 
-              {/* ── PASO 3: HORARIOS DE ATENCIÓN ── */}
-              {step === 3 && (
+              {/* ── PASO 2: HORARIOS DE ATENCIÓN ── */}
+              {step === 2 && (
                 <motion.div
-                  key="step3"
+                  key="step2"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -1127,7 +1103,7 @@ function OnboardingContent() {
 
                         <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                           <button
-                            onClick={() => setStep(2)}
+                            onClick={() => setStep(1)}
                             className="w-full py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                           >
                             ← Atrás
@@ -1230,10 +1206,10 @@ function OnboardingContent() {
 
 
 
-              {/* ── PASO 4: CATÁLOGO / SERVICIOS ── */}
-              {step === 4 && (
+              {/* ── PASO 3: CATÁLOGO / SERVICIOS ── */}
+              {step === 3 && (
                 <motion.div
-                  key="step4"
+                  key="step3"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -1661,7 +1637,7 @@ function OnboardingContent() {
                         if (ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
-                          setStep(3)
+                          setStep(2)
                         }
                       }}
                       className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
@@ -1669,7 +1645,7 @@ function OnboardingContent() {
                       ← Atrás
                     </button>
                     <button
-                      onClick={() => setStep(5)}
+                      onClick={() => setStep(4)}
                       disabled={
                         ventasMethod === "choose" ||
                         (formData.niche === "ventas" && ventasMethod === "ai" && (!formData.contextData.menuImages || formData.contextData.menuImages.length === 0)) ||
@@ -1684,10 +1660,10 @@ function OnboardingContent() {
                 </motion.div>
               )}
 
-              {/* ── PASO 5: NÚMERO DE AGENTE ── */}
-              {step === 5 && (
+              {/* ── PASO 4: NÚMERO DE AGENTE ── */}
+              {step === 4 && (
                 <motion.div
-                  key="step5"
+                  key="step4"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -1734,25 +1710,33 @@ function OnboardingContent() {
                     )}
                   </motion.div>
 
-                  <motion.button
-                    variants={itemVariants}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => {
-                      if (validateAgentPhone()) {
-                        setStep(6);
-                      }
-                    }}
-                    className="w-full bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors mt-2 shadow-sm"
-                  >
-                    Conectar
-                  </motion.button>
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      onClick={() => setStep(3)}
+                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
+                    >
+                      ← Atrás
+                    </button>
+                    <motion.button
+                      variants={itemVariants}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => {
+                        if (validateAgentPhone()) {
+                          setStep(5);
+                        }
+                      }}
+                      className="flex-1 bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors shadow-sm"
+                    >
+                      Conectar
+                    </motion.button>
+                  </div>
                 </motion.div>
               )}
 
-              {/* ── PASO 6: QR + TEST ── */}
-              {step === 6 && (
+              {/* ── PASO 5: QR + TEST ── */}
+              {step === 5 && (
                 <motion.div
-                  key="step6"
+                  key="step5"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
@@ -1789,6 +1773,12 @@ function OnboardingContent() {
                             <span className="text-sm font-semibold text-[#1A1A1A]">Código Numérico</span>
                           </motion.button>
                         </div>
+                        <button
+                          onClick={() => setStep(4)}
+                          className="w-full py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform text-center"
+                        >
+                          ← Atrás
+                        </button>
                       </div>
                     )}
 
@@ -1808,7 +1798,7 @@ function OnboardingContent() {
                           </div>
                         ) : (
                           <div className="bg-white p-3 rounded-xl border border-[#E2E8F0] shadow-sm w-48 h-48">
-                            <img src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR" className="w-full h-full object-contain" style={{ filter: "grayscale(100%) contrast(500%)" }} />
+                            <img src={qrBase64.startsWith("data:") ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR" className="w-full h-full object-cover" style={{ filter: "grayscale(100%) contrast(500%)" }} />
                           </div>
                         )}
                         <span className="text-xs text-[#4B5563] text-center mt-3 leading-relaxed">
@@ -1869,11 +1859,165 @@ function OnboardingContent() {
                           <CheckCircle className="w-8 h-8 text-green-500" />
                         </motion.div>
                         <span className="text-sm font-bold text-green-800 text-center block mt-2">
-                          ¡Conexión Exitosa!
+                          ¡Conectado con éxito! Tu agente está listo
                         </span>
                       </motion.div>
                     )}
                   </div>
+                </motion.div>
+              )}
+
+              {/* ── PASO 6: CREAR CUENTA (AUTH AL FINAL) ── */}
+              {step === 6 && (
+                <motion.div
+                  key="step6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="flex flex-col gap-4"
+                >
+                  {status === "authenticated" ? (
+                    <div className="flex flex-col gap-5">
+                      <motion.div variants={itemVariants} className="text-center p-6 border border-green-200 bg-green-50 rounded-2xl flex flex-col items-center gap-3">
+                        <CheckCircle className="w-12 h-12 text-green-500" fill="white" />
+                        <span className="text-base font-bold text-green-800">Sesión iniciada con éxito</span>
+                        <p className="text-xs text-green-700 leading-relaxed">
+                          Has iniciado sesión como <strong>{session?.user?.email}</strong>. Todo está listo para configurar tu cuenta.
+                        </p>
+                      </motion.div>
+
+                      {error && (
+                        <p className="text-xs text-red-600 font-medium bg-red-50 p-2 rounded-md">
+                          {error}
+                        </p>
+                      )}
+
+                      <div className="flex gap-3 pt-4 border-t border-[#E2E8F0]">
+                        <button
+                          onClick={() => setStep(5)}
+                          disabled={isLoading}
+                          className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
+                        >
+                          ← Atrás
+                        </button>
+                        <button
+                          onClick={handleFinalize}
+                          disabled={isLoading}
+                          className="flex-1 py-3 text-sm font-bold transition-all rounded-xl disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] shadow-lg shadow-black/10 flex items-center justify-center gap-2 group"
+                        >
+                          {isLoading ? "Finalizando..." : "Finalizar y entrar al Dashboard"}
+                          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      <motion.div variants={itemVariants}>
+                        <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
+                          Correo electrónico
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="nombre@empresa.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
+                        />
+                      </motion.div>
+
+                      <AnimatePresence>
+                        {email.length > 2 && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="flex flex-col gap-4 overflow-hidden"
+                          >
+                            <div>
+                              <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
+                                Contraseña
+                              </label>
+                              <input
+                                type="password"
+                                placeholder="Mínimo 8 caracteres"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-[#4B5563] mb-1.5">
+                                Confirmar Contraseña
+                              </label>
+                              <input
+                                type="password"
+                                placeholder="Repite tu contraseña"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full bg-[#FBFBFA] border border-[#E2E8F0] rounded-lg p-3 text-sm focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all text-[#1A1A1A]"
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {error && (
+                        <p className="text-xs text-red-600 font-medium bg-red-50 p-2 rounded-md">
+                          {error}
+                        </p>
+                      )}
+
+                      <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                        <button
+                          onClick={() => setStep(5)}
+                          disabled={isLoading}
+                          className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
+                        >
+                          ← Atrás
+                        </button>
+                        <motion.button
+                          variants={itemVariants}
+                          whileTap={{ scale: 0.96 }}
+                          onClick={handleFinalize}
+                          disabled={isLoading}
+                          className="flex-1 bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors disabled:opacity-50 shadow-sm"
+                        >
+                          {isLoading ? "Creando cuenta..." : "Crear cuenta y finalizar"}
+                        </motion.button>
+                      </div>
+
+                      <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-[#E2E8F0]" />
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="bg-white px-4 text-xs font-medium text-[#94A3B8]">
+                            O continuar con
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => signIn("google", { callbackUrl: "/onboarding?step=6" })}
+                        className="w-full border border-[#E2E8F0] bg-white rounded-lg py-3 flex items-center justify-center gap-3 hover:bg-[#F9FAFB] transition-colors group shadow-sm"
+                      >
+                        <svg className="w-5 h-5 text-[#4B5563]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                        <span className="text-sm font-medium text-[#4B5563] group-hover:text-[#1A1A1A]">
+                          Google
+                        </span>
+                      </button>
+
+                      <p className="text-center text-xs text-[#6B7280] mt-2">
+                        ¿Ya tienes cuenta? <Link href="/login" className="text-[#1A1A1A] font-semibold hover:underline">Iniciar sesión</Link>
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
