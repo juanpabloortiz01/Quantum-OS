@@ -8,72 +8,80 @@
  * ─────────────────────────────────────────────────
  */
 
-const DEBOUNCE_MS = 2500 // 2.5 segundos de silencio = idea completa
+import { ParsedMessage } from "./logic-filter"
+
+const DEBOUNCE_MS = 3500 // 3.5 segundos de silencio para asegurar una idea completa
 
 interface PendingBatch {
-  messages: string[]       // Textos acumulados (solo texto, imágenes pasan directo)
-  timer: ReturnType<typeof setTimeout>
-  resolve: (combined: string) => void
+  messages: ParsedMessage[]       // Mensajes acumulados
+  timer: NodeJS.Timeout
 }
 
 // Store en memoria por JID (número de WhatsApp)
 const pending = new Map<string, PendingBatch>()
 
 /**
- * Recibe un mensaje de texto y espera DEBOUNCE_MS milisegundos de silencio.
- * Si llegan más mensajes del mismo JID durante ese tiempo, los acumula.
- * Cuando el silencio cumple, resuelve con todos los mensajes concatenados.
- *
- * Mensajes que NO son texto (imagen, ubicación) se pasan inmediatamente
- * sin debounce para no bloquear el flujo multimedia.
+ * Agrupa mensajes rápidos de texto del mismo cliente.
+ * Los mensajes de tipo multimedia (imagen, ubicación, etc.) se envían inmediatamente.
  */
-export function debounceMessage(
-  jid: string,
-  text: string,
-  messageType: "text" | "image" | "location"
-): Promise<string> {
-  // Imágenes y ubicaciones no hacen debounce — pasan directo
-  if (messageType !== "text") {
-    return Promise.resolve(text)
+export function bufferMessage(
+  msg: ParsedMessage,
+  callback: (combinedMsg: ParsedMessage) => void
+): void {
+  const jid = msg.remoteJid
+
+  // Si no es texto (por ejemplo, imagen o ubicación), se procesa de inmediato sin esperar
+  if (msg.messageType !== "text") {
+    console.log(`[DEBOUNCER]: JID ${jid} → Mensaje multimedia/no-texto, procesando inmediatamente.`)
+    callback(msg)
+    return
   }
 
-  return new Promise((resolve) => {
-    const existing = pending.get(jid)
+  const existing = pending.get(jid)
 
-    if (existing) {
-      // Cancelar el timer anterior y acumular el mensaje
-      clearTimeout(existing.timer)
-      existing.messages.push(text)
+  if (existing) {
+    // Cancelar el temporizador anterior y acumular el nuevo mensaje
+    clearTimeout(existing.timer)
+    existing.messages.push(msg)
 
-      // Arrancar nuevo timer con la promesa ORIGINAL
-      existing.timer = setTimeout(() => {
-        const combined = existing.messages.join("\n")
-        console.log(`[DEBOUNCER]: JID ${jid} → ${existing.messages.length} mensajes combinados: "${combined.slice(0, 80)}..."`)
+    // Iniciar un nuevo temporizador
+    existing.timer = setTimeout(() => {
+      const batch = pending.get(jid)
+      if (batch) {
         pending.delete(jid)
-        existing.resolve(combined)
-        // La promesa actual NO necesita resolverse — se resuelve mediante la original
-      }, DEBOUNCE_MS)
+        const combinedText = batch.messages.map(m => m.text).filter(Boolean).join("\n")
+        console.log(`[DEBOUNCER]: JID ${jid} → ${batch.messages.length} mensajes combinados: "${combinedText.slice(0, 80)}..."`)
 
-      // Esta promesa nunca resuelve (la original resuelve para todos)
-      // Si necesitamos que cada llamada resuelva independientemente,
-      // la encadenamos a la batch:
-      existing.resolve = (combined) => resolve(combined)
-    } else {
-      // Primera vez — crear nuevo batch
-      const batch: PendingBatch = {
-        messages: [text],
-        timer: setTimeout(() => {}, 0), // placeholder
-        resolve,
+        // Usar el último mensaje como base para el timestamp y metadatos, pero con el texto combinado
+        const combinedMsg: ParsedMessage = {
+          ...batch.messages[batch.messages.length - 1],
+          text: combinedText
+        }
+        callback(combinedMsg)
       }
-
-      batch.timer = setTimeout(() => {
-        const combined = batch.messages.join("\n")
-        console.log(`[DEBOUNCER]: JID ${jid} → ${batch.messages.length} mensaje(s): "${combined.slice(0, 80)}"`)
-        pending.delete(jid)
-        resolve(combined)
-      }, DEBOUNCE_MS)
-
-      pending.set(jid, batch)
+    }, DEBOUNCE_MS)
+  } else {
+    // Primer mensaje en el batch, crear nueva cola
+    const batch: PendingBatch = {
+      messages: [msg],
+      timer: setTimeout(() => {}, 0) // placeholder
     }
-  })
+
+    batch.timer = setTimeout(() => {
+      const currentBatch = pending.get(jid)
+      if (currentBatch) {
+        pending.delete(jid)
+        const combinedText = currentBatch.messages.map(m => m.text).filter(Boolean).join("\n")
+        console.log(`[DEBOUNCER]: JID ${jid} → 1 mensaje: "${combinedText.slice(0, 80)}"`)
+
+        const combinedMsg: ParsedMessage = {
+          ...currentBatch.messages[currentBatch.messages.length - 1],
+          text: combinedText
+        }
+        callback(combinedMsg)
+      }
+    }, DEBOUNCE_MS)
+
+    pending.set(jid, batch)
+  }
 }
