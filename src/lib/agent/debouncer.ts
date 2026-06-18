@@ -10,7 +10,7 @@
 
 import { ParsedMessage } from "./logic-filter"
 
-const DEBOUNCE_MS = 3500 // 3.5 segundos de silencio para asegurar una idea completa
+const DEBOUNCE_MS = 7000 // 7 segundos de silencio para asegurar una idea completa
 
 interface PendingBatch {
   messages: ParsedMessage[]       // Mensajes acumulados
