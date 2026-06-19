@@ -63,16 +63,16 @@ export default function QuantumHero() {
       <div className="absolute bottom-6 right-6 w-12 h-12 border-b border-r border-[#E2E8F0] pointer-events-none z-10" />
 
       {/* ── CONTENIDO PRINCIPAL ── */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center px-6 sm:px-12 md:px-24 py-12 md:py-24 w-full max-w-[1400px] mx-auto">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center px-6 sm:px-12 md:px-24 pt-24 pb-12 md:py-24 w-full max-w-[1400px] mx-auto">
 
         {/* LEFT SIDE */}
-        <div className="flex flex-col items-start text-left w-full">
+        <div className="flex flex-col items-center text-center lg:items-start lg:text-left w-full">
           
           {/* HEADLINE PRINCIPAL */}
-          <div className="w-full flex flex-col items-start justify-start">
+          <div className="w-full flex flex-col items-center justify-center lg:items-start lg:justify-start">
             <LayoutGroup>
               <motion.div
-                className="flex flex-col items-start gap-2 sm:gap-3"
+                className="flex flex-col items-center lg:items-start gap-2 sm:gap-3"
                 layout
               >
                 <motion.h1
@@ -89,7 +89,7 @@ export default function QuantumHero() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, type: "spring", damping: 30 }}
-                  className="flex flex-row items-center justify-start gap-2 sm:gap-4 text-3xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-none"
+                  className="flex flex-row items-center justify-center lg:justify-start gap-2 sm:gap-4 text-3xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-none"
                   layout
                 >
                   <span className="text-[#94A3B8]">Más</span>
@@ -121,9 +121,9 @@ export default function QuantumHero() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="mt-8 sm:mt-12 flex flex-col xl:flex-row items-start xl:items-center gap-6 relative z-20 w-full"
+            className="mt-6 lg:mt-12 flex flex-col lg:flex-row items-center lg:items-center gap-6 relative z-20 w-full justify-center lg:justify-start"
           >
-            <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+            <div className="w-full sm:w-auto shrink-0 order-2 lg:order-1">
               <Link 
                 href={status === "authenticated" ? "/dashboard" : "/onboarding"} 
                 className="w-full sm:w-auto px-8 py-4 bg-[#1A1A1A] text-white text-sm font-medium hover:bg-[#333333] transition-colors duration-300 rounded-lg shadow-md border border-transparent text-center flex justify-center items-center"
@@ -132,7 +132,7 @@ export default function QuantumHero() {
               </Link>
             </div>
 
-            <p className="text-sm sm:text-base text-[#4B5563] leading-relaxed max-w-sm xl:border-l xl:border-[#E2E8F0] xl:pl-6">
+            <p className="text-sm sm:text-base text-[#4B5563] leading-relaxed max-w-sm order-1 lg:order-2 lg:border-l lg:border-[#E2E8F0] lg:pl-6 text-center lg:text-left">
               Configura en minutos un Agente de Ventas en WhatsApp con IA.
             </p>
           </motion.div>
