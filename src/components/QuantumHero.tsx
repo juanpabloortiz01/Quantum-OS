@@ -79,7 +79,7 @@ export default function QuantumHero() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3, type: "spring", damping: 30 }}
-                  className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight text-[#1A1A1A] leading-none"
+                  className="text-3xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight text-[#1A1A1A] leading-none"
                   layout
                 >
                   Menos caos.
@@ -89,7 +89,7 @@ export default function QuantumHero() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, type: "spring", damping: 30 }}
-                  className="flex flex-col sm:flex-row items-center justify-start gap-3 sm:gap-4 text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-none"
+                  className="flex flex-row items-center justify-start gap-2 sm:gap-4 text-3xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-none"
                   layout
                 >
                   <span className="text-[#94A3B8]">Más</span>
@@ -101,7 +101,7 @@ export default function QuantumHero() {
                       "Claridad",
                       "Ingresos",
                     ]}
-                    mainClassName="text-[#1A1A1A] px-4 sm:px-5 md:px-6 bg-white border border-[#E2E8F0] shadow-sm overflow-hidden py-1 sm:py-2 justify-center rounded-xl"
+                    mainClassName="text-[#1A1A1A] px-3 sm:px-5 md:px-6 bg-white border border-[#E2E8F0] shadow-sm overflow-hidden py-0.5 sm:py-2 justify-center rounded-xl flex-nowrap whitespace-nowrap"
                     staggerFrom="last"
                     initial={{ y: "100%", opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -121,7 +121,7 @@ export default function QuantumHero() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="mt-12 flex flex-col xl:flex-row items-start xl:items-center gap-6 relative z-20 w-full"
+            className="mt-8 sm:mt-12 flex flex-col xl:flex-row items-start xl:items-center gap-6 relative z-20 w-full"
           >
             <div className="flex flex-col sm:flex-row gap-4 shrink-0">
               <Link 
