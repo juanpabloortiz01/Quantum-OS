@@ -459,13 +459,13 @@ const DashboardContent = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8 overflow-hidden font-sans selection:bg-gray-200">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-100 p-3 md:p-8 pb-20 md:pb-8 overflow-hidden font-sans selection:bg-gray-200">
       
       {/* Sidebar Menu */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="fixed top-8 left-8 flex flex-col gap-6 z-50"
+        className="fixed top-8 left-8 hidden md:flex flex-col gap-6 z-50"
       >
         {menuItems.map((item, idx) => (
           <motion.button
@@ -523,8 +523,37 @@ const DashboardContent = () => {
         </motion.button>
       </motion.div>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-200 shadow-lg safe-area-inset-bottom">
+        {menuItems.map((item) => (
+          <button
+            key={item.view}
+            onClick={() => setActiveView(item.view)}
+            className={cn(
+              "flex-1 flex flex-col items-center justify-center py-2.5 gap-1 relative transition-colors",
+              activeView === item.view ? "text-gray-900" : "text-gray-400"
+            )}
+          >
+            <item.icon className="w-5 h-5" strokeWidth={1.5} />
+            <span className="text-[8px] font-bold uppercase tracking-tight leading-none">{item.label.split(' ')[0]}</span>
+            {item.badge > 0 && (
+              <span className="absolute top-1.5 right-[calc(50%-14px)] min-w-[14px] h-3.5 bg-orange-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center px-0.5">
+                {item.badge > 9 ? "9+" : item.badge}
+              </span>
+            )}
+          </button>
+        ))}
+        <button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-gray-400 hover:text-rose-500 transition-colors"
+        >
+          <LogOut className="w-5 h-5" strokeWidth={1.5} />
+          <span className="text-[8px] font-bold uppercase tracking-tight leading-none">Salir</span>
+        </button>
+      </nav>
+
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto pt-10">
+      <div className="max-w-7xl mx-auto pt-4 md:pt-10">
         <AnimatePresence mode="wait">
           {activeView === "modules" && (
             <motion.div
@@ -536,7 +565,7 @@ const DashboardContent = () => {
               className="space-y-8"
             >
               {/* Header */}
-              <div className="text-center mb-16">
+              <div className="text-center mb-8 md:mb-16">
                 <motion.div 
                    initial={{ opacity: 0, scale: 0.9 }}
                    animate={{ opacity: 1, scale: 1 }}
@@ -544,10 +573,10 @@ const DashboardContent = () => {
                 >
                    Estación Operativa • {niche}
                 </motion.div>
-                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+                <h1 className="text-3xl md:text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
                   AGENTE
                 </h1>
-                <p className="text-gray-500 font-light text-lg">
+                <p className="text-gray-500 font-light text-base md:text-lg">
                   Activa capacidades y sincroniza el comportamiento de la IA.
                 </p>
               </div>
@@ -582,7 +611,7 @@ const DashboardContent = () => {
                       module.id === "reservations" && getHighlightClass("module-reservations")
                     )}
                   >
-                    <div className="p-8">
+                    <div className="p-5 md:p-8">
                       <div className="flex items-start justify-between mb-8">
                         <div className={cn(
                           "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
@@ -680,7 +709,7 @@ const DashboardContent = () => {
               {/* Header */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                 <div>
-                  <h1 className="text-4xl font-semibold text-gray-900 tracking-tight uppercase italic">
+                  <h1 className="text-2xl md:text-4xl font-semibold text-gray-900 tracking-tight uppercase italic">
                     Reservaciones
                   </h1>
                   <p className="text-gray-500 font-light mt-1">
@@ -763,8 +792,8 @@ const DashboardContent = () => {
                   getHighlightClass("reservations-view")
                 )}>
                   <div className="grid grid-cols-7 gap-2 mb-4">
-                    {["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"].map((dayName) => (
-                      <div key={dayName} className="text-center text-xs font-bold text-gray-400 py-2">
+                    {["D", "L", "M", "M", "J", "V", "S"].map((dayName) => (
+                      <div key={dayName} className="text-center text-[10px] font-bold text-gray-400 py-2">
                         {dayName}
                       </div>
                     ))}
@@ -797,23 +826,24 @@ const DashboardContent = () => {
                             setCalendarViewMode("day");
                           }}
                           className={cn(
-                            "min-h-[6rem] p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-300",
+                            "h-12 md:min-h-[6rem] p-1 md:p-3 rounded-xl md:rounded-2xl border text-left flex flex-col justify-between transition-all duration-300",
                             cell.isCurrentMonth ? "bg-white/50 border-gray-100 hover:border-gray-300" : "bg-gray-50/20 border-transparent text-gray-400",
                             isSelected && "border-gray-900 bg-gray-50/50 shadow-sm"
                           )}
                         >
                           <span className={cn(
-                            "text-sm font-semibold",
+                            "text-xs md:text-sm font-semibold",
                             isSelected && "text-gray-900 underline decoration-2 decoration-gray-900"
                           )}>
                             {cell.date.getDate()}
                           </span>
 
                           {dayRes.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-                                {dayRes.length} {dayRes.length === 1 ? "reserva" : "reservas"}
+                            <div className="md:mt-2 space-y-1">
+                              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                                {dayRes.length}
                               </span>
+                              <div className="md:hidden w-1.5 h-1.5 rounded-full bg-blue-500 mx-auto" />
                             </div>
                           )}
                         </button>
@@ -830,14 +860,14 @@ const DashboardContent = () => {
                   getHighlightClass("reservations-view")
                 )}>
                   <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      Horario de Reserva: {selectedCalendarDay.toLocaleDateString("es-EC", { weekday: "long", day: "numeric", month: "long" })}
+                    <h2 className="text-lg md:text-xl font-semibold text-gray-900 truncate pr-2">
+                      {selectedCalendarDay.toLocaleDateString("es-EC", { weekday: "short", day: "numeric", month: "short" })}
                     </h2>
                     <button
                       onClick={() => setCalendarViewMode("month")}
-                      className="text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors"
+                      className="text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors whitespace-nowrap"
                     >
-                      Volver a Vista Mensual
+                      Volver
                     </button>
                   </div>
 
@@ -894,12 +924,12 @@ const DashboardContent = () => {
                       return (
                         <div key={hour} className="flex gap-4 min-h-[5rem] group">
                           {/* Hour Label */}
-                          <div className="w-16 flex-shrink-0 text-right text-xs font-bold text-gray-400 pt-1">
+                          <div className="w-12 md:w-16 flex-shrink-0 text-right text-[10px] md:text-xs font-bold text-gray-400 pt-1">
                             {displayHour}
                           </div>
 
                           {/* Reservation Cards in Row */}
-                          <div className="flex-1 bg-white/30 border border-gray-100 rounded-2xl p-4 flex flex-wrap gap-4 items-center">
+                          <div className="flex-1 bg-white/30 border border-gray-100 rounded-2xl p-2 md:p-4 flex flex-wrap gap-4 items-center">
                             {hourRes.length === 0 ? (
                               <span className="text-xs font-light text-gray-400 italic">Disponible</span>
                             ) : (
@@ -907,45 +937,24 @@ const DashboardContent = () => {
                                 <div
                                   key={res.id}
                                   className={cn(
-                                    "p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 flex-1 min-w-[280px] shadow-sm",
+                                    "p-3 rounded-xl border flex flex-col gap-2 flex-1 min-w-0 shadow-sm",
                                     res.estado === "confirmado" && "bg-emerald-50/50 border-emerald-100 text-emerald-950",
                                     res.estado === "pendiente_aprobacion" && "bg-amber-50/50 border-amber-200 text-amber-950 animate-pulse-subtle",
                                     res.estado === "reagendado" && "bg-purple-50/50 border-purple-200 text-purple-950",
                                     res.estado === "cancelado" && "bg-rose-50/50 border-rose-100 text-rose-950 opacity-60"
                                   )}
                                 >
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                      <span className="font-semibold text-sm">
+                                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-sm truncate">
                                         {res.cliente_nombre}
                                       </span>
-                                      <span className="text-xs font-light opacity-80">
-                                        ({res.cliente_id})
-                                      </span>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                                    <div className="flex flex-wrap items-center gap-2 text-[10px] md:text-xs">
                                       <span className="inline-flex items-center gap-1 opacity-90">
-                                        <Users className="w-3.5 h-3.5" />
-                                        {res.cantidad_personas} {res.cantidad_personas === 1 ? "persona" : "personas"}
+                                        <Users className="w-3 h-3" />
+                                        {res.cantidad_personas}
                                       </span>
-                                      <span className="opacity-90">
-                                        Hora: {new Date(res.fecha_hora_deseada).toLocaleTimeString("es-EC", {
-                                          timeZone: "America/Guayaquil",
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                          hour12: false
-                                        })}
-                                      </span>
-                                      {res.estado === "reagendado" && res.propuesta_alternativa && (
-                                        <span className="text-[10px] font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded border border-purple-200">
-                                          Propuesta: {new Date(res.propuesta_alternativa).toLocaleTimeString("es-EC", {
-                                            timeZone: "America/Guayaquil",
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            hour12: false
-                                          })}
-                                        </span>
-                                      )}
                                       <span className={cn(
                                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
                                         res.estado === "confirmado" && "bg-emerald-100 text-emerald-800",
@@ -958,26 +967,18 @@ const DashboardContent = () => {
                                     </div>
                                   </div>
 
-                                  {/* Actions and Delete Button */}
-                                  <div className="flex items-center gap-2 self-end md:self-auto relative">
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-2 mt-2">
                                     {["pendiente_aprobacion", "reagendado"].includes(res.estado) && (
                                       <>
                                         <button
                                           onClick={async () => {
-                                            if (res.id === "mock-res-id") {
-                                              setMockResStatus("confirmado");
-                                              return;
-                                            }
                                             const updateRes = await updateReservationStatus(res.id, "confirmado");
-                                            if (updateRes.success) {
-                                              await fetchAndSetReservations();
-                                            } else {
-                                              alert(updateRes.error || "Error al aceptar");
-                                            }
+                                            if (updateRes.success) await fetchAndSetReservations();
                                           }}
-                                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+                                          className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-semibold hover:bg-emerald-700 transition-colors"
                                         >
-                                          Aceptar Mesa
+                                          Aceptar
                                         </button>
                                         
                                         <button
@@ -986,59 +987,22 @@ const DashboardContent = () => {
                                               activeReservationForAlternative === res.id ? null : res.id
                                             );
                                           }}
-                                          className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 transition-colors shadow-sm"
+                                          className="p-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                                         >
-                                          Proponer Alternativa
+                                          <Calendar className="w-3.5 h-3.5" />
                                         </button>
-
-                                        {/* Dropdown for alternative times */}
-                                        {activeReservationForAlternative === res.id && (
-                                          <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 p-2 space-y-1">
-                                            <div className="text-[10px] text-gray-400 font-bold uppercase p-2 border-b border-gray-50 mb-1">Horas más tarde:</div>
-                                            {[1, 1.5, 2, 2.5].map((hours) => (
-                                              <button
-                                                key={hours}
-                                                onClick={() => {
-                                                  if (res.id === "mock-res-id") {
-                                                    const originalDate = new Date(res.fecha_hora_deseada);
-                                                    const altDate = new Date(originalDate.getTime() + hours * 60 * 60 * 1000);
-                                                    setMockResStatus("reagendado");
-                                                    setMockResAlternative(altDate.toISOString());
-                                                    setActiveReservationForAlternative(null);
-                                                    return;
-                                                  }
-                                                  handleProposeAlternative(res.id, res.fecha_hora_deseada, hours);
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                              >
-                                                {hours === 1 ? "+1 hora" : `+${hours} horas`}
-                                              </button>
-                                            ))}
-                                          </div>
-                                        )}
                                       </>
                                     )}
-
                                     <button
                                       onClick={async () => {
-                                        if (res.id === "mock-res-id") {
-                                          setMockResStatus("pendiente_aprobacion");
-                                          setMockResAlternative(null);
-                                          return;
-                                        }
-                                        if (confirm("¿Estás seguro de que deseas eliminar esta reservación?")) {
+                                        if (confirm("¿Eliminar?")) {
                                           const deleteRes = await deleteReservation(res.id);
-                                          if (deleteRes.success) {
-                                            await fetchAndSetReservations();
-                                          } else {
-                                            alert(deleteRes.error || "Error al eliminar");
-                                          }
+                                          if (deleteRes.success) await fetchAndSetReservations();
                                         }
                                       }}
-                                      className="p-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg hover:bg-rose-100 transition-colors shadow-sm"
-                                      title="Eliminar reservación"
+                                      className="p-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg hover:bg-rose-100"
                                     >
-                                      <X className="w-4 h-4" />
+                                      <X className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
                                 </div>
@@ -1063,11 +1027,11 @@ const DashboardContent = () => {
               transition={{ duration: 0.4 }}
               className="space-y-8 max-w-4xl mx-auto"
             >
-              <div className="text-center mb-16">
-                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+              <div className="text-center mb-8 md:mb-16">
+                <h1 className="text-3xl md:text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
                   CLIENTES
                 </h1>
-                <p className="text-gray-500 font-light text-lg">
+                <p className="text-gray-500 font-light text-base md:text-lg">
                   Clientes detectados por la IA en tiempo real.
                 </p>
               </div>
@@ -1081,18 +1045,18 @@ const DashboardContent = () => {
                     transition={{ delay: idx * 0.1 }}
                     onClick={() => setSelectedLead(lead)}
                     className={cn(
-                      "rounded-3xl backdrop-blur-xl bg-white/60 border border-white/80 p-6 cursor-pointer",
+                      "rounded-3xl backdrop-blur-xl bg-white/60 border border-white/80 p-4 md:p-6 cursor-pointer",
                       "shadow-[inset_2px_2px_8px_rgba(255,255,255,0.6),inset_-2px_-2px_8px_rgba(0,0,0,0.05)]",
                       "hover:bg-white/90 transition-all duration-300 hover:shadow-lg group"
                     )}
                   >
-                    <div className="flex items-center justify-between gap-6">
+                    <div className="flex items-center justify-between gap-3 md:gap-6">
                       <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-gray-900 group-hover:text-white transition-all duration-500">
                          <UserCircle className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-4 mb-1">
-                          <span className="text-xl font-semibold text-gray-900">
+                          <span className="text-base md:text-xl font-semibold text-gray-900">
                             {lead.name} {lead.phone && <span className="text-sm font-light text-gray-400">({lead.phone.split('@')[0]})</span>}
                           </span>
                         </div>
@@ -1110,26 +1074,18 @@ const DashboardContent = () => {
                         onClick={(e) => handleToggleAgent(e, lead)}
                       >
                         <div className={cn(
-                          "relative w-12 h-6 rounded-full transition-all duration-300 cursor-pointer shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
+                          "relative w-10 h-5 md:w-12 md:h-6 rounded-full transition-all duration-300 cursor-pointer shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
                           (lead.agentActive ?? true) ? "bg-gray-900" : "bg-gray-300"
                         )}>
                           <motion.div
-                            animate={{ x: (lead.agentActive ?? true) ? 24 : 2 }}
+                            animate={{ x: (lead.agentActive ?? true) ? 20 : 2 }}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             className={cn(
-                              "absolute top-1 w-4 h-4 rounded-full shadow-md",
+                              "absolute top-1 w-3 h-3 md:w-4 md:h-4 rounded-full shadow-md",
                               (lead.agentActive ?? true) ? "bg-white" : "bg-gray-100"
                             )}
                           />
                         </div>
-                        <span className="text-[10px] text-gray-400 font-bold uppercase mt-2">
-                          {(lead.agentActive ?? true) ? "IA ACTIVA" : "SOPORTE"}
-                        </span>
-                      </div>
-
-                      <div className="text-right border-l border-gray-200 pl-6">
-                         <div className="text-sm font-bold text-gray-900">{lead.trustScore}%</div>
-                         <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">Trust Score</div>
                       </div>
                     </div>
                   </motion.div>
@@ -1147,11 +1103,11 @@ const DashboardContent = () => {
               transition={{ duration: 0.4 }}
               className="space-y-8 max-w-4xl mx-auto"
             >
-              <div className="text-center mb-16">
-                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+              <div className="text-center mb-8 md:mb-16">
+                <h1 className="text-3xl md:text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
                   EQUIPO
                 </h1>
-                <p className="text-gray-500 font-light text-lg">
+                <p className="text-gray-500 font-light text-base md:text-lg">
                   Conexiones activas y escalamiento.
                 </p>
               </div>
@@ -1226,11 +1182,11 @@ const DashboardContent = () => {
               transition={{ duration: 0.4 }}
               className="space-y-8 max-w-2xl mx-auto"
             >
-              <div className="text-center mb-16">
-                <h1 className="text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
+              <div className="text-center mb-8 md:mb-16">
+                <h1 className="text-3xl md:text-5xl font-semibold text-gray-900 mb-4 tracking-tight uppercase italic">
                   AJUSTES
                 </h1>
-                <p className="text-gray-500 font-light text-lg">
+                <p className="text-gray-500 font-light text-base md:text-lg">
                   Parámetros técnicos de la organización.
                 </p>
               </div>
@@ -1279,16 +1235,16 @@ const DashboardContent = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-4xl bg-white/90 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl relative"
+                className="w-full max-w-4xl bg-white/90 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto"
               >
                 {/* Header */}
-                <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
+                <div className="px-4 md:px-8 py-4 md:py-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400">
                       <UserCircle className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-semibold text-gray-900 leading-tight">
+                      <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight">
                         {selectedLead.name}
                       </h3>
                       <p className="text-sm font-light text-gray-500">
@@ -1298,12 +1254,7 @@ const DashboardContent = () => {
                   </div>
                   
                   <div className="flex items-center gap-6">
-                    <span className={cn(
-                      "px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase shadow-sm border",
-                      ["VENTAS", "CONSULTA_PRODUCTO", "PAGO"].includes(selectedLead.intent) && "bg-gray-900 text-white border-gray-900",
-                      ["INFO_NEGOCIO", "AGENDAMIENTO"].includes(selectedLead.intent) && "bg-white text-gray-700 border-gray-200",
-                      ["SOPORTE", "UNKNOWN", "SALUDO"].includes(selectedLead.intent) && "bg-gray-100 text-gray-800 border-gray-300"
-                    )}>
+                    <span className="hidden md:block px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase shadow-sm border bg-gray-900 text-white border-gray-900">
                       {selectedLead.intent}
                     </span>
                     
@@ -1317,7 +1268,7 @@ const DashboardContent = () => {
                 </div>
 
                 {/* Content: Two columns */}
-                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 bg-gradient-to-br from-white/40 to-gray-50/40">
+                <div className="p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 bg-gradient-to-br from-white/40 to-gray-50/40">
                   {/* Left Column: Histórico */}
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">

@@ -22,7 +22,7 @@ export async function chatWithAgent(messages: any[], type: "Ventas" | "Agenda") 
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: groqMessages as any,
-      model: "llama3-8b-8192", // Standard groq model, can adjust if needed
+      model: "llama-3.1-8b-instant",
       temperature: 0.7,
       max_tokens: 1024,
     });
@@ -30,6 +30,6 @@ export async function chatWithAgent(messages: any[], type: "Ventas" | "Agenda") 
     return chatCompletion.choices[0]?.message?.content || "Lo siento, no pude procesar tu mensaje.";
   } catch (error) {
     console.error("Error calling Groq:", error);
-    throw new Error("Failed to communicate with AI agent.");
+    return "Lo siento, hubo un problema al conectar con el agente. Por favor intenta de nuevo.";
   }
 }

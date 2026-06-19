@@ -33,6 +33,11 @@ export default function QuantumHero() {
       }])
     } catch (e) {
       console.error(e)
+      setMessages([...newMessages, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        parts: [{ type: "text", text: "Lo siento, hubo un problema al conectar con el agente. Por favor intenta de nuevo." }]
+      }])
     } finally {
       setChatStatus("ready")
     }
@@ -58,7 +63,7 @@ export default function QuantumHero() {
       <div className="absolute bottom-6 right-6 w-12 h-12 border-b border-r border-[#E2E8F0] pointer-events-none z-10" />
 
       {/* ── CONTENIDO PRINCIPAL ── */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center px-6 sm:px-12 md:px-24 py-24 w-full max-w-[1400px] mx-auto">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center px-6 sm:px-12 md:px-24 py-12 md:py-24 w-full max-w-[1400px] mx-auto">
 
         {/* LEFT SIDE */}
         <div className="flex flex-col items-start text-left w-full">
@@ -142,7 +147,7 @@ export default function QuantumHero() {
           transition={{ delay: 0.6, duration: 0.6 }}
           className="w-full flex justify-center lg:justify-end"
         >
-          <div className="w-full max-w-lg h-[550px] flex flex-col border border-[#E2E8F0] rounded-2xl bg-[#FAFAFA] shadow-2xl overflow-hidden relative z-20">
+          <div className="w-full max-w-lg h-[420px] sm:h-[500px] md:h-[550px] flex flex-col border border-[#E2E8F0] rounded-2xl bg-[#FAFAFA] shadow-2xl overflow-hidden relative z-20">
             {/* HEADER */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#E2E8F0] bg-white">
               <div className="flex items-center gap-2">
