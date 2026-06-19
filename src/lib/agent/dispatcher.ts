@@ -213,21 +213,18 @@ export async function runDispatcher(
         const { cliente_nombre, cantidad_personas, fecha_hora_deseada } = coreResult.solicitarReserva
 
         let fechaHora: Date
-        const dateMatch = fecha_hora_deseada.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-        if (dateMatch) {
-          const y = parseInt(dateMatch[1])
-          const m = parseInt(dateMatch[2]) - 1
-          const d = parseInt(dateMatch[3])
-          const h = parseInt(dateMatch[4])
-          const min = parseInt(dateMatch[5])
-          // Ecuador is GMT-5, so UTC is local + 5 hours
-          fechaHora = new Date(Date.UTC(y, m, d, h + 5, min, 0))
-        } else {
-          const cleanIsoStr = fecha_hora_deseada.includes("-") || fecha_hora_deseada.includes("+") 
-            ? fecha_hora_deseada 
-            : `${fecha_hora_deseada}-05:00`
-          fechaHora = new Date(cleanIsoStr)
-        }
+        // La LLM genera la hora en tiempo local de Ecuador (GMT-5).
+        // Limpiamos posibles sufijos de zona horaria en el string (ej. -05:00, Z) y los 
+        // reemplazamos con el offset correcto de Ecuador para que Date() lo interprete bien.
+        const isoBase = fecha_hora_deseada
+          .replace(/Z$/, "")                // quitar Z
+          .replace(/[+-]\d{2}:\d{2}$/, "") // quitar cualquier offset existente
+          .match(/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/) // tomar solo YYYY-MM-DDTHH:MM
+          ?.[0] ?? fecha_hora_deseada.substring(0, 16)
+
+        // Construir con offset Ecuador explícito: así Date() hace la conversión UTC correctamente
+        // sin riesgo de overflow por suma manual de horas
+        fechaHora = new Date(`${isoBase}-05:00`)
 
         const reqWeekday = getEcuadorWeekday(fechaHora)
         const isOpen = isBusinessOpenOnDay(reqWeekday, ctx)

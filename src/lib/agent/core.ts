@@ -164,12 +164,19 @@ Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si es
    - La fecha y hora deseada para la reserva.
    No asumas ni omitas ninguno de estos 3 datos.
 
-2. REGLA DE DÍAS NO LABORABLES: El horario de atención del local es: ${scheduleStr}. No debes proceder a realizar ninguna reservación para un día de la semana o fecha en la que el local no trabaje. Si el cliente quiere reservar en un día no laborable (ej: si el lunes no se trabaja y pide lunes), debes rechazar cordialmente la solicitud, explicarle que ese día no se labora, y enviarle los horarios de atención del local.
+2. REGLA DE DÍAS NO LABORABLES: El horario de atención del local es: ${scheduleStr}. Solo debes rechazar si el cliente pide un día que claramente NO aparece en ese horario. NO inventes ni modifiques los horarios del local. Si tienes duda, procede con la reserva.
 
-Solo cuando el cliente te haya proporcionado y confirmado explícitamente los 3 datos fundamentales Y la fecha solicitada sea en un día laborable del local, debes generar la siguiente etiqueta oculta al final de tu respuesta:
+3. CONVERSIÓN DE HORAS — CRÍTICO: El cliente puede indicar la hora en formato de 12 horas (AM/PM). Debes convertirla SIEMPRE a formato de 24 horas antes de incluirla en el ISO:
+   - "3pm" → 15:00  |  "3am" → 03:00
+   - "12pm" (mediodía) → 12:00  |  "12am" (medianoche) → 00:00
+   - "1pm" → 13:00  |  "2pm" → 14:00  |  "6pm" → 18:00  |  "8pm" → 20:00
+   - Nunca pongas "15pm" ni "03pm" en el ISO. El campo HH del ISO siempre va de 00 a 23.
+
+Solo cuando el cliente te haya proporcionado y confirmado explícitamente los 3 datos fundamentales, debes generar la siguiente etiqueta oculta al final de tu respuesta:
 SOLICITAR_RESERVA:{"cliente_nombre": "Nombre del Cliente", "cantidad_personas": Número, "fecha_hora_deseada": "YYYY-MM-DDTHH:MM:SS"}
 
-Nota: La fecha y hora debe estar en formato ISO YYYY-MM-DDTHH:MM:SS. Ajusta el año, mes y día de acuerdo a la fecha actual: ${year}-${month}-${day} y la hora actual: ${hours}:${minutes}.
+Nota: La fecha y hora debe estar en formato ISO YYYY-MM-DDTHH:MM:SS en hora local de Ecuador. Ajusta el año, mes y día de acuerdo a la fecha actual: ${year}-${month}-${day} y la hora actual: ${hours}:${minutes}.
+Ejemplo correcto: si el cliente pide el sábado a las 3pm, y mañana es sábado ${year}-${month}-${parseInt(day)+1}, genera: "fecha_hora_deseada": "${year}-${month}-${String(parseInt(day)+1).padStart(2,"0")}T15:00:00"
 `
   }
 
@@ -256,9 +263,14 @@ OPCIÓN ${isAgenda ? "1" : (hasReservations ? "3" : "2")} — HABLAR CON ALGUIEN
 
   const agendaRules = `
 PROTOCOLO DE AGENDAMIENTO:
-Solo cuando el cliente ha solicitado agendar y ha confirmado los 5 elements clave:
+Solo cuando el cliente ha solicitado agendar y ha confirmado los 5 elementos clave:
 - SERVICIO, FECHA, HORA, NOMBRE COMPLETO y CÉDULA DE IDENTIDAD.
 Si falta cualquiera de estos, pídela con amabilidad.
+
+CONVERSIÓN DE HORAS — CRÍTICO: El cliente puede indicar la hora en formato de 12 horas (AM/PM). Debes convertirla SIEMPRE a formato de 24 horas:
+- "3pm" → 15:00  |  "3am" → 03:00  |  "12pm" → 12:00  |  "12am" → 00:00
+- "1pm" → 13:00  |  "6pm" → 18:00  |  "8pm" → 20:00
+El campo "time" del tag AGENDAR_CITA siempre debe tener formato HH:MM (00-23).
 
 Cuando el cliente haya confirmado los 5 datos, tu respuesta DEBE incluir al final la etiqueta EXACTA:
 AGENDAR_CITA:{"service": "Nombre del Servicio", "date": "YYYY-MM-DD", "time": "HH:MM", "customerName": "Nombre Apellido", "cedula": "1234567890"}
