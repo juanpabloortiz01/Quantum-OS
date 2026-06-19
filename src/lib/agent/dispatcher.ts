@@ -80,22 +80,12 @@ async function sendMedia(
 }
 
 function getEcuadorWeekday(date: Date): string {
-  const weekdayShort = date.toLocaleDateString("en-US", {
-    timeZone: "America/Guayaquil",
-    weekday: "short"
-  }); // "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
+  // Ajustar la fecha a la zona horaria de Ecuador (GMT-5) de forma matemática
+  const ecuadorDate = new Date(date.getTime() - 5 * 60 * 60 * 1000);
+  const dayIndex = ecuadorDate.getUTCDay(); // 0: Domingo, 1: Lunes, ..., 6: Sábado
   
-  const map: Record<string, string> = {
-    Mon: "LU",
-    Tue: "MA",
-    Wed: "MI",
-    Thu: "JU",
-    Fri: "VI",
-    Sat: "SA",
-    Sun: "DO"
-  };
-  
-  return map[weekdayShort] || "LU";
+  const map = ["DO", "LU", "MA", "MI", "JU", "VI", "SA"];
+  return map[dayIndex] || "LU";
 }
 
 function isBusinessOpenOnDay(weekday: string, ctx: LoadedContext): boolean {

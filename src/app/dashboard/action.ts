@@ -341,7 +341,7 @@ export async function updateReservationStatus(
 
     if (EVO_URL && instanceName && authKey) {
       const formatTime = (d: Date) => d.toLocaleTimeString("es-EC", {
-        timeZone: "America/Gu../../../../..",
+        timeZone: "America/Guayaquil",
         hour: "2-digit",
         minute: "2-digit",
         hour12: false

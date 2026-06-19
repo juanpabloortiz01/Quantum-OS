@@ -17,13 +17,13 @@ const MAX_HISTORY = 10 // Últimos N mensajes a cargar
 function formatToEcuadorTime(isoStr: string): string {
   try {
     const d = new Date(isoStr);
-    const localStr = d.toLocaleString("en-US", { timeZone: "America/Guayaquil" });
-    const localDate = new Date(localStr);
-    const year = localDate.getFullYear();
-    const month = String(localDate.getMonth() + 1).padStart(2, "0");
-    const day = String(localDate.getDate()).padStart(2, "0");
-    const hours = String(localDate.getHours()).padStart(2, "0");
-    const minutes = String(localDate.getMinutes()).padStart(2, "0");
+    if (isNaN(d.getTime())) return isoStr;
+    const ecuadorDate = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+    const year = ecuadorDate.getUTCFullYear();
+    const month = String(ecuadorDate.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(ecuadorDate.getUTCDate()).padStart(2, "0");
+    const hours = String(ecuadorDate.getUTCHours()).padStart(2, "0");
+    const minutes = String(ecuadorDate.getUTCMinutes()).padStart(2, "0");
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   } catch (e) {
     return isoStr;
@@ -44,18 +44,18 @@ function buildSystemPrompt(
   isNewConversation: boolean,
   activeReserva?: any
 ): string {
-  const ecuadorDateStr = new Date().toLocaleString("en-US", { timeZone: "America/Guayaquil" });
-  const ecuadorDate = new Date(ecuadorDateStr);
-  const year = ecuadorDate.getFullYear();
-  const month = String(ecuadorDate.getMonth() + 1).padStart(2, "0");
-  const day = String(ecuadorDate.getDate()).padStart(2, "0");
-  const hours = String(ecuadorDate.getHours()).padStart(2, "0");
-  const minutes = String(ecuadorDate.getMinutes()).padStart(2, "0");
-  const seconds = String(ecuadorDate.getSeconds()).padStart(2, "0");
+  const now = new Date();
+  const ecuadorDate = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+  const year = ecuadorDate.getUTCFullYear();
+  const month = String(ecuadorDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(ecuadorDate.getUTCDate()).padStart(2, "0");
+  const hours = String(ecuadorDate.getUTCHours()).padStart(2, "0");
+  const minutes = String(ecuadorDate.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(ecuadorDate.getUTCSeconds()).padStart(2, "0");
   const weekdays = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  const weekdayName = weekdays[ecuadorDate.getDay()];
+  const weekdayName = weekdays[ecuadorDate.getUTCDay()];
   const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-  const monthName = months[ecuadorDate.getMonth()];
+  const monthName = months[ecuadorDate.getUTCMonth()];
 
   // ── Horarios formateados ───────────────────────────────────────────
   const dayNamesMap: Record<string, string> = {
