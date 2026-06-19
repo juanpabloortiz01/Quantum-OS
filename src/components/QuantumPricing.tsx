@@ -97,7 +97,7 @@ export default function QuantumPricing() {
                 <div className="mt-8 space-y-6 relative z-10">
                   <div className="text-[#1A1A1A] flex items-end gap-1 text-xl">
                     <span className="text-[#94A3B8] font-medium">$</span>
-                    <span className="-mb-1 text-5xl font-bold tracking-tighter">30</span>
+                    <span className="-mb-1 text-5xl font-bold tracking-tighter">50</span>
                     <span className="text-[#6B7280] font-medium text-sm">/mes</span>
                   </div>
 
