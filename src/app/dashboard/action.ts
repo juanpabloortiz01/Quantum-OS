@@ -229,6 +229,7 @@ export async function getReservas() {
       fecha_hora_deseada: r.fecha_hora_deseada.toISOString(),
       estado: r.estado,
       propuesta_alternativa: r.propuesta_alternativa ? r.propuesta_alternativa.toISOString() : null,
+      pedido: r.pedido,
       createdAt: r.createdAt.toISOString()
     }))
   } catch (error) {

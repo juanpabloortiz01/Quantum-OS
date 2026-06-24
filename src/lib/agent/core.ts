@@ -157,28 +157,28 @@ Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si es
     reservationsStr = `\n═══════════════════════════════════════
 📅 PROCESO DE RESERVACIONES DE MESAS (ACTIVO)
 ═══════════════════════════════════════
-⚠️ REGLAS OBLIGATORIAS DE RESERVAS:
-1. REGISTRO COMPLETO: No importa si es el mismo cliente o si ya se conoce su nombre de chats previos o del historial: SIEMPRE, para cada reservación, debes preguntar y confirmar de manera explícita las 3 cosas fundamentales antes de generar la etiqueta SOLICITAR_RESERVA:
-   - El nombre completo de la persona que reserva (pídelo explícitamente para esta reserva).
-   - La cantidad de personas.
-   - La fecha y hora deseada para la reserva.
-   No asumas ni omitas ninguno de estos 3 datos.
+⚠️ REGLAS OBLIGATORIAS DE RESERVAS (FLUJO PASO A PASO ESTRICTO):
 
-2. REGLA DE DÍAS NO LABORABLES: El horario de atención del local es: ${scheduleStr}. Solo debes rechazar si el cliente pide un día que claramente NO aparece en ese horario. NO inventes ni modifiques los horarios del local. Si tienes duda, procede con la reserva.
+PASO 1: RECOLECCIÓN DE DATOS BÁSICOS
+Pregunta y confirma de manera explícita:
+- El nombre completo de la persona que reserva.
+- La cantidad de personas.
+- La fecha y hora deseada para la reserva.
+REGLA DE HORARIO: ${scheduleStr}. Rechaza si pide fuera de horario. Convierte siempre a formato de 24 horas (ej. 3pm -> 15:00).
 
-3. CONVERSIÓN DE HORAS — CRÍTICO: El cliente puede indicar la hora en formato de 12 horas (AM/PM). Debes convertirla SIEMPRE a formato de 24 horas antes de incluirla en el ISO:
-   - "3pm" → 15:00  |  "3am" → 03:00
-   - "12pm" (mediodía) → 12:00  |  "12am" (medianoche) → 00:00
-   - "1pm" → 13:00  |  "2pm" → 14:00  |  "6pm" → 18:00  |  "8pm" → 20:00
-   - Nunca pongas "15pm" ni "03pm" en el ISO. El campo HH del ISO siempre va de 00 a 23.
+PASO 2: TOMAR EL PEDIDO DE COMIDA (CRÍTICO)
+Una vez confirmados el nombre, personas, fecha y hora, **NO** generes la reserva todavía. 
+Dile al cliente: "¡Perfecto! Tengo listos tus datos para la mesa. Ahora necesito tomar tu pedido. ¿Ya sabes lo que deseas ordenar o te envío el menú?"
+- Si el cliente responde afirmativamente a ver el menú, usa la opción normal de enviar menú visualmente (opción 4 / ver el menú).
+- Cuando el cliente indique sus platos, recoge el pedido con la cantidad exacta de cada uno (ej. "2 hamburguesas clasicas, 1 bebida").
+- Envíale un resumen del pedido de comida junto a los datos de la reserva y pídele que responda "CONFIRMAR" para finalizar la reserva en firme.
 
-4. CONFIRMACIÓN AUTOMÁTICA: Una vez que el sistema reciba los datos, verificará la disponibilidad del horario solicitado automáticamente. Si hay espacio, la reserva se confirmará de inmediato. Si el horario está saturado, el encargado propondrá una alternativa.
+PASO 3: CONFIRMACIÓN Y ETIQUETA FINAL
+Solo cuando el cliente haya confirmado explícitamente el resumen de su pedido y datos (ej. "Sí", "Confirmar", "Correcto"), DEBES emitir OBLIGATORIAMENTE la etiqueta oculta al final de tu respuesta:
+SOLICITAR_RESERVA:{"cliente_nombre": "Nombre del Cliente", "cantidad_personas": Número, "fecha_hora_deseada": "YYYY-MM-DDTHH:MM:SS", "pedido": "Detalle completo del pedido, organizado punto por punto"}
 
-Solo cuando el cliente te haya proporcionado y confirmado explícitamente los 3 datos fundamentales, debes generar la siguiente etiqueta oculta al final de tu respuesta:
-SOLICITAR_RESERVA:{"cliente_nombre": "Nombre del Cliente", "cantidad_personas": Número, "fecha_hora_deseada": "YYYY-MM-DDTHH:MM:SS"}
-
-Nota: La fecha y hora debe estar en formato ISO YYYY-MM-DDTHH:MM:SS en hora local de Ecuador. Ajusta el año, mes y día de acuerdo a la fecha actual: ${year}-${month}-${day} y la hora actual: ${hours}:${minutes}.
-Ejemplo correcto: si el cliente pide el sábado a las 3pm, y mañana es sábado ${year}-${month}-${parseInt(day)+1}, genera: "fecha_hora_deseada": "${year}-${month}-${String(parseInt(day)+1).padStart(2,"0")}T15:00:00"
+Ejemplo correcto de etiqueta:
+SOLICITAR_RESERVA:{"cliente_nombre": "Juan Perez", "cantidad_personas": 2, "fecha_hora_deseada": "${year}-${month}-${String(parseInt(day)+1).padStart(2,"0")}T15:00:00", "pedido": "1x Pizza Familiar\n2x Gaseosas"}
 `
   }
 
@@ -211,8 +211,8 @@ El administrador propuso un nuevo horario para la reserva del cliente debido a f
 - Nuevo Horario Propuesto: ${altDate} a las ${altTime}
 - Cantidad de personas: ${activeReserva.cantidad_personas}
 
-Si el cliente acepta esta nueva hora/fecha propuesta o expresa conformidad (ej: "sí", "está bien", "dale", "acepto", "perfecto"), DEBES confirmar la reserva en este nuevo horario y DEBES emitir OBLIGATORIAMENTE la etiqueta oculta al final de tu respuesta:
-SOLICITAR_RESERVA:{"cliente_nombre": "${activeReserva.cliente_nombre}", "cantidad_personas": ${activeReserva.cantidad_personas}, "fecha_hora_deseada": "${activeReserva.propuesta_alternativa.toISOString().split('.')[0]}"}
+Si el cliente acepta esta nueva hora/fecha propuesta o expresa conformidad (ej: "sí", "está bien", "dale", "acepto", "perfecto"), DEBES confirmar la reserva en este nuevo horario y DEBES emitir OBLIGATORIAMENTE la etiqueta oculta al final de tu respuesta (manteniendo el pedido original si aplicaba):
+SOLICITAR_RESERVA:{"cliente_nombre": "${activeReserva.cliente_nombre}", "cantidad_personas": ${activeReserva.cantidad_personas}, "fecha_hora_deseada": "${activeReserva.propuesta_alternativa.toISOString().split('.')[0]}", "pedido": "${activeReserva.pedido || ''}"}
 `
     } else if (activeReserva.estado === "pendiente_aprobacion") {
       activeReservaStr = `\n═══════════════════════════════════════
@@ -296,7 +296,7 @@ Al confirmar el cliente, emite:
 PEDIDO_CONFIRMADO:{"plato":"[detalle de los platos con sus cantidades, ej: 2x Hamburguesa, 1x Papa frita]","nombre":"[nombre]","direccion":"[direccion]"}
 
 OPCIÓN 2 — RESERVAR UNA MESA:
-Sigue el protocolo de RESERVACIONES (pide Nombre, Personas, Fecha y Hora). Cuando tengas los 3 datos confirmados, genera la etiqueta SOLICITAR_RESERVA.` : `
+Sigue estricta y cronológicamente el protocolo de RESERVACIONES (paso 1: Nombre/Personas/Fecha, paso 2: Tomar pedido / Ofrecer Menú, paso 3: Resumen y solicitar confirmación). Solo genera la etiqueta SOLICITAR_RESERVA en el último paso.` : `
 OPCIÓN 1 — TOMAR UN PEDIDO:
 Sigue este protocolo de recolección:
 1. ¿Qué plato(s) deseas pedir? (Pide obligatoriamente la cantidad exacta de cada plato que desea ordenar, ej: "2 Hamburguesas, 1 Papa frita").
@@ -368,7 +368,7 @@ export interface CoreResult {
   agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
   isEscaladoSoporte: boolean
   escalationData: { nombre: string } | null
-  solicitarReserva: { cliente_nombre: string; cantidad_personas: number; fecha_hora_deseada: string } | null
+  solicitarReserva: { cliente_nombre: string; cantidad_personas: number; fecha_hora_deseada: string; pedido?: string } | null
 
   userName: string | null
   summary: string | null

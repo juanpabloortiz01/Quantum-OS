@@ -210,7 +210,7 @@ export async function runDispatcher(
 
       // ── MANEJO DE RESERVA DE MESAS (RESERVACIONES) ──────────────────────
       if (coreResult.solicitarReserva) {
-        const { cliente_nombre, cantidad_personas, fecha_hora_deseada } = coreResult.solicitarReserva
+        const { cliente_nombre, cantidad_personas, fecha_hora_deseada, pedido } = coreResult.solicitarReserva
 
         let fechaHora: Date
         // La LLM genera la hora en tiempo local de Ecuador (GMT-5).
@@ -344,7 +344,8 @@ export async function runDispatcher(
               data: {
                 fecha_hora_deseada: fechaHora,
                 estado,
-                propuesta_alternativa: null
+                propuesta_alternativa: null,
+                pedido: pedido || undefined
               }
             })
             console.log(`[DISPATCHER]: Reserva existente ${reservaToUpdateId} REAGENDADA Y CONFIRMADA`)
@@ -395,7 +396,8 @@ export async function runDispatcher(
                 cliente_nombre,
                 cantidad_personas,
                 fecha_hora_deseada: fechaHora,
-                estado
+                estado,
+                pedido
               }
             })
           }
@@ -431,6 +433,11 @@ export async function runDispatcher(
                 `🗓 *Fecha:* ${dateStr}`,
                 `⏰ *Hora:* ${horaStr}`,
                 `📱 *Teléfono:* ${cleanPhone}`,
+                ...(pedido ? [
+                  `---`,
+                  `🍽 *Detalle del Pedido:*`,
+                  ...pedido.split('\n').map(p => `- ${p.trim().replace(/^- /g, "")}`)
+                ] : []),
                 ``,
                 `_Por favor, ingresa al Dashboard de Reservaciones para aprobar o proponer una hora alternativa._`
               ].join("\n")
@@ -450,6 +457,11 @@ export async function runDispatcher(
                 `🗓 *Fecha:* ${dateStr}`,
                 `⏰ *Hora:* ${horaStr}`,
                 `📱 *Teléfono:* ${cleanPhone}`,
+                ...(pedido ? [
+                  `---`,
+                  `🍽 *Detalle del Pedido:*`,
+                  ...pedido.split('\n').map(p => `- ${p.trim().replace(/^- /g, "")}`)
+                ] : []),
                 ``,
                 `_Esta reserva fue confirmada de forma autónoma por el agente._`
               ].join("\n")

@@ -31,7 +31,6 @@ interface Lead {
 
 const MODULE_LIBRARY = [
   { id: "calendar", name: "Agenda", description: "Sincronización con Google Calendar y agendamiento automático.", icon: Calendar, niches: ["AGENDA"] },
-  { id: "loyalty", name: "Promociones", description: "Configura ofertas especiales y recompensas para tus clientes.", icon: Heart, niches: ["VENTAS"] },
   { id: "reservations", name: "Reservaciones", description: "Gestiona las reservaciones de mesas de forma automatizada y con aprobación manual.", icon: Calendar, niches: ["VENTAS", "GASTRONOMY", "AGENDA"] },
 ];
 
@@ -162,6 +161,7 @@ const DashboardContent = () => {
     hora: "20:00"
   });
   const [manualResLoading, setManualResLoading] = React.useState(false);
+  const [expandedReservationId, setExpandedReservationId] = React.useState<string | null>(null);
 
   const [tourStep, setTourStep] = React.useState<number | null>(null);
   const [mockLeadAgentActive, setMockLeadAgentActive] = React.useState(true);
@@ -653,15 +653,6 @@ const DashboardContent = () => {
                         </motion.div>
                       )}
 
-                      {module.id === "loyalty" && module.enabled && (
-                        <button
-                          onClick={() => setShowLoyaltyModal(true)}
-                          className="mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left"
-                        >
-                          Configurar Promoción
-                        </button>
-                      )}
-
                       {module.id === "reservations" && (module.enabled || tourStep === 1) && (
                         <button
                           onClick={() => setShowReservationsModal(true)}
@@ -945,7 +936,7 @@ const DashboardContent = () => {
                                 >
                                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-semibold text-sm truncate">
+                                      <span className="font-semibold text-sm truncate cursor-pointer hover:underline" onClick={() => setExpandedReservationId(expandedReservationId === res.id ? null : res.id)}>
                                         {res.cliente_nombre}
                                       </span>
                                     </div>
@@ -991,6 +982,34 @@ const DashboardContent = () => {
                                       </button>
                                     </div>
                                   )}
+
+                                  {/* Expandable Order Details */}
+                                  <AnimatePresence>
+                                    {expandedReservationId === res.id && res.pedido && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: "auto", opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden mt-3 pt-3 border-t border-gray-900/10"
+                                      >
+                                        <h5 className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2 flex items-center gap-1">
+                                          <ShoppingBag className="w-3 h-3" /> Detalle del Pedido
+                                        </h5>
+                                        <ul className="space-y-1.5 text-xs font-medium opacity-90 pl-1">
+                                          {res.pedido.split('\n').map((item: string, idx: number) => {
+                                            const cleanItem = item.trim().replace(/^- /g, "");
+                                            if (!cleanItem) return null;
+                                            return (
+                                              <li key={idx} className="flex items-start gap-2">
+                                                <span className="mt-1 w-1 h-1 rounded-full bg-current flex-shrink-0" />
+                                                <span className="leading-snug">{cleanItem}</span>
+                                              </li>
+                                            );
+                                          })}
+                                        </ul>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </div>
                               ))
                             )}
@@ -1357,119 +1376,6 @@ const DashboardContent = () => {
                           />
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Promotions Configuration Modal */}
-        <AnimatePresence>
-          {showLoyaltyModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
-              onClick={() => setShowLoyaltyModal(false)}
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-md bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-8 space-y-6"
-              >
-                <div>
-                  <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
-                    Configurar Promociones
-                  </h3>
-                  <p className="text-sm font-light text-gray-500 mt-1.5 leading-relaxed">
-                    Define la regla que tu agente de IA utilizará para ofrecer promociones y fidelizar a tus clientes.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Condición de compra</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="col-span-1">
-                        <label className="text-[10px] text-gray-400 block mb-1">Cantidad</label>
-                        <input
-                          type="number"
-                          value={loyaltyForm.triggerCount}
-                          onChange={(e) => setLoyaltyForm({ ...loyaltyForm, triggerCount: e.target.value })}
-                          placeholder="Ej: 5"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="text-[10px] text-gray-400 block mb-1">Producto</label>
-                        <input
-                          type="text"
-                          value={loyaltyForm.triggerProduct}
-                          onChange={(e) => setLoyaltyForm({ ...loyaltyForm, triggerProduct: e.target.value })}
-                          placeholder="Ej: Hamburguesa"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Recompensa gratis</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="col-span-1">
-                        <label className="text-[10px] text-gray-400 block mb-1">Cantidad</label>
-                        <input
-                          type="number"
-                          value={loyaltyForm.rewardCount}
-                          onChange={(e) => setLoyaltyForm({ ...loyaltyForm, rewardCount: e.target.value })}
-                          placeholder="Ej: 1"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="text-[10px] text-gray-400 block mb-1">Producto Gratis</label>
-                        <input
-                          type="text"
-                          value={loyaltyForm.rewardProduct}
-                          onChange={(e) => setLoyaltyForm({ ...loyaltyForm, rewardProduct: e.target.value })}
-                          placeholder="Ej: Gaseosa"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setShowLoyaltyModal(false)}
-                    className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const res = await saveLoyaltyRule(loyaltyForm);
-                      if (res.success) {
-                        setShowLoyaltyModal(false);
-                      } else {
-                        alert(res.error || "Error al guardar");
-                      }
-                    }}
-                    className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10"
-                  >
-                    Guardar
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
         </AnimatePresence>
 
         {/* Reservations Configuration Modal */}
