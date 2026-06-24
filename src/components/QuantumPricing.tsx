@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { PlusIcon, ShieldCheckIcon, CheckCircle2 } from "lucide-react";
+import { ShieldCheckIcon, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -30,7 +30,7 @@ export default function QuantumPricing() {
           </div>
           <h2 className="mt-5 text-center text-3xl font-bold tracking-tight md:text-5xl text-[#1A1A1A]">
             Paga solo por la tecnología. <br />
-            <span className="text-[#94A3B8]">Quédate con el 100% de la venta.</span>
+            <span className="text-[#F54927]">Quédate con el 100% de la venta.</span>
           </h2>
           <p className="mt-5 text-center text-sm md:text-base font-medium text-[#6B7280]">
             Elige el plan ideal para tu negocio y automatiza tus ventas sin comisiones ocultas.
@@ -83,14 +83,14 @@ export default function QuantumPricing() {
               <div className="relative w-full px-8 pt-10 pb-10 bg-[#F9FAFB]">
                 <BorderTrail
                   style={{
-                    boxShadow: "0px 0px 60px 30px rgba(59, 130, 246, 0.05), 0 0 100px 60px rgba(59, 130, 246, 0.02)",
+                    boxShadow: "0px 0px 60px 30px rgba(245, 73, 39, 0.06), 0 0 100px 60px rgba(245, 73, 39, 0.03)",
                   }}
                   size={120}
                 />
                 <div className="space-y-2 relative z-10">
                   <div className="flex items-center justify-between">
                     <h3 className="leading-none font-bold text-[#1A1A1A] text-xl tracking-tight">Crecimiento</h3>
-                    <Badge className="bg-[#1A1A1A] text-white hover:bg-[#333]">Popular</Badge>
+                    <Badge className="bg-[#F54927] text-white hover:bg-[#d93d1f]">Popular</Badge>
                   </div>
                   <p className="text-[#6B7280] text-sm h-10">Agente ilimitado creado para escalar ventas sin sumar más equipo.</p>
                 </div>
@@ -102,14 +102,14 @@ export default function QuantumPricing() {
                   </div>
 
                   <ul className="space-y-3 text-sm text-[#4B5563] mb-8">
-                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-blue-600 shrink-0" /> <span className="pt-0.5 font-medium">Todo lo del plan Gratis, más:</span></li>
-                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-blue-600 shrink-0" /> <span className="pt-0.5">Interacciones ilimitadas mensuales</span></li>
-                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-blue-600 shrink-0" /> <span className="pt-0.5">Validación de pagos ilimitada</span></li>
-                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-blue-600 shrink-0" /> <span className="pt-0.5">Sincronización con Google Calendar</span></li>
-                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-blue-600 shrink-0" /> <span className="pt-0.5">Soporte prioritario 24/7</span></li>
+                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-[#F54927] shrink-0" /> <span className="pt-0.5 font-medium">Todo lo del plan Gratis, más:</span></li>
+                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-[#F54927] shrink-0" /> <span className="pt-0.5">Interacciones ilimitadas mensuales</span></li>
+                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-[#F54927] shrink-0" /> <span className="pt-0.5">Validación de pagos ilimitada</span></li>
+                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-[#F54927] shrink-0" /> <span className="pt-0.5">Sincronización con Google Calendar</span></li>
+                    <li className="flex gap-3 items-start"><CheckCircle2 className="size-5 text-[#F54927] shrink-0" /> <span className="pt-0.5">Soporte prioritario 24/7</span></li>
                   </ul>
 
-                  <Button className="w-full bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors shadow-md font-medium" asChild>
+                  <Button className="w-full bg-[#F54927] text-white hover:bg-[#d93d1f] transition-colors shadow-md shadow-[#F54927]/25 font-medium" asChild>
                     <Link href={status === "authenticated" ? "/dashboard" : "/onboarding"}>
                       {status === "loading" ? "Cargando..." : status === "authenticated" ? "Ir al Panel" : "Activar plan PRO"}
                     </Link>

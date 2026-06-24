@@ -3,9 +3,10 @@ export default function Footer() {
     <footer className="border-t border-[#E2E8F0] bg-white py-10 px-6 relative z-10 w-full transition-colors mt-auto">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         
-        {/* IDENTIFICADOR DE SISTEMA */}
-        <div className="text-xs font-medium text-[#6B7280]">
-          © {new Date().getFullYear()} Quantum OS. Todos los derechos reservados.
+        {/* IDENTIFICADOR */}
+        <div className="flex items-center gap-2 text-xs font-medium text-[#6B7280]">
+          <span className="w-2 h-2 rounded-full bg-[#F54927]" />
+          © {new Date().getFullYear()} Tito. Todos los derechos reservados.
         </div>
 
         {/* MÉTRICAS Y ESTADO */}

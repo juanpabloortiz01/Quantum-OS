@@ -15,7 +15,7 @@ const SKILLS = [
 
 function StatusBadge({ status }: { status: string }) {
   const config = {
-    ACTIVO: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+    ACTIVO: { bg: "bg-[#F54927]/10", text: "text-[#F54927]", border: "border-[#F54927]/20" },
     BETA: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
     PRONTO: { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-200" },
   }[status] ?? { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-200" }
@@ -33,17 +33,17 @@ export default function AboutSection() {
 
       {/* HERO ABOUT */}
       <section className="relative z-10 px-6 sm:px-12 md:px-24 pt-20 pb-16 max-w-6xl mx-auto text-center">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center gap-2 text-xs font-semibold tracking-widest text-[#6B7280] uppercase mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#6B7280]" />
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center gap-2 text-xs font-semibold tracking-widest text-[#F54927] uppercase mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F54927]" />
           Capacidades del Sistema
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
-          Un Agente Inteligente.<br /><span className="text-[#94A3B8]">Múltiples habilidades.</span>
+          Un Agente Inteligente.<br /><span className="text-[#F54927]">Múltiples habilidades.</span>
         </motion.h1>
 
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto text-[#4B5563] text-base sm:text-lg leading-relaxed">
-          Quantum OS no es un chatbot. Es un <span className="font-semibold text-[#1A1A1A]">agente de ventas con IA</span> que vive en el WhatsApp de tu negocio. Lo configuras una vez, le asignas habilidades, y trabaja solo — 24/7.
+          Tito no es un chatbot. Es un <span className="font-semibold text-[#1A1A1A]">agente de ventas con IA</span> que vive en el WhatsApp de tu negocio. Lo configuras una vez, le asignas habilidades, y trabaja solo — 24/7.
         </motion.p>
       </section>
 
@@ -51,12 +51,13 @@ export default function AboutSection() {
       <section className="relative z-10 px-6 sm:px-12 md:px-24 py-10 pb-20 max-w-6xl mx-auto">
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {SKILLS.map((skill, i) => (
-            <motion.div key={skill.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="group bg-white border border-[#E2E8F0] rounded-xl p-6 hover:shadow-md hover:border-[#94A3B8] transition-all relative overflow-hidden flex flex-col h-full">
+            <motion.div key={skill.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="group bg-white border border-[#E2E8F0] rounded-xl p-6 hover:shadow-md hover:border-[#F54927]/30 transition-all relative overflow-hidden flex flex-col h-full">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#F54927] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-semibold text-[#94A3B8]">{skill.id}</span>
                 <StatusBadge status={skill.status} />
               </div>
-              <div className="text-sm font-bold text-[#1A1A1A] mb-2 group-hover:text-blue-600 transition-colors">
+              <div className="text-sm font-bold text-[#1A1A1A] mb-2 group-hover:text-[#F54927] transition-colors">
                 {skill.name}
               </div>
               <p className="text-xs text-[#6B7280] leading-relaxed flex-grow">

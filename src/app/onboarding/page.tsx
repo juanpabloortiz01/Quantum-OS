@@ -74,7 +74,7 @@ function OnboardingContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const initialStep = searchParams.get("step") ? parseInt(searchParams.get("step") as string, 10) : 0
+  const initialStep = searchParams.get("step") ? parseInt(searchParams.get("step") as string, 10) : 1
   const [step, setStep] = useState(initialStep)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -99,8 +99,8 @@ function OnboardingContent() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   const [formData, setFormData] = useState({
-    niche: "",
-    needs: [] as string[],
+    niche: "ventas",
+    needs: ["orders", "crm"] as string[],
     contextData: {
       companyName: "",
       service: "",
@@ -156,7 +156,11 @@ function OnboardingContent() {
         setStep(parseInt(urlStep, 10))
       } else {
         const savedStep = localStorage.getItem("onboarding_step")
-        if (savedStep !== null) setStep(parseInt(savedStep, 10))
+        if (savedStep !== null) {
+          const parsed = parseInt(savedStep, 10)
+          // Never go back to step 0 (removed niche selection)
+          setStep(parsed < 1 ? 1 : parsed)
+        }
       }
 
       const savedEmail = localStorage.getItem("onboarding_email")
@@ -681,12 +685,13 @@ function OnboardingContent() {
 
         {/* HEADER MINI */}
         <div className="mb-6 flex items-center justify-between">
-          <div className="text-xs font-semibold tracking-wide text-[#1A1A1A]">
-            Quantum OS
+          <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-[#1A1A1A]">
+            <span className="w-2 h-2 rounded-full bg-[#F54927]" />
+            Tito
           </div>
-          {step >= 0 && (
+          {step >= 1 && (
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
-              Paso {step + 1}/7
+              Paso {step}/6
             </div>
           )}
         </div>
@@ -695,12 +700,12 @@ function OnboardingContent() {
         <div className="border border-[#E2E8F0] bg-white rounded-xl shadow-sm relative overflow-hidden">
 
           {/* Barra de progreso superior */}
-          {step >= 0 && (
+          {step >= 1 && (
             <div className="h-1 flex bg-[#F3F4F6] overflow-hidden">
               <motion.div 
-                className="h-full bg-[#1A1A1A]"
-                initial={{ width: "14.2%" }}
-                animate={{ width: `${((step + 1) / 7) * 100}%` }}
+                className="h-full bg-[#F54927]"
+                initial={{ width: "16.6%" }}
+                animate={{ width: `${(step / 6) * 100}%` }}
                 transition={{ duration: 0.6, ease: smoothEase }}
               />
             </div>
@@ -727,7 +732,6 @@ function OnboardingContent() {
                   exit={{ opacity: 0, scale: 1.05 }}
                   className="text-2xl font-bold tracking-tight text-[#1A1A1A]"
                 >
-                  {step === 0 && "Sector del negocio"}
                   {step === 1 && "Describe tu negocio"}
                   {step === 2 && "Horarios de atención"}
                   {step === 3 && "Sube tu menú"}
@@ -999,12 +1003,6 @@ function OnboardingContent() {
 
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
-                      onClick={() => setStep(0)}
-                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
-                    >
-                      ← Atrás
-                    </button>
-                    <button
                       onClick={() => setStep(2)}
                       disabled={
                         !formData.contextData.companyName || 
@@ -1012,7 +1010,7 @@ function OnboardingContent() {
                         !formData.contextData.service ||
                         !formData.contextData.notifPhone
                       }
-                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
+                      className="w-full py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98]"
                     >
                       Continuar a horarios
                     </button>
