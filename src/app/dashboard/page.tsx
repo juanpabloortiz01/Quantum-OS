@@ -1376,6 +1376,13 @@ const DashboardContent = () => {
                           />
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+              </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Reservations Configuration Modal */}
