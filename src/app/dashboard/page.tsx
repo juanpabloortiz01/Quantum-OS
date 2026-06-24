@@ -857,24 +857,17 @@ const DashboardContent = () => {
                     <h2 className="text-lg md:text-xl font-semibold text-gray-900 truncate pr-2">
                       {selectedCalendarDay.toLocaleDateString("es-EC", { weekday: "short", day: "numeric", month: "short" })}
                     </h2>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          setManualResForm({ cliente_nombre: "", cantidad_personas: 2, hora: "20:00" });
-                          setShowManualReservationModal(true);
-                        }}
-                        className="w-8 h-8 rounded-xl bg-gray-900 text-white flex items-center justify-center hover:bg-gray-700 transition-colors shadow-sm font-bold text-lg leading-none"
-                        title="Agregar reserva manual"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => setCalendarViewMode("month")}
-                        className="text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors whitespace-nowrap"
-                      >
-                        Volver
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => {
+                        setManualResForm({ cliente_nombre: "", cantidad_personas: 2, hora: "20:00" });
+                        setShowManualReservationModal(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 text-white hover:bg-gray-700 transition-colors shadow-sm font-semibold text-sm"
+                      title="Agregar reserva manual"
+                    >
+                      <span className="text-lg leading-none font-bold">+</span>
+                      <span>Nueva reserva</span>
+                    </button>
                   </div>
 
                   <div className="relative border-l border-gray-200 pl-4 space-y-4">
@@ -1067,18 +1060,24 @@ const DashboardContent = () => {
                         onClick={(e) => handleToggleAgent(e, lead)}
                       >
                         <div className={cn(
-                          "relative w-10 h-5 md:w-12 md:h-6 rounded-full transition-all duration-300 cursor-pointer shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
-                          (lead.agentActive ?? true) ? "bg-gray-900" : "bg-gray-300"
+                          "flex items-center px-1 w-10 h-5 md:w-12 md:h-6 rounded-full transition-all duration-300 cursor-pointer shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
+                          (lead.agentActive ?? true) ? "bg-gray-900 justify-end" : "bg-gray-300 justify-start"
                         )}>
                           <motion.div
-                            animate={{ x: (lead.agentActive ?? true) ? 20 : 2 }}
+                            layout
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             className={cn(
-                              "absolute top-1 w-3 h-3 md:w-4 md:h-4 rounded-full shadow-md",
+                              "w-3 h-3 md:w-4 md:h-4 rounded-full shadow-md",
                               (lead.agentActive ?? true) ? "bg-white" : "bg-gray-100"
                             )}
                           />
                         </div>
+                        <span className={cn(
+                          "text-[10px] md:text-xs font-semibold mt-1.5 transition-colors",
+                          (lead.agentActive ?? true) ? "text-gray-900" : "text-gray-400"
+                        )}>
+                          {(lead.agentActive ?? true) ? "IA Activa" : "IA Inactiva"}
+                        </span>
                       </div>
                     </div>
                   </motion.div>
@@ -1346,15 +1345,15 @@ const DashboardContent = () => {
                         </div>
                         <div 
                           className={cn(
-                            "relative w-14 h-7 rounded-full transition-all duration-300 cursor-pointer shadow-inner",
-                            (selectedLead.agentActive ?? true) ? "bg-green-500" : "bg-white/20"
+                            "flex items-center px-1 w-14 h-7 rounded-full transition-all duration-300 cursor-pointer shadow-inner",
+                            (selectedLead.agentActive ?? true) ? "bg-green-500 justify-end" : "bg-white/20 justify-start"
                           )}
                           onClick={(e) => handleToggleAgent(e, selectedLead)}
                         >
                           <motion.div
-                            animate={{ x: (selectedLead.agentActive ?? true) ? 28 : 2 }}
+                            layout
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            className="absolute top-1 w-5 h-5 rounded-full bg-white shadow-md"
+                            className="w-5 h-5 rounded-full bg-white shadow-md"
                           />
                         </div>
                       </div>
@@ -1488,32 +1487,41 @@ const DashboardContent = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-md bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-8 space-y-6"
+                className="w-full max-w-xl bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-10 space-y-8"
               >
                 <div>
                   <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
                     Configurar Reservaciones
                   </h3>
-                  <p className="text-sm font-light text-gray-500 mt-1.5 leading-relaxed">
-                    Define las reglas para controlar el tráfico de clientes en tu negocio.
+                  <p className="text-sm font-light text-gray-500 mt-1.5">
+                    Define cuánta demanda puede manejar tu local por hora.
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Capacidad horaria con reserva</label>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+                      Capacidad máxima por hora
+                    </label>
+                    <p className="text-sm font-medium text-gray-700 leading-relaxed">
+                      Ingresa el número máximo de personas que pueden tener reserva en una misma hora. 
+                      Considera que parte de tu aforo ya lo ocupan clientes sin reserva — ese espacio no debe contarse aquí.
+                    </p>
+                    <p className="text-xs text-gray-400 leading-relaxed pt-0.5">
+                      Ejemplo: si tu local tiene capacidad para 50 personas/hora y ~20 ya llegan sin reserva, ingresa <strong className="text-gray-600">30</strong>.
+                    </p>
+                  </div>
                   <input
                     type="number"
                     min="1"
                     value={reservationsForm.tope_personas_por_hora}
                     onChange={(e) => setReservationsForm({ tope_personas_por_hora: Number(e.target.value) })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-2xl font-semibold text-gray-900 focus:border-gray-900 outline-none transition-colors text-center tracking-tight"
                   />
-                  <p className="text-[11px] font-light text-gray-500 leading-normal">
-                    ¿Cuántas personas con reserva puede recibir tu restaurante en una misma hora sin saturarse? Ten en cuenta que ya llegan clientes sin reserva. Por ejemplo, si tu local recibe 40 personas/hora y unas 15 ya van sin reserva, ingresa <strong>25</strong>.
-                  </p>
+                  <p className="text-xs text-gray-400 text-center">personas con reserva por hora</p>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3">
                   <button
                     onClick={() => setShowReservationsModal(false)}
                     className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
