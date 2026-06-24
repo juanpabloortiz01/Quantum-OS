@@ -476,13 +476,13 @@ const DashboardContent = () => {
               activeView === item.view && "bg-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
             )}
           >
-            <item.icon className={cn("w-5 h-5 transition-colors", activeView === item.view ? "text-[#F54927]" : "text-gray-500")} strokeWidth={1.5} />
+            <item.icon className={cn("w-5 h-5 transition-colors", activeView === item.view ? "text-gray-900" : "text-gray-500")} strokeWidth={1.5} />
             {item.badge > 0 && (
               <span className="absolute -top-1.5 -right-1.5 z-10 min-w-[18px] h-[18px] bg-orange-500 text-white text-[9px] font-bold rounded-full border border-white flex items-center justify-center px-1 shadow-[0_2px_8px_rgba(249,115,22,0.4)]">
                 {item.badge > 9 ? "+9" : item.badge}
               </span>
             )}
-            <span className="absolute left-16 px-3 py-1 bg-[#F54927]/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
+            <span className="absolute left-16 px-3 py-1 bg-gray-900/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
               {item.label}
             </span>
           </motion.button>
@@ -495,11 +495,11 @@ const DashboardContent = () => {
           }}
           className={cn(
             "w-12 h-12 rounded-xl backdrop-blur-xl border hover:bg-orange-50/60 hover:border-orange-200 hover:text-orange-600 transition-all duration-300 flex items-center justify-center group relative",
-            tourStep !== null ? "bg-orange-500/20 border-orange-300 text-orange-600 shadow-md shadow-orange-500/10" : "bg-white/40 border-white/60 text-gray-500 hover:text-[#F54927]"
+            tourStep !== null ? "bg-orange-500/20 border-orange-300 text-orange-600 shadow-md shadow-orange-500/10" : "bg-white/40 border-white/60 text-gray-500 hover:text-gray-900"
           )}
         >
           <HelpCircle className="w-5 h-5" strokeWidth={1.5} />
-          <span className="absolute left-16 px-3 py-1 bg-[#F54927]/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
+          <span className="absolute left-16 px-3 py-1 bg-gray-900/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-medium shadow-xl">
             Iniciar Guía
           </span>
         </motion.button>
@@ -525,7 +525,7 @@ const DashboardContent = () => {
             onClick={() => setActiveView(item.view)}
             className={cn(
               "flex-1 flex flex-col items-center justify-center py-2.5 gap-1 relative transition-colors",
-              activeView === item.view ? "text-[#F54927]" : "text-gray-400"
+              activeView === item.view ? "text-gray-900" : "text-gray-400"
             )}
           >
             <item.icon className="w-5 h-5" strokeWidth={1.5} />
@@ -609,7 +609,7 @@ const DashboardContent = () => {
                       <div className="flex items-start justify-between mb-8">
                         <div className={cn(
                           "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
-                          module.enabled ? "bg-[#F54927] shadow-lg rotate-0" : "bg-white/40 -rotate-3"
+                          module.enabled ? "bg-gray-900 shadow-lg rotate-0" : "bg-white/40 -rotate-3"
                         )}>
                           <module.icon className={cn("w-6 h-6", module.enabled ? "text-white" : "text-gray-400")} strokeWidth={1.5} />
                         </div>
@@ -618,7 +618,7 @@ const DashboardContent = () => {
                           className={cn(
                             "relative w-14 h-7 rounded-full transition-all duration-300",
                             "shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
-                            module.enabled ? "bg-[#F54927]" : "bg-gray-300"
+                            module.enabled ? "bg-gray-900" : "bg-gray-300"
                           )}
                         >
                           <motion.div
@@ -656,7 +656,7 @@ const DashboardContent = () => {
                       {module.id === "loyalty" && module.enabled && (
                         <button
                           onClick={() => setShowLoyaltyModal(true)}
-                          className="mt-4 text-xs font-semibold text-[#F54927] hover:text-[#d63d1e] underline transition-colors block text-left"
+                          className="mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left"
                         >
                           Configurar Promoción
                         </button>
@@ -666,7 +666,7 @@ const DashboardContent = () => {
                         <button
                           onClick={() => setShowReservationsModal(true)}
                           className={cn(
-                            "mt-4 text-xs font-semibold text-[#F54927] hover:text-[#d63d1e] underline transition-colors block text-left rounded-lg p-2.5",
+                            "mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left rounded-lg p-2.5",
                             getHighlightClass("config-reservations-btn")
                           )}
                         >
@@ -761,7 +761,7 @@ const DashboardContent = () => {
                       onClick={() => setCalendarViewMode("month")}
                       className={cn(
                         "px-3 py-1 text-xs font-medium rounded-lg transition-all",
-                        calendarViewMode === "month" ? "bg-[#F54927] text-white shadow-sm" : "text-gray-600 hover:text-[#F54927]"
+                        calendarViewMode === "month" ? "bg-gray-900 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
                       )}
                     >
                       Mes
@@ -770,7 +770,7 @@ const DashboardContent = () => {
                       onClick={() => setCalendarViewMode("day")}
                       className={cn(
                         "px-3 py-1 text-xs font-medium rounded-lg transition-all",
-                        calendarViewMode === "day" ? "bg-[#F54927] text-white shadow-sm" : "text-gray-600 hover:text-[#F54927]"
+                        calendarViewMode === "day" ? "bg-gray-900 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
                       )}
                     >
                       Día
@@ -822,7 +822,7 @@ const DashboardContent = () => {
                           className={cn(
                             "h-12 md:min-h-[6rem] p-1 md:p-3 rounded-xl md:rounded-2xl border text-left flex flex-col justify-between transition-all duration-300",
                             cell.isCurrentMonth ? "bg-white/50 border-gray-100 hover:border-gray-300" : "bg-gray-50/20 border-transparent text-gray-400",
-                            isSelected && "border-[#F54927] bg-gray-50/50 shadow-sm"
+                            isSelected && "border-gray-900 bg-gray-50/50 shadow-sm"
                           )}
                         >
                           <span className={cn(
@@ -862,7 +862,7 @@ const DashboardContent = () => {
                         setManualResForm({ cliente_nombre: "", cantidad_personas: 2, hora: "20:00" });
                         setShowManualReservationModal(true);
                       }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F54927] text-white hover:bg-[#d63d1e] transition-colors shadow-sm font-semibold text-sm"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 text-white hover:bg-gray-800 transition-colors shadow-sm font-semibold text-sm"
                       title="Agregar reserva manual"
                     >
                       <span className="text-lg leading-none font-bold">+</span>
@@ -1037,7 +1037,7 @@ const DashboardContent = () => {
                     )}
                   >
                     <div className="flex items-center justify-between gap-3 md:gap-6">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-[#F54927] group-hover:text-white transition-all duration-500">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-gray-900 group-hover:text-white transition-all duration-500">
                          <UserCircle className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
@@ -1061,7 +1061,7 @@ const DashboardContent = () => {
                       >
                         <div className={cn(
                           "flex items-center px-1 w-10 h-5 md:w-12 md:h-6 rounded-full transition-all duration-300 cursor-pointer shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
-                          (lead.agentActive ?? true) ? "bg-[#F54927] justify-end" : "bg-gray-300 justify-start"
+                          (lead.agentActive ?? true) ? "bg-gray-900 justify-end" : "bg-gray-300 justify-start"
                         )}>
                           <motion.div
                             layout
@@ -1246,7 +1246,7 @@ const DashboardContent = () => {
                   </div>
                   
                   <div className="flex items-center gap-6">
-                    <span className="hidden md:block px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase shadow-sm border bg-[#F54927] text-white border-[#F54927]">
+                    <span className="hidden md:block px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase shadow-sm border bg-gray-900 text-white border-gray-900">
                       {selectedLead.intent}
                     </span>
                     
@@ -1334,7 +1334,7 @@ const DashboardContent = () => {
                     </div>
 
                     {/* Agent Control Area in Modal */}
-                    <div className="bg-[#F54927] rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                    <div className="bg-gray-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-2xl" />
                       <div className="relative z-10 flex items-center justify-between">
                         <div>
@@ -1403,7 +1403,7 @@ const DashboardContent = () => {
                           value={loyaltyForm.triggerCount}
                           onChange={(e) => setLoyaltyForm({ ...loyaltyForm, triggerCount: e.target.value })}
                           placeholder="Ej: 5"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-[#F54927] outline-none transition-colors"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                         />
                       </div>
                       <div className="col-span-2">
@@ -1413,7 +1413,7 @@ const DashboardContent = () => {
                           value={loyaltyForm.triggerProduct}
                           onChange={(e) => setLoyaltyForm({ ...loyaltyForm, triggerProduct: e.target.value })}
                           placeholder="Ej: Hamburguesa"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-[#F54927] outline-none transition-colors"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                         />
                       </div>
                     </div>
@@ -1429,7 +1429,7 @@ const DashboardContent = () => {
                           value={loyaltyForm.rewardCount}
                           onChange={(e) => setLoyaltyForm({ ...loyaltyForm, rewardCount: e.target.value })}
                           placeholder="Ej: 1"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-[#F54927] outline-none transition-colors"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                         />
                       </div>
                       <div className="col-span-2">
@@ -1439,7 +1439,7 @@ const DashboardContent = () => {
                           value={loyaltyForm.rewardProduct}
                           onChange={(e) => setLoyaltyForm({ ...loyaltyForm, rewardProduct: e.target.value })}
                           placeholder="Ej: Gaseosa"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-[#F54927] outline-none transition-colors"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                         />
                       </div>
                     </div>
@@ -1462,7 +1462,7 @@ const DashboardContent = () => {
                         alert(res.error || "Error al guardar");
                       }
                     }}
-                    className="flex-1 py-3 bg-[#F54927] text-white rounded-xl text-sm font-medium hover:bg-[#d63d1e] transition-colors shadow-lg shadow-black/10"
+                    className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10"
                   >
                     Guardar
                   </button>
@@ -1513,7 +1513,7 @@ const DashboardContent = () => {
                     min="1"
                     value={reservationsForm.tope_personas_por_hora}
                     onChange={(e) => setReservationsForm({ tope_personas_por_hora: Number(e.target.value) })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-2xl font-semibold text-gray-900 focus:border-[#F54927] outline-none transition-colors text-center tracking-tight"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-2xl font-semibold text-gray-900 focus:border-gray-900 outline-none transition-colors text-center tracking-tight"
                   />
                   <p className="text-xs text-gray-400 text-center">personas con reserva por hora</p>
                 </div>
@@ -1534,7 +1534,7 @@ const DashboardContent = () => {
                         alert(res.error || "Error al guardar");
                       }
                     }}
-                    className="flex-1 py-3 bg-[#F54927] text-white rounded-xl text-sm font-medium hover:bg-[#d63d1e] transition-colors shadow-lg shadow-black/10"
+                    className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10"
                   >
                     Guardar
                   </button>
@@ -1578,7 +1578,7 @@ const DashboardContent = () => {
                       placeholder="Nombre del cliente"
                       value={manualResForm.cliente_nombre}
                       onChange={(e) => setManualResForm({ ...manualResForm, cliente_nombre: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-[#F54927] outline-none transition-colors"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1589,7 +1589,7 @@ const DashboardContent = () => {
                       max="200"
                       value={manualResForm.cantidad_personas}
                       onChange={(e) => setManualResForm({ ...manualResForm, cantidad_personas: Number(e.target.value) })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-[#F54927] outline-none transition-colors"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1598,7 +1598,7 @@ const DashboardContent = () => {
                       type="time"
                       value={manualResForm.hora}
                       onChange={(e) => setManualResForm({ ...manualResForm, hora: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-[#F54927] outline-none transition-colors"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                     />
                   </div>
                 </div>
@@ -1632,7 +1632,7 @@ const DashboardContent = () => {
                         alert(res.error || "Error al crear la reserva");
                       }
                     }}
-                    className="flex-1 py-2.5 bg-[#F54927] text-white rounded-xl text-sm font-medium hover:bg-[#d63d1e] transition-colors shadow-lg shadow-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {manualResLoading ? "Guardando..." : "Confirmar"}
                   </button>
