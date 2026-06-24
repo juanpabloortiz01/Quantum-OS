@@ -368,13 +368,10 @@ export async function runDispatcher(
 
             const totalConfirmed = confirmedReservations.reduce((sum: number, r: any) => sum + r.cantidad_personas, 0)
 
-            const limitAutonomo = ctx.reservationsConfig?.limite_grupo_autonomo ?? 6
             const maxPeoplePerHour = ctx.reservationsConfig?.tope_personas_por_hora ?? 25
 
-            const meetsLimitAutonomo = cantidad_personas <= limitAutonomo
-            const meetsMaxPeople = (totalConfirmed + cantidad_personas) <= maxPeoplePerHour
-
-            if (meetsLimitAutonomo && meetsMaxPeople) {
+            // Nueva lógica: x (solicitadas) + y (ya reservadas) vs tope
+            if ((totalConfirmed + cantidad_personas) < maxPeoplePerHour) {
               estado = "confirmado"
               replyMessage = [
                 `¡Reserva Confirmada! 🎉`,
@@ -388,7 +385,7 @@ export async function runDispatcher(
               ].join("\n")
             } else {
               estado = "pendiente_aprobacion"
-              replyMessage = `Recibido. Al ser un grupo grande, el encargado está verificando la disposición de las mesas en este momento. Te confirmo en un par de minutos por aquí mismo.`
+              replyMessage = `Lo siento, ese horario está muy saturado. El encargado te propondrá un horario alternativo disponible en breve.`
             }
 
             await prisma.reserva.create({

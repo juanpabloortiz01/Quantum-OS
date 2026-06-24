@@ -172,6 +172,8 @@ Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si es
    - "1pm" → 13:00  |  "2pm" → 14:00  |  "6pm" → 18:00  |  "8pm" → 20:00
    - Nunca pongas "15pm" ni "03pm" en el ISO. El campo HH del ISO siempre va de 00 a 23.
 
+4. CONFIRMACIÓN AUTOMÁTICA: Una vez que el sistema reciba los datos, verificará la disponibilidad del horario solicitado automáticamente. Si hay espacio, la reserva se confirmará de inmediato. Si el horario está saturado, el encargado propondrá una alternativa.
+
 Solo cuando el cliente te haya proporcionado y confirmado explícitamente los 3 datos fundamentales, debes generar la siguiente etiqueta oculta al final de tu respuesta:
 SOLICITAR_RESERVA:{"cliente_nombre": "Nombre del Cliente", "cantidad_personas": Número, "fecha_hora_deseada": "YYYY-MM-DDTHH:MM:SS"}
 

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule, getReservas, saveReservationsConfig, updateReservationStatus, deleteReservation } from "./action";
+import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule, getReservas, saveReservationsConfig, updateReservationStatus, deleteReservation, createManualReservation } from "./action";
 
 interface GlassModule {
   id: string;
@@ -147,14 +147,21 @@ const DashboardContent = () => {
   // States for reservations configuration
   const [showReservationsModal, setShowReservationsModal] = React.useState(false);
   const [reservationsForm, setReservationsForm] = React.useState({
-    limite_grupo_autonomo: 6,
     tope_personas_por_hora: 25
   });
   const [reservations, setReservations] = React.useState<any[]>([]);
-  const [calendarMonth, setCalendarMonth] = React.useState<Date>(new Date(2026, 5, 1)); // Junio 2026
+  const [calendarMonth, setCalendarMonth] = React.useState<Date>(new Date(2026, 5, 1));
   const [calendarViewMode, setCalendarViewMode] = React.useState<"month" | "day">("month");
-  const [selectedCalendarDay, setSelectedCalendarDay] = React.useState<Date>(new Date(2026, 5, 4)); // 4 de Junio 2026
-  const [activeReservationForAlternative, setActiveReservationForAlternative] = React.useState<string | null>(null);
+  const [selectedCalendarDay, setSelectedCalendarDay] = React.useState<Date>(new Date(2026, 5, 4));
+
+  // States for manual reservation modal
+  const [showManualReservationModal, setShowManualReservationModal] = React.useState(false);
+  const [manualResForm, setManualResForm] = React.useState({
+    cliente_nombre: "",
+    cantidad_personas: 2,
+    hora: "20:00"
+  });
+  const [manualResLoading, setManualResLoading] = React.useState(false);
 
   const [tourStep, setTourStep] = React.useState<number | null>(null);
   const [mockLeadAgentActive, setMockLeadAgentActive] = React.useState(true);
@@ -284,7 +291,6 @@ const DashboardContent = () => {
 
         if ((layout as any).reservationsConfig) {
           setReservationsForm({
-            limite_grupo_autonomo: (layout as any).reservationsConfig.limite_grupo_autonomo ?? 6,
             tope_personas_por_hora: (layout as any).reservationsConfig.tope_personas_por_hora ?? 25
           });
         }
@@ -409,18 +415,6 @@ const DashboardContent = () => {
   const fetchAndSetReservations = async () => {
     const fetchedRes = await getReservas();
     setReservations(fetchedRes);
-  };
-
-  const handleProposeAlternative = async (reservaId: string, originalDateStr: string, hoursToAdd: number) => {
-    const originalDate = new Date(originalDateStr);
-    const altDate = new Date(originalDate.getTime() + hoursToAdd * 60 * 60 * 1000);
-    const res = await updateReservationStatus(reservaId, "reagendado", altDate.toISOString());
-    if (res.success) {
-      await fetchAndSetReservations();
-      setActiveReservationForAlternative(null);
-    } else {
-      alert(res.error || "Error al proponer alternativa");
-    }
   };
 
   React.useEffect(() => {
@@ -863,12 +857,24 @@ const DashboardContent = () => {
                     <h2 className="text-lg md:text-xl font-semibold text-gray-900 truncate pr-2">
                       {selectedCalendarDay.toLocaleDateString("es-EC", { weekday: "short", day: "numeric", month: "short" })}
                     </h2>
-                    <button
-                      onClick={() => setCalendarViewMode("month")}
-                      className="text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors whitespace-nowrap"
-                    >
-                      Volver
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setManualResForm({ cliente_nombre: "", cantidad_personas: 2, hora: "20:00" });
+                          setShowManualReservationModal(true);
+                        }}
+                        className="w-8 h-8 rounded-xl bg-gray-900 text-white flex items-center justify-center hover:bg-gray-700 transition-colors shadow-sm font-bold text-lg leading-none"
+                        title="Agregar reserva manual"
+                      >
+                        +
+                      </button>
+                      <button
+                        onClick={() => setCalendarViewMode("month")}
+                        className="text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors whitespace-nowrap"
+                      >
+                        Volver
+                      </button>
+                    </div>
                   </div>
 
                   <div className="relative border-l border-gray-200 pl-4 space-y-4">
@@ -970,28 +976,15 @@ const DashboardContent = () => {
                                   {/* Actions */}
                                   <div className="flex items-center gap-2 mt-2">
                                     {["pendiente_aprobacion", "reagendado"].includes(res.estado) && (
-                                      <>
-                                        <button
-                                          onClick={async () => {
-                                            const updateRes = await updateReservationStatus(res.id, "confirmado");
-                                            if (updateRes.success) await fetchAndSetReservations();
-                                          }}
-                                          className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-semibold hover:bg-emerald-700 transition-colors"
-                                        >
-                                          Aceptar
-                                        </button>
-                                        
-                                        <button
-                                          onClick={() => {
-                                            setActiveReservationForAlternative(
-                                              activeReservationForAlternative === res.id ? null : res.id
-                                            );
-                                          }}
-                                          className="p-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-                                        >
-                                          <Calendar className="w-3.5 h-3.5" />
-                                        </button>
-                                      </>
+                                      <button
+                                        onClick={async () => {
+                                          const updateRes = await updateReservationStatus(res.id, "confirmado");
+                                          if (updateRes.success) await fetchAndSetReservations();
+                                        }}
+                                        className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-semibold hover:bg-emerald-700 transition-colors"
+                                      >
+                                        Confirmar
+                                      </button>
                                     )}
                                     <button
                                       onClick={async () => {
@@ -1506,32 +1499,18 @@ const DashboardContent = () => {
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Grupo Máximo</label>
-                    <input
-                      type="number"
-                      value={reservationsForm.limite_grupo_autonomo}
-                      onChange={(e) => setReservationsForm({ ...reservationsForm, limite_grupo_autonomo: Number(e.target.value) })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
-                    />
-                    <p className="text-[11px] font-light text-gray-500 leading-normal">
-                      Cualquier reserva mayor a este número de personas pasará a tu aprobación en Whatsapp antes de confirmarse.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Tope de Personas por Hora</label>
-                    <input
-                      type="number"
-                      value={reservationsForm.tope_personas_por_hora}
-                      onChange={(e) => setReservationsForm({ ...reservationsForm, tope_personas_por_hora: Number(e.target.value) })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
-                    />
-                    <p className="text-[11px] font-light text-gray-500 leading-normal">
-                      Cuántas personas con reserva puede soportar tu negocio cada hora, tomando en cuenta el flujo de clientes sin reserva.
-                    </p>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Capacidad horaria con reserva</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={reservationsForm.tope_personas_por_hora}
+                    onChange={(e) => setReservationsForm({ tope_personas_por_hora: Number(e.target.value) })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                  />
+                  <p className="text-[11px] font-light text-gray-500 leading-normal">
+                    ¿Cuántas personas con reserva puede recibir tu restaurante en una misma hora sin saturarse? Ten en cuenta que ya llegan clientes sin reserva. Por ejemplo, si tu local recibe 40 personas/hora y unas 15 ya van sin reserva, ingresa <strong>25</strong>.
+                  </p>
                 </div>
 
                 <div className="flex gap-3 pt-2">
@@ -1553,6 +1532,104 @@ const DashboardContent = () => {
                     className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10"
                   >
                     Guardar
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Manual Reservation Modal */}
+        <AnimatePresence>
+          {showManualReservationModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setShowManualReservationModal(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-sm bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-8 space-y-5"
+              >
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 tracking-tight">
+                    Nueva Reserva Manual
+                  </h3>
+                  <p className="text-xs font-light text-gray-400 mt-1">
+                    {selectedCalendarDay.toLocaleDateString("es-EC", { weekday: "long", day: "numeric", month: "long" })}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Nombre</label>
+                    <input
+                      type="text"
+                      placeholder="Nombre del cliente"
+                      value={manualResForm.cliente_nombre}
+                      onChange={(e) => setManualResForm({ ...manualResForm, cliente_nombre: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Número de personas</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="200"
+                      value={manualResForm.cantidad_personas}
+                      onChange={(e) => setManualResForm({ ...manualResForm, cantidad_personas: Number(e.target.value) })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Hora</label>
+                    <input
+                      type="time"
+                      value={manualResForm.hora}
+                      onChange={(e) => setManualResForm({ ...manualResForm, hora: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => setShowManualReservationModal(false)}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    disabled={!manualResForm.cliente_nombre || manualResLoading}
+                    onClick={async () => {
+                      if (!manualResForm.cliente_nombre) return;
+                      setManualResLoading(true);
+                      const y = selectedCalendarDay.getFullYear();
+                      const mo = String(selectedCalendarDay.getMonth() + 1).padStart(2, "0");
+                      const d = String(selectedCalendarDay.getDate()).padStart(2, "0");
+                      const isoStr = `${y}-${mo}-${d}T${manualResForm.hora}:00-05:00`;
+                      const res = await createManualReservation({
+                        cliente_nombre: manualResForm.cliente_nombre,
+                        cantidad_personas: manualResForm.cantidad_personas,
+                        fecha_hora_deseada: isoStr
+                      });
+                      setManualResLoading(false);
+                      if (res.success) {
+                        setShowManualReservationModal(false);
+                        await fetchAndSetReservations();
+                      } else {
+                        alert(res.error || "Error al crear la reserva");
+                      }
+                    }}
+                    className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {manualResLoading ? "Guardando..." : "Confirmar"}
                   </button>
                 </div>
               </motion.div>

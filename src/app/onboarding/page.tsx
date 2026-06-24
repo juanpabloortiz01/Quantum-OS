@@ -684,17 +684,13 @@ function OnboardingContent() {
       <div className={`relative z-10 w-full transition-all duration-500 ${step === 1 || step === 2 ? "max-w-2xl" : "max-w-md"}`}>
 
         {/* HEADER MINI */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-[#1A1A1A]">
-            <span className="w-2 h-2 rounded-full bg-[#F54927]" />
-            Tito
-          </div>
-          {step >= 1 && (
+        {step >= 1 && (
+          <div className="mb-6 flex items-center justify-end">
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
               Paso {step}/6
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* TARJETA PRINCIPAL */}
         <div className="border border-[#E2E8F0] bg-white rounded-xl shadow-sm relative overflow-hidden">

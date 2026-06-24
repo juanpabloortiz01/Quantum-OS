@@ -113,7 +113,7 @@ export async function getDashboardLayout() {
       loyaltyRule: config.loyaltyRule || null,
       whatsappNumber: org.whatsappNumber,
       notifPhone: config.context?.notifPhone,
-      reservationsConfig: config.reservationsConfig || { limite_grupo_autonomo: 6, tope_personas_por_hora: 25 },
+      reservationsConfig: config.reservationsConfig || { tope_personas_por_hora: 25 },
     }
   } catch (error) {
     return null
@@ -238,7 +238,6 @@ export async function getReservas() {
 }
 
 export async function saveReservationsConfig(config: {
-  limite_grupo_autonomo: number
   tope_personas_por_hora: number
 }) {
   const session = await auth()
@@ -256,7 +255,8 @@ export async function saveReservationsConfig(config: {
     const updatedConfig = {
       ...currentConfig,
       reservationsConfig: {
-        limite_grupo_autonomo: Number(config.limite_grupo_autonomo),
+        // Keep legacy field for dispatcher compatibility
+        limite_grupo_autonomo: 999,
         tope_personas_por_hora: Number(config.tope_personas_por_hora),
       }
     }
@@ -271,6 +271,41 @@ export async function saveReservationsConfig(config: {
   } catch (error: any) {
     console.error("[SAVE_RESERVATIONS_CONFIG_ERROR]:", error)
     return { error: "No se pudo guardar la configuración de reservas" }
+  }
+}
+
+export async function createManualReservation(data: {
+  cliente_nombre: string
+  cantidad_personas: number
+  fecha_hora_deseada: string // ISO string in Ecuador time
+}) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "No autorizado" }
+
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { userId: session.user.id }
+    })
+    if (!org) return { error: "Organización no encontrada" }
+
+    const fechaHora = new Date(data.fecha_hora_deseada)
+
+    await prisma.reserva.create({
+      data: {
+        organizationId: org.id,
+        cliente_id: "manual",
+        cliente_nombre: data.cliente_nombre,
+        cantidad_personas: data.cantidad_personas,
+        fecha_hora_deseada: fechaHora,
+        estado: "confirmado"
+      }
+    })
+
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[CREATE_MANUAL_RESERVATION_ERROR]:", error)
+    return { error: "No se pudo crear la reserva" }
   }
 }
 
