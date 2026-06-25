@@ -279,6 +279,7 @@ export async function createManualReservation(data: {
   cliente_nombre: string
   cantidad_personas: number
   fecha_hora_deseada: string // ISO string in Ecuador time
+  pedido?: string
 }) {
   const session = await auth()
   if (!session?.user?.id) return { error: "No autorizado" }
@@ -298,7 +299,8 @@ export async function createManualReservation(data: {
         cliente_nombre: data.cliente_nombre,
         cantidad_personas: data.cantidad_personas,
         fecha_hora_deseada: fechaHora,
-        estado: "confirmado"
+        estado: "confirmado",
+        pedido: data.pedido
       }
     })
 

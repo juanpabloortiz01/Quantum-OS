@@ -158,7 +158,8 @@ const DashboardContent = () => {
   const [manualResForm, setManualResForm] = React.useState({
     cliente_nombre: "",
     cantidad_personas: 2,
-    hora: "20:00"
+    hora: "20:00",
+    pedido: ""
   });
   const [manualResLoading, setManualResLoading] = React.useState(false);
   const [expandedReservationId, setExpandedReservationId] = React.useState<string | null>(null);
@@ -850,7 +851,7 @@ const DashboardContent = () => {
                     </h2>
                     <button
                       onClick={() => {
-                        setManualResForm({ cliente_nombre: "", cantidad_personas: 2, hora: "20:00" });
+                        setManualResForm({ cliente_nombre: "", cantidad_personas: 2, hora: "20:00", pedido: "" });
                         setShowManualReservationModal(true);
                       }}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 text-white hover:bg-gray-800 transition-colors shadow-sm font-semibold text-sm"
@@ -1472,7 +1473,7 @@ const DashboardContent = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-sm bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-8 space-y-5"
+                className="w-full max-w-md bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-8 space-y-5"
               >
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900 tracking-tight">
@@ -1514,6 +1515,15 @@ const DashboardContent = () => {
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Pedido (Opcional)</label>
+                    <textarea
+                      placeholder="Platos pedidos por el cliente"
+                      value={manualResForm.pedido}
+                      onChange={(e) => setManualResForm({ ...manualResForm, pedido: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors min-h-[80px]"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-1">
@@ -1535,7 +1545,8 @@ const DashboardContent = () => {
                       const res = await createManualReservation({
                         cliente_nombre: manualResForm.cliente_nombre,
                         cantidad_personas: manualResForm.cantidad_personas,
-                        fecha_hora_deseada: isoStr
+                        fecha_hora_deseada: isoStr,
+                        pedido: manualResForm.pedido || undefined
                       });
                       setManualResLoading(false);
                       if (res.success) {
