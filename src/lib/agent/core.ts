@@ -188,7 +188,7 @@ Las reservas confirmadas actualmente para los próximos 7 días son:
 ${occupiedList || "No hay reservas previas."}
 
 REGLAS DE AFORO:
-1. Si la "cantidad de personas" que pide el cliente es MAYOR estrictamente a la Capacidad Máxima (${tope}), entonces NO puedes agendar. DEBES escalar al soporte usando la etiqueta RESERVA_EXCEDE_LIMITE, y decirle al cliente: "Al ser una reservación para tantas personas te pasaré con un encargado para que te atienda." y detente ahí.
+1. Si la "cantidad de personas" que pide el cliente es MAYOR estrictamente a la Capacidad Máxima (${tope}), entonces NO puedes agendar de forma automática. Antes de generar la etiqueta RESERVA_EXCEDE_LIMITE, asegúrate de tener el nombre del cliente. Una vez tengas el nombre y la cantidad, DEBES escalar al soporte usando la etiqueta RESERVA_EXCEDE_LIMITE, y decirle al cliente: "Al ser una reservación para tantas personas te pasaré con un encargado para que te atienda." y detente ahí.
 2. Si la suma de las personas que el cliente pide MÁS las personas ya ocupadas en la fecha y hora exacta deseada es MAYOR a la Capacidad Máxima (${tope}), entonces la hora está saturada. DEBES disculparte y sugerir proactivamente otras horas cercanas en ese mismo día que SÍ tengan capacidad suficiente. NO pidas el pedido de comida todavía, debes acordar una hora disponible primero.
 3. Si hay espacio suficiente, avanza al paso de la comida.
 

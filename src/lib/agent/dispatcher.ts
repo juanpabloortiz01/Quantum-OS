@@ -309,6 +309,7 @@ export async function runDispatcher(
             `🗓 *Fecha:* ${formatDate(fechaHora)}`,
             `⏰ *Hora:* ${formatTime(fechaHora)}`,
             `📱 *Teléfono:* ${cleanPhone}`,
+            `⚡ *Acción:* Reservación de muchas personas que necesita ser atendida manualmente`,
             ...(pedido ? [`---`, `🍽 *Detalle del Pedido:*`, ...pedido.split('\n').map((p: string) => `- ${p.trim().replace(/^- /g, "")}`)] : []),
             ``,
             `_Por favor, contactate con el cliente y coordina la reservación de forma manual._`
