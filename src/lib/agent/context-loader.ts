@@ -24,6 +24,12 @@ export interface LoadedContext {
   scheduleType?: "custom" | "24h"
   scheduleConfig?: Record<string, { isOpen: boolean; openTime: string; closeTime: string }>
   address: string
+  locationConfig?: {
+    hasPhysicalLocation: boolean
+    lat: number
+    lng: number
+    address: string
+  }
   website: string
   instagram: string
   facebook: string
@@ -172,6 +178,12 @@ export async function loadContext(
       scheduleType: ctx.scheduleType,
       scheduleConfig: ctx.scheduleConfig,
       address: ctx.address ?? "",
+      locationConfig: ctx.locationConfig ?? {
+        hasPhysicalLocation: true,
+        lat: -0.180653,
+        lng: -78.467834,
+        address: ctx.address ?? ""
+      },
       website: ctx.website ?? "",
       instagram: ctx.instagram ?? "",
       facebook: ctx.facebook ?? "",

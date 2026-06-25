@@ -7,6 +7,8 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock, Check, Pencil, Clock, X } from "lucide-react"
 
+import dynamic from "next/dynamic"
+const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false })
 import { finalizeOnboarding, registerQuantumUser, sendTestPing, getCloudinaryConfig, setupEvolutionInstance, checkEvolutionConnectionState, registerAndFinalizeOnboarding } from "./action"
 
 
@@ -108,7 +110,7 @@ function OnboardingContent() {
       openTime: "09:00",
       closeTime: "18:00",
       description: "",
-      address: "",
+      locationConfig: { hasPhysicalLocation: true, lat: -0.180653, lng: -78.467834, address: "" },
       website: "",
       instagram: "",
       facebook: "",
@@ -261,7 +263,7 @@ function OnboardingContent() {
           clearInterval(interval)
           // Automático al paso de creación de cuenta tras 1.5s
           setTimeout(() => {
-            setStep(6)
+            setStep(7)
           }, 1500)
         }
       }, 3000)
@@ -272,7 +274,7 @@ function OnboardingContent() {
   useEffect(() => {
     if (step === 5 && evoConnected) {
       const timer = setTimeout(() => {
-        setStep(6)
+        setStep(7)
       }, 1500)
       return () => clearTimeout(timer)
     }
@@ -291,7 +293,7 @@ function OnboardingContent() {
       if (res.connected) {
         setEvoConnected(true)
         setTimeout(() => {
-          setStep(6)
+          setStep(7)
         }, 1500)
       } else {
         if (method === "qr") setQrBase64(res.base64!)
@@ -528,7 +530,7 @@ function OnboardingContent() {
       }
     }))
 
-    setStep(3)
+    setStep(4)
   }
 
   // Leer errores de NextAuth en la URL (ej. OAuthAccountNotLinked o Configuration)
@@ -687,7 +689,7 @@ function OnboardingContent() {
         {step >= 1 && (
           <div className="mb-6 flex items-center justify-end">
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
-              Paso {step}/6
+              Paso {step}/7
             </div>
           </div>
         )}
@@ -700,8 +702,8 @@ function OnboardingContent() {
             <div className="h-1 flex bg-[#F3F4F6] overflow-hidden">
               <motion.div 
                 className="h-full bg-[#F54927]"
-                initial={{ width: "16.6%" }}
-                animate={{ width: `${(step / 6) * 100}%` }}
+                initial={{ width: "14.2%" }}
+                animate={{ width: `${(step / 7) * 100}%` }}
                 transition={{ duration: 0.6, ease: smoothEase }}
               />
             </div>
@@ -729,11 +731,12 @@ function OnboardingContent() {
                   className="text-2xl font-bold tracking-tight text-[#1A1A1A]"
                 >
                   {step === 1 && "Describe tu negocio"}
-                  {step === 2 && "Horarios de atención"}
-                  {step === 3 && "Sube tu menú"}
-                  {step === 4 && "Conexión del Agente IA"}
-                  {step === 5 && "Conecta tu WhatsApp"}
-                  {step === 6 && "Crear una cuenta"}
+                  {step === 3 && "Ubicación del local"}
+                  {step === 4 && "Horarios de atención"}
+                  {step === 5 && "Sube tu menú"}
+                  {step === 6 && "Conexión del Agente IA"}
+                  {step === 7 && "Conecta tu WhatsApp"}
+                  {step === 8 && "Crear una cuenta"}
                 </motion.h1>
               </AnimatePresence>
               <AnimatePresence mode="wait">
@@ -748,7 +751,7 @@ function OnboardingContent() {
                     Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
                   </motion.p>
                 )}
-                {step === 2 && (
+                {step === 3 && (
                   <motion.p
                     key="step2-desc"
                     initial={{ opacity: 0, y: -5 }}
@@ -759,7 +762,7 @@ function OnboardingContent() {
                     Define los horarios de funcionamiento de tu negocio para que el asistente pueda responder e informar adecuadamente.
                   </motion.p>
                 )}
-                {step === 4 && (
+                {step === 5 && (
                   <motion.p
                     key="step4-desc"
                     initial={{ opacity: 0, y: -5 }}
@@ -770,7 +773,7 @@ function OnboardingContent() {
                     Configura el número de teléfono desde el cual el agente interactuará con tus clientes.
                   </motion.p>
                 )}
-                {step === 5 && (
+                {step === 6 && (
                   <motion.p
                     key="step5-desc"
                     initial={{ opacity: 0, y: -5 }}
@@ -941,15 +944,7 @@ function OnboardingContent() {
                           className="w-full h-24 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all leading-relaxed"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">{formData.niche === 'agenda' ? 'Ubicación' : 'Dirección física (Opcional)'}</label>
-                        <textarea
-                          value={formData.contextData.address}
-                          onChange={(e) => updateContext("address", e.target.value)}
-                          placeholder={formData.niche === "agenda" ? "Ejem: Av. Amazonas N24-15, Edificio Médico, Oficina 302" : "Calle Larga 4-56 y Benigno Malo"}
-                          className="w-full h-16 bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none resize-none transition-all"
-                        />
-                      </div>
+
                     </div>
 
                     {/* Enlaces y Contacto */}
@@ -999,7 +994,7 @@ function OnboardingContent() {
 
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
-                      onClick={() => setStep(2)}
+                      onClick={() => setStep(3)}
                       disabled={
                         !formData.contextData.companyName || 
                         !formData.contextData.description ||
@@ -1008,7 +1003,7 @@ function OnboardingContent() {
                       }
                       className="w-full py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98]"
                     >
-                      Continuar a horarios
+                      Continuar a ubicación
                     </button>
                   </motion.div>
                 </motion.div>
@@ -1017,7 +1012,7 @@ function OnboardingContent() {
 
 
               {/* ── PASO 2: HORARIOS DE ATENCIÓN ── */}
-              {step === 2 && (
+              {step === 3 && (
                 <motion.div
                   key="step2"
                   variants={containerVariants}
@@ -1202,7 +1197,7 @@ function OnboardingContent() {
 
 
               {/* ── PASO 3: CATÁLOGO / SERVICIOS ── */}
-              {step === 3 && (
+              {step === 4 && (
                 <motion.div
                   key="step3"
                   variants={containerVariants}
@@ -1632,7 +1627,7 @@ function OnboardingContent() {
                         if (ventasMethod !== "choose") {
                           setVentasMethod("choose")
                         } else {
-                          setStep(2)
+                          setStep(3)
                         }
                       }}
                       className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
@@ -1640,7 +1635,7 @@ function OnboardingContent() {
                       ← Atrás
                     </button>
                     <button
-                      onClick={() => setStep(4)}
+                      onClick={() => setStep(5)}
                       disabled={
                         ventasMethod === "choose" ||
                         (formData.niche === "ventas" && ventasMethod === "ai" && (!formData.contextData.menuImages || formData.contextData.menuImages.length === 0)) ||
@@ -1656,7 +1651,7 @@ function OnboardingContent() {
               )}
 
               {/* ── PASO 4: NÚMERO DE AGENTE ── */}
-              {step === 4 && (
+              {step === 5 && (
                 <motion.div
                   key="step4"
                   variants={containerVariants}
@@ -1707,7 +1702,7 @@ function OnboardingContent() {
 
                   <div className="flex gap-3 mt-2">
                     <button
-                      onClick={() => setStep(3)}
+                      onClick={() => setStep(4)}
                       className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                     >
                       ← Atrás
@@ -1717,7 +1712,7 @@ function OnboardingContent() {
                       whileTap={{ scale: 0.96 }}
                       onClick={() => {
                         if (validateAgentPhone()) {
-                          setStep(5);
+                          setStep(7);
                         }
                       }}
                       className="flex-1 bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors shadow-sm"
@@ -1729,7 +1724,7 @@ function OnboardingContent() {
               )}
 
               {/* ── PASO 5: QR + TEST ── */}
-              {step === 5 && (
+              {step === 6 && (
                 <motion.div
                   key="step5"
                   variants={containerVariants}
@@ -1769,7 +1764,7 @@ function OnboardingContent() {
                           </motion.button>
                         </div>
                         <button
-                          onClick={() => setStep(4)}
+                          onClick={() => setStep(5)}
                           className="w-full py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform text-center"
                         >
                           ← Atrás
@@ -1863,7 +1858,7 @@ function OnboardingContent() {
               )}
 
               {/* ── PASO 6: CREAR CUENTA (AUTH AL FINAL) ── */}
-              {step === 6 && (
+              {step === 7 && (
                 <motion.div
                   key="step6"
                   variants={containerVariants}
@@ -1890,7 +1885,7 @@ function OnboardingContent() {
 
                       <div className="flex gap-3 pt-4 border-t border-[#E2E8F0]">
                         <button
-                          onClick={() => setStep(5)}
+                          onClick={() => setStep(7)}
                           disabled={isLoading}
                           className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                         >
@@ -1965,7 +1960,7 @@ function OnboardingContent() {
 
                       <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                         <button
-                          onClick={() => setStep(5)}
+                          onClick={() => setStep(7)}
                           disabled={isLoading}
                           className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                         >

@@ -79,6 +79,40 @@ async function sendMedia(
   }
 }
 
+/**
+ * Envía un mensaje de ubicación por EvolutionAPI.
+ */
+async function sendLocation(
+  evoUrl: string,
+  instanceName: string,
+  token: string,
+  to: string,
+  name: string,
+  address: string,
+  latitude: number,
+  longitude: number
+): Promise<void> {
+  const res = await fetch(`${evoUrl}/message/sendLocation/${instanceName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: token,
+    },
+    body: JSON.stringify({
+      number: to,
+      name,
+      address,
+      latitude,
+      longitude,
+    }),
+  })
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => res.statusText)
+    throw new Error(`EVO_SEND_LOCATION_ERROR [${res.status}]: ${errBody}`)
+  }
+}
+
 function getEcuadorWeekday(date: Date): string {
   // Ajustar la fecha a la zona horaria de Ecuador (GMT-5) de forma matemática
   const ecuadorDate = new Date(date.getTime() - 5 * 60 * 60 * 1000);
@@ -169,6 +203,27 @@ export async function runDispatcher(
         )
       }
       return { success: true, method: "sendMedia" }
+    } else if (coreResult.enviarUbicacion && ctx.locationConfig?.hasPhysicalLocation) {
+      console.log(`[DISPATCHER]: Payload Location -> Lat: ${ctx.locationConfig.lat}, Lng: ${ctx.locationConfig.lng}`)
+      
+      // Enviar texto si hay
+      if (coreResult.cleanText) {
+        await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
+        await new Promise(resolve => setTimeout(resolve, 800))
+      }
+
+      await sendLocation(
+        EVO_URL,
+        instanceName,
+        authKey,
+        targetNumber,
+        ctx.companyName,
+        ctx.locationConfig.address || "Dirección del local",
+        ctx.locationConfig.lat,
+        ctx.locationConfig.lng
+      )
+
+      return { success: true, method: "sendLocation" as any }
     } else {
       // ── EJECUTAR AGENDAMIENTO REAL ─────────────────────────────────
       if (coreResult.agendarCita) {

@@ -333,6 +333,7 @@ OPCIÓN ${isAgenda ? "3" : (hasReservations ? "5" : "4")} — INFORMACIÓN:
 Dirección: ${ctx.address || "No especificada"}
 Horarios: ${scheduleStr}
 ${contactParts}
+${locationRules}
 ${loyaltyStr}
 ${reservationsStr}
 ${activeReservaStr}
@@ -370,6 +371,7 @@ export interface CoreResult {
   isEscaladoSoporte: boolean
   escalationData: { nombre: string } | null
   solicitarReserva: { cliente_nombre: string; cantidad_personas: number; fecha_hora_deseada: string; pedido?: string } | null
+  enviarUbicacion: boolean
 
   userName: string | null
   summary: string | null
@@ -535,6 +537,11 @@ export async function runCore(
     }
   }
 
+  // UBICACIÓN
+  let enviarUbicacion = false
+  if (rawResponse.includes("ENVIAR_UBICACION:{}")) {
+    enviarUbicacion = true
+  }
 
   let userName = null
   let summary = null
@@ -557,6 +564,7 @@ export async function runCore(
     .replace(/SOLICITAR_RESERVA:\s*({[\s\S]+?})/gi, "")
     .replace(/SOLICITAR_RESERVA:\s*```json[\s\S]+?```/gi, "")
     .replace(/SOLICITAR_RESERVA:\s*```[\s\S]+?```/gi, "")
+    .replace(/ENVIAR_UBICACION:\{\}/gi, "")
     .replace(/\[USER_NAME:\s*(.+?)\]/gi, "")
     .replace(/\[SUMMARY:\s*(.+?)\]/gi, "")
     .replace(/^(MENSAJE|CONFIRMACION|PEDIDO):/gi, "")
@@ -608,6 +616,7 @@ export async function runCore(
     isEscaladoSoporte,
     escalationData,
     solicitarReserva,
+    enviarUbicacion,
     userName,
     summary,
     cleanText,
