@@ -302,14 +302,13 @@ export async function runDispatcher(
           const formatDate = (d: Date) => d.toLocaleDateString("es-EC", { timeZone: "America/Guayaquil", weekday: "long", day: "numeric", month: "long" })
 
           const notifMsg = [
-            `🔔 *NUEVA RESERVA PENDIENTE DE APROBACIÓN (GRUPO GRANDE)*`,
+            `🔔 *NUEVA RESERVA PENDIENTE DE APROBACIÓN*`,
             ``,
             `👤 *Cliente:* ${cliente_nombre}`,
-            `👥 *Personas:* ${cantidad_personas} (Supera la capacidad configurada)`,
+            `👥 *Personas:* ${cantidad_personas}`,
             `🗓 *Fecha:* ${formatDate(fechaHora)}`,
             `⏰ *Hora:* ${formatTime(fechaHora)}`,
             `📱 *Teléfono:* ${cleanPhone}`,
-            `⚡ *Acción:* Reservación de muchas personas que necesita ser atendida manualmente`,
             ...(pedido ? [`---`, `🍽 *Detalle del Pedido:*`, ...pedido.split('\n').map((p: string) => `- ${p.trim().replace(/^- /g, "")}`)] : []),
             ``,
             `_Por favor, contactate con el cliente y coordina la reservación de forma manual._`
