@@ -263,6 +263,63 @@ export async function runDispatcher(
         }
       }
 
+      // ── MANEJO DE RESERVA DE MESAS EXCEDIDA (ESCALADO DIRECTO) ──────────────
+      if (coreResult.reservaExcedeLimite) {
+        const { cliente_nombre, cantidad_personas, fecha_hora_deseada, pedido } = coreResult.reservaExcedeLimite
+
+        let fechaHora: Date
+        const isoBase = fecha_hora_deseada
+          .replace(/Z$/, "")
+          .replace(/[+-]\d{2}:\d{2}$/, "")
+          .match(/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/)?.[0] ?? fecha_hora_deseada.substring(0, 16)
+        fechaHora = new Date(`${isoBase}-05:00`)
+
+        const cleanPhone = to.replace("@s.whatsapp.net", "")
+
+        try {
+          await prisma.reserva.create({
+            data: {
+              organizationId: ctx.organizationId,
+              cliente_id: cleanPhone,
+              cliente_nombre,
+              cantidad_personas,
+              fecha_hora_deseada: fechaHora,
+              estado: "pendiente_aprobacion",
+              pedido
+            }
+          })
+          console.log(`[DISPATCHER]: Reserva EXCEDIDA registrada como pendiente de aprobación.`)
+        } catch (dbErr: any) {
+          console.error(`[DISPATCHER_RESERVAS_EXCEDE_ERROR]:`, dbErr.message)
+        }
+
+        if (ctx.notifPhone) {
+          const rawDigits = ctx.notifPhone.replace(/\D/g, "")
+          const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+          const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
+
+          const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { timeZone: "America/Guayaquil", hour: "2-digit", minute: "2-digit", hour12: true })
+          const formatDate = (d: Date) => d.toLocaleDateString("es-EC", { timeZone: "America/Guayaquil", weekday: "long", day: "numeric", month: "long" })
+
+          const notifMsg = [
+            `🔔 *NUEVA RESERVA PENDIENTE DE APROBACIÓN (GRUPO GRANDE)*`,
+            ``,
+            `👤 *Cliente:* ${cliente_nombre}`,
+            `👥 *Personas:* ${cantidad_personas} (Supera la capacidad configurada)`,
+            `🗓 *Fecha:* ${formatDate(fechaHora)}`,
+            `⏰ *Hora:* ${formatTime(fechaHora)}`,
+            `📱 *Teléfono:* ${cleanPhone}`,
+            ...(pedido ? [`---`, `🍽 *Detalle del Pedido:*`, ...pedido.split('\n').map((p: string) => `- ${p.trim().replace(/^- /g, "")}`)] : []),
+            ``,
+            `_Por favor, contactate con el cliente y coordina la reservación de forma manual._`
+          ].join("\n")
+
+          try {
+            await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
+          } catch (err: any) {}
+        }
+      }
+
       // ── MANEJO DE RESERVA DE MESAS (RESERVACIONES) ──────────────────────
       if (coreResult.solicitarReserva) {
         const { cliente_nombre, cantidad_personas, fecha_hora_deseada, pedido } = coreResult.solicitarReserva

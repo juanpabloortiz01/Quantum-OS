@@ -164,6 +164,12 @@ Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si es
   // ── Reservaciones de Mesa ──────────────────────────────────────────
   let reservationsStr = ""
   if (ctx.enabledNodes.includes("reservations")) {
+    const tope = ctx.reservationsConfig?.tope_personas_por_hora ?? 25;
+    const occupied = ctx.reservationsConfig?.occupiedSlots || {};
+    const occupiedList = Object.entries(occupied)
+      .map(([datetime, count]) => `- ${datetime.substring(0, 16)}: ${count} personas ocupadas`)
+      .join("\n");
+
     reservationsStr = `\n═══════════════════════════════════════
 📅 PROCESO DE RESERVACIONES DE MESAS (ACTIVO)
 ═══════════════════════════════════════
@@ -174,21 +180,35 @@ Pregunta y confirma de manera explícita:
 - El nombre completo de la persona que reserva.
 - La cantidad de personas.
 - La fecha y hora deseada para la reserva.
-REGLA DE HORARIO: ${scheduleStr}. Rechaza si pide fuera de horario. Convierte siempre a formato de 24 horas (ej. 3pm -> 15:00).
+REGLA DE HORARIO: ${scheduleStr}. Rechaza si pide fuera de horario. ATENCIÓN: "2pm" es 14:00, "8pm" es 20:00. Asegúrate de convertir siempre el formato de 12h (AM/PM) al formato de 24 horas correctamente antes de validar si está dentro del horario.
 
-PASO 2: TOMAR EL PEDIDO DE COMIDA (CRÍTICO)
-Una vez confirmados el nombre, personas, fecha y hora, **NO** generes la reserva todavía. 
+PASO 2: VALIDACIÓN DE CAPACIDAD (Aforo)
+Capacidad Máxima por hora permitida: ${tope} personas.
+Las reservas confirmadas actualmente para los próximos 7 días son:
+${occupiedList || "No hay reservas previas."}
+
+REGLAS DE AFORO:
+1. Si la "cantidad de personas" que pide el cliente es MAYOR estrictamente a la Capacidad Máxima (${tope}), entonces NO puedes agendar. DEBES escalar al soporte usando la etiqueta RESERVA_EXCEDE_LIMITE, y decirle al cliente: "Al ser una reservación para tantas personas te pasaré con un encargado para que te atienda." y detente ahí.
+2. Si la suma de las personas que el cliente pide MÁS las personas ya ocupadas en la fecha y hora exacta deseada es MAYOR a la Capacidad Máxima (${tope}), entonces la hora está saturada. DEBES disculparte y sugerir proactivamente otras horas cercanas en ese mismo día que SÍ tengan capacidad suficiente. NO pidas el pedido de comida todavía, debes acordar una hora disponible primero.
+3. Si hay espacio suficiente, avanza al paso de la comida.
+
+PASO 3: TOMAR EL PEDIDO DE COMIDA (CRÍTICO)
+Una vez confirmados el nombre, personas, fecha y hora (y validado el aforo), **NO** generes la reserva todavía. 
 Dile al cliente: "¡Perfecto! Tengo listos tus datos para la mesa. Ahora necesito tomar tu pedido. ¿Ya sabes lo que deseas ordenar o te envío el menú?"
 - Si el cliente responde afirmativamente a ver el menú, usa la opción normal de enviar menú visualmente (opción 4 / ver el menú).
 - Cuando el cliente indique sus platos, recoge el pedido con la cantidad exacta de cada uno (ej. "2 hamburguesas clasicas, 1 bebida").
 - Envíale un resumen del pedido de comida junto a los datos de la reserva y pídele que responda "CONFIRMAR" para finalizar la reserva en firme.
 
-PASO 3: CONFIRMACIÓN Y ETIQUETA FINAL
+PASO 4: CONFIRMACIÓN Y ETIQUETA FINAL
 Solo cuando el cliente haya confirmado explícitamente el resumen de su pedido y datos (ej. "Sí", "Confirmar", "Correcto"), DEBES emitir OBLIGATORIAMENTE la etiqueta oculta al final de tu respuesta:
 SOLICITAR_RESERVA:{"cliente_nombre": "Nombre del Cliente", "cantidad_personas": Número, "fecha_hora_deseada": "YYYY-MM-DDTHH:MM:SS", "pedido": "Detalle completo del pedido, organizado punto por punto"}
 
-Ejemplo correcto de etiqueta:
+Ejemplos de etiquetas de salida:
+A) Todo validado y confirmado por el cliente:
 SOLICITAR_RESERVA:{"cliente_nombre": "Juan Perez", "cantidad_personas": 2, "fecha_hora_deseada": "${year}-${month}-${String(parseInt(day)+1).padStart(2,"0")}T15:00:00", "pedido": "1x Pizza Familiar\n2x Gaseosas"}
+
+B) El grupo excede la capacidad global del restaurante (${tope} personas):
+RESERVA_EXCEDE_LIMITE:{"cliente_nombre": "Juan Perez", "cantidad_personas": 50, "fecha_hora_deseada": "${year}-${month}-${String(parseInt(day)+1).padStart(2,"0")}T15:00:00", "pedido": ""}
 `
   }
 
@@ -381,6 +401,7 @@ export interface CoreResult {
   isEscaladoSoporte: boolean
   escalationData: { nombre: string } | null
   solicitarReserva: { cliente_nombre: string; cantidad_personas: number; fecha_hora_deseada: string; pedido?: string } | null
+  reservaExcedeLimite: { cliente_nombre: string; cantidad_personas: number; fecha_hora_deseada: string; pedido?: string } | null
   enviarUbicacion: boolean
 
   userName: string | null
@@ -547,6 +568,23 @@ export async function runCore(
     }
   }
 
+  // Parsear RESERVA_EXCEDE_LIMITE
+  let reservaExcedeLimite = null
+  const excedeMatch = rawResponse.match(/RESERVA_EXCEDE_LIMITE:\s*([\s\S]+)/i)
+  if (excedeMatch) {
+    const content = excedeMatch[1].trim()
+    const startIdx = content.indexOf("{")
+    const endIdx = content.lastIndexOf("}")
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      const jsonStr = content.substring(startIdx, endIdx + 1)
+      try {
+        reservaExcedeLimite = JSON.parse(jsonStr)
+      } catch (e) {
+        console.error("[CORE_PARSE_ERROR]: Error al parsear JSON de reserva excede limite", jsonStr, e)
+      }
+    }
+  }
+
   // UBICACIÓN
   let enviarUbicacion = false
   if (rawResponse.includes("ENVIAR_UBICACION:{}")) {
@@ -574,6 +612,9 @@ export async function runCore(
     .replace(/SOLICITAR_RESERVA:\s*({[\s\S]+?})/gi, "")
     .replace(/SOLICITAR_RESERVA:\s*```json[\s\S]+?```/gi, "")
     .replace(/SOLICITAR_RESERVA:\s*```[\s\S]+?```/gi, "")
+    .replace(/RESERVA_EXCEDE_LIMITE:\s*({[\s\S]+?})/gi, "")
+    .replace(/RESERVA_EXCEDE_LIMITE:\s*```json[\s\S]+?```/gi, "")
+    .replace(/RESERVA_EXCEDE_LIMITE:\s*```[\s\S]+?```/gi, "")
     .replace(/ENVIAR_UBICACION:\{\}/gi, "")
     .replace(/\[USER_NAME:\s*(.+?)\]/gi, "")
     .replace(/\[SUMMARY:\s*(.+?)\]/gi, "")
@@ -626,6 +667,7 @@ export async function runCore(
     isEscaladoSoporte,
     escalationData,
     solicitarReserva,
+    reservaExcedeLimite,
     enviarUbicacion,
     userName,
     summary,

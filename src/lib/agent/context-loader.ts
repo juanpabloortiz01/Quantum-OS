@@ -60,6 +60,7 @@ export interface LoadedContext {
   reservationsConfig?: {
     limite_grupo_autonomo: number
     tope_personas_por_hora: number
+    occupiedSlots?: Record<string, number>
   }
 }
 
@@ -164,6 +165,31 @@ export async function loadContext(
       style: p.style,
     }))
 
+    let occupiedSlots: Record<string, number> = {}
+    if (enabledNodes.includes("reservations")) {
+      const now = new Date()
+      const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      
+      const confirmedReservations = await prisma.reserva.findMany({
+        where: {
+          organizationId: org.id,
+          estado: "confirmado",
+          fecha_hora_deseada: {
+            gte: now,
+            lte: in7Days
+          }
+        }
+      })
+
+      confirmedReservations.forEach(r => {
+        const d = r.fecha_hora_deseada
+        const dateStr = d.toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" }) // YYYY-MM-DD
+        const hourStr = d.toLocaleTimeString("en-GB", { timeZone: "America/Guayaquil", hour: "2-digit" }) // HH
+        const key = `${dateStr} ${hourStr}:00`
+        occupiedSlots[key] = (occupiedSlots[key] || 0) + r.cantidad_personas
+      })
+    }
+
 
     return {
       organizationId: org.id,
@@ -211,6 +237,7 @@ export async function loadContext(
       reservationsConfig: {
         limite_grupo_autonomo: config.reservationsConfig?.limite_grupo_autonomo ?? 6,
         tope_personas_por_hora: config.reservationsConfig?.tope_personas_por_hora ?? 25,
+        occupiedSlots
       }
     }
 

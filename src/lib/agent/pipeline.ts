@@ -128,7 +128,7 @@ export async function executePipeline(msg: ParsedMessage): Promise<PipelineResul
   try {
     const trustScore = sentryResult.confidence === "HIGH" ? 95 : sentryResult.confidence === "MED" ? 75 : 50
     const summaryText = coreResult?.summary || (msg.text ? (msg.text.length > 80 ? msg.text.substring(0, 80) + "..." : msg.text) : "Mensaje multimedia")
-    const isEscalation = coreResult?.isEscaladoSoporte || coreResult?.isPedidoConfirmado || coreResult?.agendarCita ? true : false
+    const isEscalation = coreResult?.isEscaladoSoporte || coreResult?.reservaExcedeLimite || coreResult?.isPedidoConfirmado || coreResult?.agendarCita ? true : false
     const isRelevantIntent = ["SOPORTE", "AGENDAMIENTO", "CONSULTA_PRODUCTO"].includes(sentryResult.intent)
 
     await prisma.lead.upsert({
