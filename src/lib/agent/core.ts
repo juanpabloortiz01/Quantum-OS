@@ -286,17 +286,18 @@ ${ctx.calendarAvailability && ctx.calendarAvailability.length > 0
 - Duración: 60 min por cita.`;
 
   const generalRules = hasReservations ? `
-OPCIÓN 1 — HACER UN PEDIDO:
-Sigue este protocolo de recolección:
-1. ¿Qué plato(s) deseas pedir? (Pide obligatoriamente la cantidad exacta de cada plato que desea ordenar, ej: "2 Hamburguesas, 1 Papa frita").
+OPCIÓN 1 — HACER UN PEDIDO (A DOMICILIO O PARA LLEVAR):
+Sigue este protocolo de recolección ÚNICAMENTE si el cliente no quiere ir al local:
+1. ¿Qué plato(s) deseas pedir? (Pide obligatoriamente la cantidad exacta de cada plato que desea ordenar).
 2. Nombre completo.
-3. Dirección de entrega (si mandan ubicación por WhatsApp, trátala como dirección).
+3. Dirección de entrega o especificar si pasa retirando por el local.
 4. Resumen y confirmación: "Responde *CONFIRMAR* para finalizar."
 Al confirmar el cliente, emite:
-PEDIDO_CONFIRMADO:{"plato":"[detalle de los platos con sus cantidades, ej: 2x Hamburguesa, 1x Papa frita]","nombre":"[nombre]","direccion":"[direccion]"}
+PEDIDO_CONFIRMADO:{"plato":"[detalle]","nombre":"[nombre]","direccion":"[direccion]"}
 
-OPCIÓN 2 — RESERVAR UNA MESA:
-Sigue estricta y cronológicamente el protocolo de RESERVACIONES (paso 1: Nombre/Personas/Fecha, paso 2: Tomar pedido / Ofrecer Menú, paso 3: Resumen y solicitar confirmación). Solo genera la etiqueta SOLICITAR_RESERVA en el último paso.` : `
+OPCIÓN 2 — RESERVAR UNA MESA (CONSUMO EN EL LOCAL):
+Sigue estricta y cronológicamente el protocolo de RESERVACIONES (Paso 1: Datos, Paso 2: Pedido de comida para la mesa, Paso 3: Confirmación). 
+CRÍTICO: Si el cliente está reservando una mesa y pide comida, ES UN PEDIDO PARA SU RESERVA, NO ES UN PEDIDO A DOMICILIO. Solo genera la etiqueta SOLICITAR_RESERVA en el último paso, con los platos dentro del campo "pedido". NUNCA uses PEDIDO_CONFIRMADO cuando el cliente quiere ir a comer al local.` : `
 OPCIÓN 1 — TOMAR UN PEDIDO:
 Sigue este protocolo de recolección:
 1. ¿Qué plato(s) deseas pedir? (Pide obligatoriamente la cantidad exacta de cada plato que desea ordenar, ej: "2 Hamburguesas, 1 Papa frita").
