@@ -689,7 +689,7 @@ function OnboardingContent() {
         }}
       />
 
-      <div className={`relative z-10 w-full transition-all duration-500 ${step === 1 || step === 2 ? "max-w-2xl" : "max-w-md"}`}>
+      <div className={`relative z-10 w-full transition-all duration-500 ${step === 1 || step === 2 || step === 3 ? "max-w-2xl" : "max-w-md"}`}>
 
         {/* HEADER MINI */}
         {step >= 1 && (
