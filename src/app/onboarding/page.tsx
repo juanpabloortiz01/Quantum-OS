@@ -731,12 +731,12 @@ function OnboardingContent() {
                   className="text-2xl font-bold tracking-tight text-[#1A1A1A]"
                 >
                   {step === 1 && "Describe tu negocio"}
-                  {step === 3 && "Ubicación del local"}
-                  {step === 4 && "Horarios de atención"}
-                  {step === 5 && "Sube tu menú"}
-                  {step === 6 && "Conexión del Agente IA"}
-                  {step === 7 && "Conecta tu WhatsApp"}
-                  {step === 8 && "Crear una cuenta"}
+                  {step === 2 && "Ubicación del local"}
+                  {step === 3 && "Horarios de atención"}
+                  {step === 4 && "Sube tu menú"}
+                  {step === 5 && "Conexión del Agente IA"}
+                  {step === 6 && "Conecta tu WhatsApp"}
+                  {step === 7 && "Crear una cuenta"}
                 </motion.h1>
               </AnimatePresence>
               <AnimatePresence mode="wait">
@@ -751,9 +751,20 @@ function OnboardingContent() {
                     Las respuestas de tu inteligencia artificial se basarán en estos datos. Asegúrate de llenarlo detalladamente.
                   </motion.p>
                 )}
-                {step === 3 && (
+                {step === 2 && (
                   <motion.p
                     key="step2-desc"
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="text-sm text-[#4B5563] leading-relaxed mt-1 px-4"
+                  >
+                    Indica si tienes un local físico o solo haces entregas/servicios remotos.
+                  </motion.p>
+                )}
+                {step === 3 && (
+                  <motion.p
+                    key="step3-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -764,7 +775,7 @@ function OnboardingContent() {
                 )}
                 {step === 5 && (
                   <motion.p
-                    key="step4-desc"
+                    key="step5-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
@@ -775,7 +786,7 @@ function OnboardingContent() {
                 )}
                 {step === 6 && (
                   <motion.p
-                    key="step5-desc"
+                    key="step6-desc"
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
