@@ -123,7 +123,17 @@ function buildSystemPrompt(
     ctx.shippingZones ? `Zonas de envío: ${ctx.shippingZones}` : null,
   ]
     .filter(Boolean)
+    .filter(Boolean)
     .join("\n")
+
+  let locationRules = ""
+  if (ctx.locationConfig) {
+    if (!ctx.locationConfig.hasPhysicalLocation) {
+      locationRules = `⚠️ IMPORTANTE: Este negocio NO tiene un local físico para recibir clientes. Si el cliente pregunta por la ubicación, dirección o dónde están ubicados, DEBES responder textualmente: "Lo sentimos, pero solo atendemos adomicilio." o "No contamos con local físico, solo realizamos entregas a domicilio."`
+    } else {
+      locationRules = `📌 UBICACIÓN: Si el cliente pregunta por la ubicación del local, la dirección o cómo llegar, dile que le enviarás el mapa con la ubicación exacta en un momento y DEBES emitir OBLIGATORIAMENTE la etiqueta oculta al final de tu respuesta: ENVIAR_UBICACION:{}`
+    }
+  }
 
   // ── Identificar Menús/Servicios ──────────────────────────────────
   const menuProducts = ctx.products.filter(p => 
