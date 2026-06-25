@@ -255,7 +255,7 @@ function OnboardingContent() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (step === 5 && connectionMethod && !evoConnected) {
+    if (step === 6 && connectionMethod && !evoConnected) {
       interval = setInterval(async () => {
         const res = await checkEvolutionConnectionState(tempId || undefined, activeInstanceName || undefined)
         if (res.connected) {
@@ -272,7 +272,7 @@ function OnboardingContent() {
   }, [step, connectionMethod, evoConnected, activeInstanceName])
 
   useEffect(() => {
-    if (step === 5 && evoConnected) {
+    if (step === 6 && evoConnected) {
       const timer = setTimeout(() => {
         setStep(7)
       }, 1500)
@@ -642,11 +642,17 @@ function OnboardingContent() {
       }
 
       // Login automático
-      await signIn("credentials", {
+      const signInRes = await signIn("credentials", {
         email,
         password,
         redirect: false,
       })
+
+      if (signInRes?.error) {
+        setError("Error al iniciar sesión automáticamente.")
+        setIsLoading(false)
+        return
+      }
     } else if (session?.user?.id) {
       // Ya autenticado (Google), solo finalizamos
       const result = await finalizeOnboarding({
@@ -667,7 +673,7 @@ function OnboardingContent() {
 
     clearOnboardingLocalStorage()
     setIsLoading(false)
-    router.push("/dashboard")
+    window.location.href = "/dashboard"
   };
 
   return (
