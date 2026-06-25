@@ -994,7 +994,7 @@ function OnboardingContent() {
 
                   <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
-                      onClick={() => setStep(3)}
+                      onClick={() => setStep(2)}
                       disabled={
                         !formData.contextData.companyName || 
                         !formData.contextData.description ||
@@ -1011,7 +1011,105 @@ function OnboardingContent() {
 
 
 
-              {/* ── PASO 2: HORARIOS DE ATENCIÓN ── */}
+              {/* ── PASO 2: UBICACIÓN DEL LOCAL ── */}
+              {step === 2 && (
+                <motion.div
+                  key="step2-location"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="flex flex-col gap-6"
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3 p-4 border border-[#E2E8F0] bg-[#FBFBFA] rounded-xl hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+                         onClick={() => {
+                           setFormData(prev => ({
+                             ...prev,
+                             contextData: {
+                               ...prev.contextData,
+                               locationConfig: {
+                                 ...prev.contextData.locationConfig,
+                                 hasPhysicalLocation: !prev.contextData.locationConfig.hasPhysicalLocation
+                               }
+                             }
+                           }))
+                         }}>
+                      <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${!formData.contextData.locationConfig.hasPhysicalLocation ? "bg-[#1A1A1A] border-[#1A1A1A]" : "bg-white border-[#94A3B8]"}`}>
+                        {!formData.contextData.locationConfig.hasPhysicalLocation && <Check size={14} className="text-white" />}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-[#1A1A1A]">No tengo un local físico</span>
+                        <span className="text-xs text-[#6B7280]">Solo realizo entregas a domicilio o servicios remotos.</span>
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {formData.contextData.locationConfig.hasPhysicalLocation && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="flex flex-col gap-4 overflow-hidden"
+                        >
+                          <div>
+                            <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">Dirección exacta</label>
+                            <input
+                              type="text"
+                              value={formData.contextData.locationConfig.address || ""}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                contextData: {
+                                  ...prev.contextData,
+                                  locationConfig: { ...prev.contextData.locationConfig, address: e.target.value }
+                                }
+                              }))}
+                              placeholder="Ej: Av. Amazonas N24-15 y Orellana"
+                              className="w-full bg-white border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#1A1A1A] focus:border-[#94A3B8] focus:ring-1 focus:ring-[#94A3B8] outline-none transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-[#4B5563] mb-1.5 uppercase">Ubicación en el mapa</label>
+                            <p className="text-xs text-[#6B7280] mb-3">Toca el mapa para colocar el pin de tu negocio.</p>
+                            <MapPicker 
+                              lat={formData.contextData.locationConfig.lat} 
+                              lng={formData.contextData.locationConfig.lng} 
+                              onChange={(lat, lng) => setFormData(prev => ({
+                                ...prev,
+                                contextData: {
+                                  ...prev.contextData,
+                                  locationConfig: { ...prev.contextData.locationConfig, lat, lng }
+                                }
+                              }))}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95"
+                    >
+                      ← Atrás
+                    </button>
+                    <button
+                      onClick={() => setStep(3)}
+                      disabled={
+                        formData.contextData.locationConfig.hasPhysicalLocation && 
+                        (!formData.contextData.locationConfig.address || formData.contextData.locationConfig.lat === 0)
+                      }
+                      className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98]"
+                    >
+                      Continuar a horarios
+                    </button>
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {/* ── PASO 3: HORARIOS DE ATENCIÓN ── */}
               {step === 3 && (
                 <motion.div
                   key="step2"
@@ -1093,7 +1191,7 @@ function OnboardingContent() {
 
                         <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                           <button
-                            onClick={() => setStep(1)}
+                            onClick={() => setStep(2)}
                             className="w-full py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                           >
                             ← Atrás
@@ -1712,7 +1810,7 @@ function OnboardingContent() {
                       whileTap={{ scale: 0.96 }}
                       onClick={() => {
                         if (validateAgentPhone()) {
-                          setStep(7);
+                          setStep(6);
                         }
                       }}
                       className="flex-1 bg-[#1A1A1A] text-white font-medium py-3 text-sm rounded-lg hover:bg-[#333] transition-colors shadow-sm"
@@ -1885,7 +1983,7 @@ function OnboardingContent() {
 
                       <div className="flex gap-3 pt-4 border-t border-[#E2E8F0]">
                         <button
-                          onClick={() => setStep(7)}
+                          onClick={() => setStep(6)}
                           disabled={isLoading}
                           className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                         >
@@ -1960,7 +2058,7 @@ function OnboardingContent() {
 
                       <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                         <button
-                          onClick={() => setStep(7)}
+                          onClick={() => setStep(6)}
                           disabled={isLoading}
                           className="px-5 py-3 border border-[#E2E8F0] rounded-lg text-[#4B5563] text-sm font-medium hover:bg-[#F9FAFB] transition-colors active:scale-95 transition-transform"
                         >
