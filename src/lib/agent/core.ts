@@ -57,6 +57,18 @@ function buildSystemPrompt(
   const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const monthName = months[ecuadorDate.getUTCMonth()];
 
+  const next7DaysMap = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(ecuadorDate.getTime());
+    d.setDate(d.getDate() + i);
+    const dDayName = weekdays[d.getUTCDay()];
+    const dYyyy = d.getUTCFullYear();
+    const dMm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dDd = String(d.getUTCDate()).padStart(2, "0");
+    next7DaysMap.push(`- ${dDayName}: ${dYyyy}-${dMm}-${dDd}`);
+  }
+  const next7DaysStr = next7DaysMap.join("\n");
+
   // ── Horarios formateados ───────────────────────────────────────────
   const dayNamesMap: Record<string, string> = {
     LU: "Lunes",
@@ -175,12 +187,17 @@ Ofrece y explica esta promoción a los clientes si preguntan por ofertas o si es
 ═══════════════════════════════════════
 ⚠️ REGLAS OBLIGATORIAS DE RESERVAS (FLUJO PASO A PASO ESTRICTO):
 
-PASO 1: RECOLECCIÓN DE DATOS BÁSICOS
+PASO 1: RECOLECCIÓN Y VALIDACIÓN BÁSICA (CRÍTICO)
 Pregunta y confirma de manera explícita:
 - El nombre completo de la persona que reserva.
 - La cantidad de personas.
-- La fecha y hora deseada para la reserva.
-REGLA DE HORARIO: ${scheduleStr}. Rechaza si pide fuera de horario. ATENCIÓN: "2pm" es 14:00, "8pm" es 20:00. Asegúrate de convertir siempre el formato de 12h (AM/PM) al formato de 24 horas correctamente antes de validar si está dentro del horario.
+- La fecha y hora exacta deseada para la reserva.
+IMPORTANTE - MAPEO DE FECHAS: HOY es ${weekdayName} ${year}-${month}-${day}. Usa el siguiente calendario estricto para traducir los días de la semana que pide el cliente a fechas exactas:
+${next7DaysStr}
+
+REGLA DE HORARIO: ${scheduleStr}. 
+1. Si el cliente pide un día en el que el local ESTÁ CERRADO o no atiende según la regla de horario, rechaza la reserva inmediatamente, no revises aforo y dile amablemente el horario real de atención.
+2. Rechaza si pide una hora fuera del horario de ese día. ATENCIÓN: "2pm" es 14:00, "8pm" es 20:00. Convierte el formato AM/PM a 24 horas correctamente antes de validar.
 
 PASO 2: VALIDACIÓN DE CAPACIDAD (Aforo)
 Capacidad Máxima por hora permitida: ${tope} personas.
