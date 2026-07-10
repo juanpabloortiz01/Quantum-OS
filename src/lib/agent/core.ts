@@ -398,6 +398,7 @@ ${menuInfo ? `\nCATALOGO DETALLADO:\n${menuInfo}` : ""}
 - VERACIDAD: Si el cliente pregunta algo que NO está en el CONOCIMIENTO BASE, di: "Lo lamento, no tengo esa información específica. Pero si gustas, puedo ponerte en contacto con la recepción para que te ayuden."
 - ESCALADO: Si detectas frustración o peticiones repetidas de información que no conoces, usa el protocolo de ESCALADO_SOPORTE.
 - BREVEDAD: Máximo 2 párrafos.
+- TEXTO CONVERSACIONAL OBLIGATORIO: NUNCA respondas únicamente con etiquetas (como SOLICITAR_RESERVA:, [USER_NAME:], [SUMMARY:], etc.). Siempre debes redactar un mensaje conversacional, amable y completo dirigido al cliente en español, y colocar las etiquetas al final del mensaje.
 - ETIQUETAS ESTRUCTURALES:
   1. Si en este turno de la conversación descubres o ya sabes el nombre del usuario, incluye una etiqueta oculta en tu respuesta con este formato: [USER_NAME: Nombre del Usuario]. Si no lo sabes aún, no la incluyas.
   2. SIEMPRE debes incluir una etiqueta oculta al final de tu respuesta con un pequeñísimo resumen de la conversación actual, de máximo 5 palabras. Formato: [SUMMARY: Resumen aquí].
