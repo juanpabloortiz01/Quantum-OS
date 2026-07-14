@@ -60,7 +60,7 @@ function buildSystemPrompt(
   const next7DaysMap = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(ecuadorDate.getTime());
-    d.setDate(d.getDate() + i);
+    d.setUTCDate(d.getUTCDate() + i);
     const dDayName = weekdays[d.getUTCDay()];
     const dYyyy = d.getUTCFullYear();
     const dMm = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -82,26 +82,42 @@ function buildSystemPrompt(
 
   let scheduleStr = "No especificado"
   if (ctx.scheduleType === "24h") {
-    const activeDays = Object.entries(ctx.scheduleConfig || {})
-      .filter(([_, config]) => config.isOpen)
-      .map(([day, _]) => dayNamesMap[day] || day)
-    scheduleStr = activeDays.length > 0
-      ? `Abierto las 24 horas los días: ${activeDays.join(", ")}`
-      : "Cerrado todos los días"
+    const order = ["LU", "MA", "MI", "JU", "VI", "SA", "DO"];
+    const activeDays = order
+      .map(day => {
+        const config = ctx.scheduleConfig?.[day];
+        if (config && config.isOpen) {
+          return `- ${dayNamesMap[day]}: Abierto las 24 horas`;
+        } else {
+          return `- ${dayNamesMap[day]}: CERRADO`;
+        }
+      });
+    scheduleStr = `\n${activeDays.join("\n")}`;
   } else if (ctx.scheduleType === "custom") {
-    const customDays = Object.entries(ctx.scheduleConfig || {})
-      .filter(([_, config]) => config.isOpen)
-      .map(([day, config]) => `${dayNamesMap[day] || day} (de ${config.openTime} a ${config.closeTime})`)
-    scheduleStr = customDays.length > 0
-      ? `Horario de atención: ${customDays.join(", ")}`
-      : "Cerrado todos los días"
+    const order = ["LU", "MA", "MI", "JU", "VI", "SA", "DO"];
+    const customDays = order
+      .map(day => {
+        const config = ctx.scheduleConfig?.[day];
+        if (config && config.isOpen) {
+          return `- ${dayNamesMap[day]}: de ${config.openTime} a ${config.closeTime}`;
+        } else {
+          return `- ${dayNamesMap[day]}: CERRADO`;
+        }
+      });
+    scheduleStr = `\n${customDays.join("\n")}`;
   } else {
     // Compatibilidad con formato antiguo
-    const mappedDays = ctx.scheduleDays.map(day => dayNamesMap[day] || day)
-    scheduleStr =
-      ctx.scheduleDays.length > 0
-        ? `${mappedDays.join(", ")} de ${ctx.openTime} a ${ctx.closeTime}`
-        : "No especificado"
+    const order = ["LU", "MA", "MI", "JU", "VI", "SA", "DO"];
+    const mappedDays = order
+      .map(day => {
+        const isOpen = ctx.scheduleDays.includes(day);
+        if (isOpen) {
+          return `- ${dayNamesMap[day]}: de ${ctx.openTime} a ${ctx.closeTime}`;
+        } else {
+          return `- ${dayNamesMap[day]}: CERRADO`;
+        }
+      });
+    scheduleStr = `\n${mappedDays.join("\n")}`;
   }
 
   // ── Catálogo de productos formateado ──────────────────────────────
@@ -195,9 +211,24 @@ Pregunta y confirma de manera explícita:
 IMPORTANTE - MAPEO DE FECHAS: HOY es ${weekdayName} ${year}-${month}-${day}. Usa el siguiente calendario estricto para traducir los días de la semana que pide el cliente a fechas exactas:
 ${next7DaysStr}
 
-REGLA DE HORARIO: ${scheduleStr}. 
-1. Si el cliente pide un día en el que el local ESTÁ CERRADO o no atiende según la regla de horario, rechaza la reserva inmediatamente, no revises aforo y dile amablemente el horario real de atención.
-2. Rechaza si pide una hora fuera del horario de ese día. ATENCIÓN: "2pm" es 14:00, "8pm" es 20:00. Convierte el formato AM/PM a 24 horas correctamente antes de validar.
+REGLAS PARA VALIDACIÓN DE HORARIOS (SÚPER ESTRICTAS):
+1. Cuando el cliente solicite una fecha (por ejemplo: "hoy", "mañana", "el jueves", "15 de julio"):
+   - Tradúcela a una fecha calendario (AAAA-MM-DD) usando el MAPEO DE FECHAS de arriba.
+   - Determina el día de la semana correspondiente a esa fecha (ej: "Miércoles").
+2. Identifica el horario de atención para ese día de la semana específico en la REGLA DE HORARIO:
+   ${scheduleStr}
+   - Si dice que está CERRADO para ese día, rechaza la reserva inmediatamente y dile amablemente el horario real de atención.
+3. Si el día está abierto, extrae las horas de apertura y cierre (ej: de 09:00 a 18:00).
+4. Convierte la hora solicitada por el cliente (ej: "3pm", "3 de la tarde", "15:00") a formato 24 horas.
+   - Ejemplo: "3pm" es 15:00.
+   - Ejemplo: "12pm" es 12:00 (mediodía).
+   - Ejemplo: "12am" es 00:00 (medianoche).
+   - Ejemplo: "1pm" es 13:00.
+   - Ejemplo: "1:30pm" es 13:30.
+5. Compara la hora solicitada con la hora de apertura y de cierre de ese día:
+   - La reserva es VÁLIDA si y solo si la hora solicitada está entre la hora de apertura y de cierre del local (inclusive).
+   - Si la hora solicitada está fuera del horario de atención, recházala de inmediato amablemente, dile el horario de atención de ese día y pídele otra hora.
+   - Si la hora solicitada es válida (está dentro del horario de atención), avanza al PASO 2.
 
 PASO 2: VALIDACIÓN DE CAPACIDAD (Aforo)
 Capacidad Máxima por hora permitida: ${tope} personas.

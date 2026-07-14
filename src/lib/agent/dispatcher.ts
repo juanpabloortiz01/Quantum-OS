@@ -132,6 +132,118 @@ function isBusinessOpenOnDay(weekday: string, ctx: LoadedContext): boolean {
   return Array.isArray(ctx.scheduleDays) && ctx.scheduleDays.includes(weekday);
 }
 
+function getEcuadorTimeComponents(date: Date): { hour: number; minute: number; timeStr: string } {
+  const ecuadorDate = new Date(date.getTime() - 5 * 60 * 60 * 1000);
+  const hour = ecuadorDate.getUTCHours();
+  const minute = ecuadorDate.getUTCMinutes();
+  const timeStr = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  return { hour, minute, timeStr };
+}
+
+function isTimeWithinRange(timeStr: string, openTime: string, closeTime: string): boolean {
+  const [hour, minute] = timeStr.split(":").map(Number);
+  const [openHour, openMinute] = openTime.split(":").map(Number);
+  const [closeHour, closeMinute] = closeTime.split(":").map(Number);
+  
+  const val = hour * 60 + minute;
+  const openVal = openHour * 60 + openMinute;
+  const closeVal = closeHour * 60 + closeMinute;
+  
+  return val >= openVal && val <= closeVal;
+}
+
+function validateBookingSchedule(fechaHora: Date, ctx: LoadedContext): { isValid: boolean; reason: string } {
+  const reqWeekday = getEcuadorWeekday(fechaHora);
+  const isOpenDay = isBusinessOpenOnDay(reqWeekday, ctx);
+  
+  const dayNamesMap: Record<string, string> = {
+    LU: "Lunes",
+    MA: "Martes",
+    MI: "Miércoles",
+    JU: "Jueves",
+    VI: "Viernes",
+    SA: "Sábado",
+    DO: "Domingo"
+  };
+  const dayNameSpanish = dayNamesMap[reqWeekday] || reqWeekday;
+  
+  if (!isOpenDay) {
+    let scheduleStr = "No especificado";
+    if (ctx.scheduleType === "24h") {
+      const activeDays = Object.entries(ctx.scheduleConfig || {})
+        .filter(([_, config]) => config.isOpen)
+        .map(([day, _]) => dayNamesMap[day] || day);
+      scheduleStr = activeDays.length > 0
+        ? `Abierto las 24 horas los días: ${activeDays.join(", ")}`
+        : "Cerrado todos los días";
+    } else if (ctx.scheduleType === "custom") {
+      const order = ["LU", "MA", "MI", "JU", "VI", "SA", "DO"];
+      const customDays = order
+        .map(day => {
+          const config = ctx.scheduleConfig?.[day];
+          if (config && config.isOpen) {
+            return `- ${dayNamesMap[day]}: de ${config.openTime} a ${config.closeTime}`;
+          } else {
+            return `- ${dayNamesMap[day]}: CERRADO`;
+          }
+        });
+      scheduleStr = `Horario de atención:\n${customDays.join("\n")}`;
+    } else {
+      const mappedDays = (ctx.scheduleDays || []).map(day => dayNamesMap[day] || day);
+      scheduleStr =
+        (ctx.scheduleDays || []).length > 0
+          ? `${mappedDays.join(", ")} de ${ctx.openTime} a ${ctx.closeTime}`
+          : "No especificado";
+    }
+    
+    return {
+      isValid: false,
+      reason: [
+        `Lo sentimos, los días ${dayNameSpanish} no abrimos/trabajamos. 😔`,
+        ``,
+        `Nuestro horario de atención es:`,
+        scheduleStr,
+        ``,
+        `Por favor, elige otra fecha para tu reservación.`
+      ].join("\n")
+    };
+  }
+  
+  // Validar horario (horas/minutos)
+  const { timeStr: reqTimeStr } = getEcuadorTimeComponents(fechaHora);
+  let isTimeOpen = true;
+  let openTime = "00:00";
+  let closeTime = "23:59";
+  
+  if (ctx.scheduleType === "custom") {
+    const dayConfig = ctx.scheduleConfig?.[reqWeekday];
+    if (dayConfig) {
+      openTime = dayConfig.openTime;
+      closeTime = dayConfig.closeTime;
+      isTimeOpen = isTimeWithinRange(reqTimeStr, openTime, closeTime);
+    }
+  } else if (ctx.scheduleType !== "24h") {
+    openTime = ctx.openTime || "09:00";
+    closeTime = ctx.closeTime || "18:00";
+    isTimeOpen = isTimeWithinRange(reqTimeStr, openTime, closeTime);
+  }
+  
+  if (!isTimeOpen) {
+    return {
+      isValid: false,
+      reason: [
+        `Lo sentimos, a esa hora no estamos atendiendo. 😔`,
+        ``,
+        `Nuestro horario de atención para los días ${dayNameSpanish} es de ${openTime} a ${closeTime}.`,
+        ``,
+        `Por favor, elige otra hora para tu reservación.`
+      ].join("\n")
+    };
+  }
+  
+  return { isValid: true, reason: "" };
+}
+
 /**
  * Despacha la respuesta generada por el Core a WhatsApp.
  * Decide el método según las etiquetas de control detectadas.
@@ -274,6 +386,15 @@ export async function runDispatcher(
           .match(/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/)?.[0] ?? fecha_hora_deseada.substring(0, 16)
         fechaHora = new Date(`${isoBase}-05:00`)
 
+        const validation = validateBookingSchedule(fechaHora, ctx)
+        if (!validation.isValid) {
+          coreResult.cleanText = validation.reason
+          console.log(`[DISPATCHER]: Reserva excedida rechazada automáticamente por horario/día no laborable`)
+          
+          await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
+          return { success: true, method: "sendText" }
+        }
+
         const cleanPhone = to.replace("@s.whatsapp.net", "")
 
         try {
@@ -338,55 +459,10 @@ export async function runDispatcher(
         // sin riesgo de overflow por suma manual de horas
         fechaHora = new Date(`${isoBase}-05:00`)
 
-        const reqWeekday = getEcuadorWeekday(fechaHora)
-        const isOpen = isBusinessOpenOnDay(reqWeekday, ctx)
-
-        if (!isOpen) {
-          const dayNamesMap: Record<string, string> = {
-            LU: "Lunes",
-            MA: "Martes",
-            MI: "Miércoles",
-            JU: "Jueves",
-            VI: "Viernes",
-            SA: "Sábado",
-            DO: "Domingo"
-          }
-
-          let scheduleStr = "No especificado"
-          if (ctx.scheduleType === "24h") {
-            const activeDays = Object.entries(ctx.scheduleConfig || {})
-              .filter(([_, config]) => config.isOpen)
-              .map(([day, _]) => dayNamesMap[day] || day)
-            scheduleStr = activeDays.length > 0
-              ? `Abierto las 24 horas los días: ${activeDays.join(", ")}`
-              : "Cerrado todos los días"
-          } else if (ctx.scheduleType === "custom") {
-            const customDays = Object.entries(ctx.scheduleConfig || {})
-              .filter(([_, config]) => config.isOpen)
-              .map(([day, config]) => `${dayNamesMap[day] || day} (de ${config.openTime} a ${config.closeTime})`)
-            scheduleStr = customDays.length > 0
-              ? `Horario de atención:\n${customDays.map(d => `- ${d}`).join("\n")}`
-              : "Cerrado todos los días"
-          } else {
-            const mappedDays = (ctx.scheduleDays || []).map(day => dayNamesMap[day] || day)
-            scheduleStr =
-              (ctx.scheduleDays || []).length > 0
-                ? `${mappedDays.join(", ")} de ${ctx.openTime} a ${ctx.closeTime}`
-                : "No especificado"
-          }
-
-          const dayNameSpanish = dayNamesMap[reqWeekday] || reqWeekday
-          const replyMessage = [
-            `Lo sentimos, los días ${dayNameSpanish} no abrimos/trabajamos. 😔`,
-            ``,
-            `Nuestro horario de atención es:`,
-            scheduleStr,
-            ``,
-            `Por favor, elige otra fecha para tu reservación.`
-          ].join("\n")
-
-          coreResult.cleanText = replyMessage
-          console.log(`[DISPATCHER]: Reserva rechazada automáticamente por ser un día no laborable (${dayNameSpanish})`)
+        const validation = validateBookingSchedule(fechaHora, ctx)
+        if (!validation.isValid) {
+          coreResult.cleanText = validation.reason
+          console.log(`[DISPATCHER]: Reserva rechazada automáticamente por horario/día no laborable`)
           
           await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
           return { success: true, method: "sendText" }
