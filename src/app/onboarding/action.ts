@@ -247,7 +247,7 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
     }
 
     // ── AUTO-REGISTRO DEL WEBHOOK DE QUANTUM ─────────────────────────────
-    const QUANTUM_URL = (process.env.NEXTAUTH_URL || "https://quantum.novaautomat.site").trim().replace(/\/$/, "");
+    const QUANTUM_URL = (process.env.NEXTAUTH_URL || "https://quantumos.novaautomat.site").trim().replace(/\/$/, "");
     const webhookPayload = {
       webhook: {
         enabled: true,
