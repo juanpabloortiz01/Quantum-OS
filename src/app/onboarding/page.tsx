@@ -906,6 +906,9 @@ function OnboardingContent() {
                     Activar Protocolo
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </motion.button>
+                  <motion.p variants={itemVariants} className="text-center text-xs text-[#6B7280]">
+                    ¿Ya tienes cuenta? <a href="https://quantumos.novaautomat.site/login" className="text-[#1A1A1A] font-semibold hover:underline">Iniciar sesión</a>
+                  </motion.p>
                 </motion.div>
               )}
 
@@ -1034,6 +1037,9 @@ function OnboardingContent() {
                     >
                       Continuar a ubicación
                     </button>
+                    <p className="text-center text-xs text-[#6B7280] w-full pt-2">
+                      ¿Ya tienes cuenta? <a href="https://quantumos.novaautomat.site/login" className="text-[#1A1A1A] font-semibold hover:underline">Iniciar sesión</a>
+                    </p>
                   </motion.div>
                 </motion.div>
               )}
