@@ -549,11 +549,23 @@ function OnboardingContent() {
         .then((data) => {
           if (data.completed) {
             router.push("/dashboard")
+          } else if (step === 7) {
+            // Ya tiene sesión pero no ha terminado el onboarding.
+            // Redirigir a /login para que inicie sesión de nuevo limpiamente.
+            router.push("/login")
           }
         })
         .catch(() => {})
     }
-  }, [status, router])
+  }, [status, router, step])
+
+  // Si el navegador ya tiene sesión activa y el usuario llega al paso 7,
+  // redirigir a /login en lugar de mostrar la tarjeta de registro.
+  useEffect(() => {
+    if (status === "authenticated" && step === 7) {
+      router.push("/login")
+    }
+  }, [status, step, router])
 
 
   const toggleNeed = (id: string) => {
@@ -691,8 +703,8 @@ function OnboardingContent() {
 
       <div className={`relative z-10 w-full transition-all duration-500 ${step === 1 || step === 2 || step === 3 ? "max-w-2xl" : "max-w-md"}`}>
 
-        {/* HEADER MINI */}
-        {step >= 1 && (
+        {/* HEADER MINI — ocultar en paso 7 */}
+        {step >= 1 && step !== 7 && (
           <div className="mb-6 flex items-center justify-end">
             <div className="flex items-center gap-2 text-xs font-medium text-[#4B5563]">
               Paso {step}/7
@@ -718,7 +730,7 @@ function OnboardingContent() {
           <div className="p-8">
             {/* Título */}
             <div className="mb-8 text-center flex flex-col gap-1 overflow-hidden">
-              {step !== 6 && (
+              {step !== 6 && step !== 7 && (
                 <motion.span 
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -742,7 +754,7 @@ function OnboardingContent() {
                   {step === 4 && "Sube tu menú"}
                   {step === 5 && "Conexión del Agente IA"}
                   {step === 6 && "Conecta tu WhatsApp"}
-                  {step === 7 && "Crear una cuenta"}
+                  {step === 7 && ""}
                 </motion.h1>
               </AnimatePresence>
               <AnimatePresence mode="wait">
