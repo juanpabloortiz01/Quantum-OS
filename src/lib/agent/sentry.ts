@@ -66,7 +66,7 @@ export async function runSentry(
 
     const completion = await groq.chat.completions.create(
       {
-        model: "llama-3.1-8b-instant",
+        model: "llama3-8b-8192",
         messages: [
           { role: "system", content: SENTRY_SYSTEM_PROMPT },
           { role: "user", content: userContent },

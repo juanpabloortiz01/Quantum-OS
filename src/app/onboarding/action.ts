@@ -239,7 +239,7 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
         throw new Error(`EVO_CREATE_ERROR [${createRes.status}]: ${errTxt}`);
     }
 
-    if (org && !org.evolutionInstance) {
+    if (org) {
       await prisma.organization.update({
         where: { id: org.id },
         data: { evolutionInstance: instanceName, evolutionToken: instanceToken }

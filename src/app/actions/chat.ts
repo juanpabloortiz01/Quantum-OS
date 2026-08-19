@@ -22,7 +22,7 @@ export async function chatWithAgent(messages: any[], type: "Ventas" | "Agenda") 
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: groqMessages as any,
-      model: "llama-3.1-8b-instant",
+      model: "llama3-8b-8192",
       temperature: 0.7,
       max_tokens: 1024,
     });
