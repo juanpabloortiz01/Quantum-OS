@@ -8,6 +8,7 @@
 
 import { LoadedContext } from "./context-loader"
 import { CoreResult } from "./core"
+import { ParsedMessage } from "./logic-filter"
 import { createAppointment } from "@/lib/calendar"
 import { prisma } from "@/lib/prisma"
 
@@ -251,7 +252,8 @@ function validateBookingSchedule(fechaHora: Date, ctx: LoadedContext): { isValid
 export async function runDispatcher(
   to: string,
   coreResult: CoreResult,
-  ctx: LoadedContext
+  ctx: LoadedContext,
+  msg?: ParsedMessage
 ): Promise<DispatchResult> {
   const EVO_URL =
     process.env.EVOLUTION_URL ?? process.env.EVOLUTION_API_URL ?? ""
@@ -701,6 +703,53 @@ export async function runDispatcher(
           const normalizedPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
           await sendText(EVO_URL, instanceName, authKey, normalizedPhone, notifMsg)
           console.log(`[DISPATCHER]: Notificación de pedido enviada a ${normalizedPhone}`)
+
+          // ── ADJUNTAR UBICACIÓN DEL CLIENTE (si la envió durante el pedido) ──
+          // Buscar en el historial reciente del cliente la última ubicación guardada
+          try {
+            const org = await prisma.organization.findFirst({
+              where: { evolutionInstance: instanceName }
+            })
+            if (org) {
+              const recentHistory = await prisma.chatHistory.findMany({
+                where: {
+                  organizationId: org.id,
+                  customerPhone: to,
+                  role: "user",
+                  content: { contains: "[UBICACIÓN_ENVIADA:" }
+                },
+                orderBy: { createdAt: "desc" },
+                take: 1
+              })
+
+              if (recentHistory.length > 0) {
+                const locText = recentHistory[0].content
+                const latMatch = locText.match(/lat=([^,\]]+)/)
+                const lngMatch = locText.match(/lng=([^,\]]+)/)
+                const nameMatch = locText.match(/name=([^\]]+)/)
+                const lat = latMatch?.[1] ? parseFloat(latMatch[1]) : null
+                const lng = lngMatch?.[1] ? parseFloat(lngMatch[1]) : null
+                const locName = nameMatch?.[1] || "Ubicación del cliente"
+
+                if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
+                  console.log(`[DISPATCHER]: Enviando ubicación del cliente al encargado: lat=${lat}, lng=${lng}`)
+                  await sendLocation(
+                    EVO_URL,
+                    instanceName,
+                    authKey,
+                    normalizedPhone,
+                    locName,
+                    pedido?.direccion || "Dirección del cliente",
+                    lat,
+                    lng
+                  )
+                }
+              }
+            }
+          } catch (locErr: any) {
+            console.warn(`[DISPATCHER_LOCATION_WARN]: No se pudo enviar ubicación al encargado:`, locErr.message)
+          }
+
         } catch (notifErr: any) {
           console.error(`[DISPATCHER_PEDIDO_NOTIF_ERROR]:`, notifErr.message)
         }

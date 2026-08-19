@@ -41,6 +41,10 @@ export interface ParsedMessage {
   fromMe: boolean
   pushName: string | null
   timestamp: number
+  // Coordenadas GPS (solo cuando messageType === "location")
+  locationLat: number | null
+  locationLng: number | null
+  locationName: string | null
 }
 
 
@@ -143,10 +147,15 @@ export function applyLogicFilter(raw: any): FilterResult {
     imageMimetype = msgObj.imageMessage?.mimetype ?? "image/jpeg"
   } else if (rawType === "locationMessage") {
     // Detección de ubicación compartida por WhatsApp
-    // No extraemos coordenadas — simplemente le decimos al agente que recibió una ubicación
+    // Extraemos coordenadas GPS y las codificamos en el texto para persistirlas en historial
     messageType = "location"
-    text = "[UBICACIÓN_ENVIADA]"
-    console.log("[LOGIC_FILTER]: Ubicación de WhatsApp detectada → tratada como dirección de entrega")
+    const locMsg = msgObj.locationMessage ?? msgObj
+    const lat: number | null = locMsg.degreesLatitude ?? locMsg.latitude ?? null
+    const lng: number | null = locMsg.degreesLongitude ?? locMsg.longitude ?? null
+    const locName: string | null = locMsg.name ?? locMsg.address ?? null
+    // Codificamos coordenadas en el texto para que queden en el ChatHistory
+    text = `[UBICACIÓN_ENVIADA:lat=${lat ?? ''},lng=${lng ?? ''},name=${locName ?? ''}]`
+    console.log(`[LOGIC_FILTER]: Ubicación de WhatsApp detectada → lat=${lat}, lng=${lng}, name=${locName}`)
   } else {
     // conversation o extendedTextMessage
     text =
@@ -165,6 +174,19 @@ export function applyLogicFilter(raw: any): FilterResult {
     ? raw.sender.split("@")[0].split(":")[0]
     : null
 
+  // Extraer coordenadas del locationMessage si están disponibles (parsear desde el texto codificado)
+  let locationLat: number | null = null
+  let locationLng: number | null = null
+  let locationNameFinal: string | null = null
+  if (messageType === "location" && text) {
+    const latMatch = text.match(/lat=([^,\]]+)/)
+    const lngMatch = text.match(/lng=([^,\]]+)/)
+    const nameMatch = text.match(/name=([^\]]+)/)
+    locationLat = latMatch?.[1] ? parseFloat(latMatch[1]) : null
+    locationLng = lngMatch?.[1] ? parseFloat(lngMatch[1]) : null
+    locationNameFinal = nameMatch?.[1] || null
+  }
+
   return {
     valid: !isSelf, // Si es de nosotros, no es válido para que el agente responda
     reason: isSelf ? "SELF_MSG" : undefined,
@@ -180,6 +202,9 @@ export function applyLogicFilter(raw: any): FilterResult {
       fromMe,
       pushName,
       timestamp,
+      locationLat,
+      locationLng,
+      locationName: locationNameFinal,
     },
   }
 }

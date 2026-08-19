@@ -122,7 +122,7 @@ export async function executePipeline(msg: ParsedMessage): Promise<PipelineResul
   }
 
   // ── NODO 6 — Response Dispatcher ────────────────────────────────
-  const dispatchResult = await runDispatcher(msg.remoteJid, coreResult, ctx)
+  const dispatchResult = await runDispatcher(msg.remoteJid, coreResult, ctx, msg)
 
   // ── NODO 7 — Lead / Conversation Tracking ───────────────────────
   try {
