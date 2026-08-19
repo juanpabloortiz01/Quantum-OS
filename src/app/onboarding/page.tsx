@@ -1024,7 +1024,7 @@ function OnboardingContent() {
                     </div>
                   </div>
 
-                  <motion.div variants={itemVariants} className="flex gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
+                  <motion.div variants={itemVariants} className="flex flex-col gap-3 pt-4 border-t border-[#E2E8F0] mt-2">
                     <button
                       onClick={() => setStep(2)}
                       disabled={
