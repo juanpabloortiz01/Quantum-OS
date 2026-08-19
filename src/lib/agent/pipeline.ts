@@ -106,7 +106,7 @@ export async function executePipeline(msg: ParsedMessage): Promise<PipelineResul
   const sentryResult = await runSentry(msg.text ?? "", undefined)
 
   // ── NODO 4 — Context Loader ──────────────────────────────────────
-  const ctx = await loadContext(msg.instanceName, sentryResult)
+  const ctx = await loadContext(msg.instanceName, sentryResult, msg.senderPhone)
   if (!ctx) {
     console.error(`[PIPELINE_ERROR]: No se pudo cargar el contexto para la instancia ${msg.instanceName}`)
     return { status: "NO_CONTEXT" }

@@ -32,6 +32,7 @@ const SILENT_DISCARD_TYPES = new Set([
 export interface ParsedMessage {
   remoteJid: string
   instanceName: string
+  senderPhone: string | null    // Número del negocio (campo 'sender' del webhook raíz)
   messageType: "text" | "image" | "location"
   text: string | null
   imageUrl: string | null       // Base64 o URL directa de EvolutionAPI
@@ -158,12 +159,18 @@ export function applyLogicFilter(raw: any): FilterResult {
   }
 
 
+  // El campo 'sender' en la raíz del webhook es el número del negocio (la org)
+  const senderPhone: string | null = raw?.sender
+    ? raw.sender.split("@")[0].split(":")[0]
+    : null
+
   return {
     valid: !isSelf, // Si es de nosotros, no es válido para que el agente responda
     reason: isSelf ? "SELF_MSG" : undefined,
     parsed: {
       remoteJid,
       instanceName,
+      senderPhone,
       messageType,
       text,
       imageUrl,

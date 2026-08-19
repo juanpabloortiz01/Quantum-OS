@@ -82,7 +82,8 @@ export interface ProductContext {
  */
 export async function loadContext(
   instanceName: string,
-  sentryResult: SentryResult
+  sentryResult: SentryResult,
+  senderPhone?: string | null
 ): Promise<LoadedContext | null> {
   try {
     // Buscar organización por nombre de instancia de Evolution
@@ -95,7 +96,31 @@ export async function loadContext(
     })
 
     if (!org) {
-      console.warn(`[CONTEXT_LOADER]: Instancia "${instanceName}" no encontrada en DB. Intentando fallback por número de WhatsApp...`)
+      console.warn(`[CONTEXT_LOADER]: Instancia "${instanceName}" no encontrada en DB. Intentando fallback...`)
+
+      // ── Estrategia 1: buscar por senderPhone (el número del negocio del webhook) ──
+      // Es el método más fiable ya que 'sender' siempre viene en el payload raíz.
+      if (senderPhone) {
+        console.log(`[CONTEXT_LOADER]: Buscando org por senderPhone: ${senderPhone}`)
+        const orgBySender = await prisma.organization.findFirst({
+          where: { whatsappNumber: senderPhone },
+          include: {
+            businessConfig: true,
+            products: { orderBy: { createdAt: "asc" } }
+          }
+        })
+        if (orgBySender) {
+          console.log(`[CONTEXT_LOADER]: ✅ Org encontrada por senderPhone. Auto-corrigiendo evolutionInstance a "${instanceName}"`)
+          org = await prisma.organization.update({
+            where: { id: orgBySender.id },
+            data: { evolutionInstance: instanceName, evolutionToken: instanceName },
+            include: {
+              businessConfig: true,
+              products: { orderBy: { createdAt: "asc" } }
+            }
+          })
+        }
+      }
       try {
         const EVO_URL = process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL
         const EVO_API_KEY = process.env.EVOLUTION_API_KEY
