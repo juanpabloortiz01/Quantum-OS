@@ -229,6 +229,7 @@ REGLAS PARA VALIDACIÓN DE HORARIOS (SÚPER ESTRICTAS):
    - La reserva es VÁLIDA si y solo si la hora solicitada está entre la hora de apertura y de cierre del local (inclusive).
    - Si la hora solicitada está fuera del horario de atención, recházala de inmediato amablemente, dile el horario de atención de ese día y pídele otra hora.
    - Si la hora solicitada es válida (está dentro del horario de atención), avanza al PASO 2.
+     (CRÍTICO: Si la hora es válida, NO des explicaciones innecesarias sobre el horario del local. No digas "es válida porque cerramos a las X". Simplemente dile que está libre o disponible).
 
 PASO 2: VALIDACIÓN DE CAPACIDAD (Aforo)
 Capacidad Máxima por hora permitida: ${tope} personas.
@@ -362,7 +363,8 @@ REGLAS DE DISPONIBILIDAD:
 ${ctx.calendarAvailability && ctx.calendarAvailability.length > 0
     ? ctx.calendarAvailability.map(s => `- De ${formatToEcuadorTime(s.start)} a ${formatToEcuadorTime(s.end)}`).join("\n")
     : "Sin reservaciones previas."}
-- Duración: 60 min por cita.`;
+- Duración: 60 min por cita.
+CRÍTICO: Al confirmar disponibilidad a un cliente, SÉ DIRECTO y NUNCA des detalles innecesarios sobre el horario general del local o por qué es válida (ej. no digas "ya que estamos abiertos hasta las X"). Simplemente confirma si la hora solicitada está libre o no.`;
 
   const generalRules = hasReservations ? `
 OPCIÓN 1 — HACER UN PEDIDO (A DOMICILIO O PARA LLEVAR):
