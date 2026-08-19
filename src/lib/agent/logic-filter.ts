@@ -103,8 +103,9 @@ export function applyLogicFilter(raw: any): FilterResult {
     return { valid: false, reason: "GROUP_MSG: remoteJid de grupo → descartado.", parsed: null }
   }
 
-  // 3. Detectar tipo de mensaje
-  const rawType = Object.keys(msgObj)[0] ?? "unknown"
+  // 3. Detectar tipo de mensaje (ignorando metadatos que EvolutionAPI puede incluir primero)
+  const keys = Object.keys(msgObj).filter(k => k !== "messageContextInfo")
+  const rawType = keys[0] ?? "unknown"
 
   // 4. Descarte silencioso de tipos no soportados
   if (SILENT_DISCARD_TYPES.has(rawType)) {
