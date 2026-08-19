@@ -55,7 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   session: { strategy: "jwt" },
-  pages: { signIn: "/onboarding" },
+  pages: { signIn: "/login" },
   callbacks: {
     async signIn({ account, user }) {
       if (account && account.provider === "google-calendar") {
@@ -105,13 +105,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Después de Google OAuth ir al paso 1
-      if (url.includes("/api/auth/callback/google") && !url.includes("google-calendar")) {
+      // Login desde /onboarding con Google → ir al paso 1 del onboarding
+      if (url.includes("/api/auth/callback/google") && url.includes("onboarding")) {
         return `${baseUrl}/onboarding?step=1`
+      }
+      // Login normal con Google desde /login → ir al dashboard
+      if (url.includes("/api/auth/callback/google")) {
+        return `${baseUrl}/dashboard`
       }
       if (url.startsWith(baseUrl)) return url
       if (url.startsWith("/")) return `${baseUrl}${url}`
-      return `${baseUrl}/onboarding`
+      return `${baseUrl}/dashboard`
     },
   },
 })
