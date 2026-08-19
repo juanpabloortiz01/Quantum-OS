@@ -11,7 +11,7 @@ export async function chatWithAgent(messages: any[], type: "Ventas" | "Agenda") 
     ? "Eres un Agente de Ventas de Quantum OS. Tu objetivo es ayudar a los clientes a entender nuestros servicios, resolver sus dudas de venta y guiarlos hacia la compra. Eres persuasivo, claro y profesional."
     : "Eres un Asistente de Agenda de Quantum OS. Tu objetivo es ayudar a los clientes a programar citas, gestionar sus horarios y responder dudas sobre disponibilidad. Eres organizado, amable y preciso.";
 
-  const messages = [
+  const openAiMessages = [
     { role: "system", content: systemPrompt },
     ...messages.map((m: any) => ({
       role: m.role,
@@ -21,7 +21,7 @@ export async function chatWithAgent(messages: any[], type: "Ventas" | "Agenda") 
 
   try {
     const chatCompletion = await openai.chat.completions.create({
-      messages: messages as any,
+      messages: openAiMessages as any,
       model: "gpt-4o-mini",
       temperature: 0.7,
       max_tokens: 1024,
