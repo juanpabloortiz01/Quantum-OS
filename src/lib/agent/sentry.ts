@@ -7,7 +7,7 @@
  * ─────────────────────────────────────────────────
  */
 
-import Groq from "groq-sdk"
+import OpenAI from "openai"
 
 export type Intent =
   | "VENTAS"
@@ -55,7 +55,7 @@ export async function runSentry(
   }
 
   try {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const userContent = imageDescription
       ? `[IMAGEN ADJUNTA: ${imageDescription}]\n\nTexto del cliente: ${userText || "(sin texto)"}`
@@ -64,9 +64,9 @@ export async function runSentry(
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 4000)
 
-    const completion = await groq.chat.completions.create(
+    const completion = await openai.chat.completions.create(
       {
-        model: "llama-3.1-70b-versatile",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: SENTRY_SYSTEM_PROMPT },
           { role: "user", content: userContent },
