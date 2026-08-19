@@ -542,6 +542,7 @@ function OnboardingContent() {
   }, [searchParams])
 
   // Si está autenticado, redirigir al dashboard si ya completó el onboarding
+  // Si no ha completado el onboarding pero tiene sesión, saltar directo al paso 7.
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/check-onboarding")
@@ -549,23 +550,13 @@ function OnboardingContent() {
         .then((data) => {
           if (data.completed) {
             router.push("/dashboard")
-          } else if (step === 7) {
-            // Ya tiene sesión pero no ha terminado el onboarding.
-            // Redirigir a /login para que inicie sesión de nuevo limpiamente.
-            router.push("/login")
+          } else {
+            setStep(7)
           }
         })
         .catch(() => {})
     }
-  }, [status, router, step])
-
-  // Si el navegador ya tiene sesión activa y el usuario llega al paso 7,
-  // redirigir a /login en lugar de mostrar la tarjeta de registro.
-  useEffect(() => {
-    if (status === "authenticated" && step === 7) {
-      router.push("/login")
-    }
-  }, [status, step, router])
+  }, [status, router])
 
 
   const toggleNeed = (id: string) => {
