@@ -754,7 +754,7 @@ function OnboardingContent() {
                   {step === 4 && "Sube tu menú"}
                   {step === 5 && "Conexión del Agente IA"}
                   {step === 6 && "Conecta tu WhatsApp"}
-                  {step === 7 && ""}
+                  {step === 7 && "Crear una cuenta"}
                 </motion.h1>
               </AnimatePresence>
               <AnimatePresence mode="wait">
