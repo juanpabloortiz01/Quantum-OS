@@ -239,11 +239,19 @@ export async function setupEvolutionInstance(method: "qr" | "code", phoneNumber?
         throw new Error(`EVO_CREATE_ERROR [${createRes.status}]: ${errTxt}`);
     }
 
+    // Siempre persistir el instanceName en la DB después de crearlo en Evolution.
+    // Si org existe, actualizamos. Si no existe aún (flujo de onboarding),
+    // no podemos crear sin userId, pero al menos registramos en consola para debug.
     if (org) {
       await prisma.organization.update({
         where: { id: org.id },
         data: { evolutionInstance: instanceName, evolutionToken: instanceToken }
       })
+      console.log(`[EVO_DB_SYNC]: Instancia "${instanceName}" guardada en DB para org "${org.id}"`)
+    } else {
+      // No hay org aún (el usuario está en medio del onboarding antes de finalizar).
+      // finalizeOnboarding() guardará el instanceName correcto al terminar.
+      console.warn(`[EVO_DB_SYNC_WARN]: No hay org en DB todavía para effectiveId="${effectiveId}". El instanceName "${instanceName}" será guardado cuando finalice el onboarding.`)
     }
 
     // ── AUTO-REGISTRO DEL WEBHOOK DE QUANTUM ─────────────────────────────

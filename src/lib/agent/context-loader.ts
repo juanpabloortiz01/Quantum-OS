@@ -108,6 +108,8 @@ export async function loadContext(
           if (res.ok) {
             const data = await res.json()
             const ownerJid = data?.instance?.owner || data?.owner
+
+            // Estrategia 1: usar el ownerJid que devuelve Evolution
             if (ownerJid) {
               const whatsappNumber = ownerJid.split("@")[0].split(":")[0]
               console.log(`[CONTEXT_LOADER]: Consultando org para número de WhatsApp: ${whatsappNumber}`)
@@ -133,7 +135,37 @@ export async function loadContext(
                 })
               }
             } else {
+              // Estrategia 2: Evolution no devuelve owner, intentar buscar org
+              // cuya whatsappNumber coincida con el sender del webhook (pasado via sentryResult)
               console.warn(`[CONTEXT_LOADER_WARN]: No se pudo obtener el owner de connectionState para "${instanceName}".`, data)
+
+              // Estrategia 3: buscar cualquier org sin instancia asignada y asignar esta
+              const unlinkedOrg = await prisma.organization.findFirst({
+                where: {
+                  OR: [
+                    { evolutionInstance: null },
+                    { evolutionInstance: "" }
+                  ]
+                },
+                include: {
+                  businessConfig: true,
+                  products: { orderBy: { createdAt: "asc" } }
+                }
+              })
+              if (unlinkedOrg) {
+                console.log(`[CONTEXT_LOADER]: Vinculando instancia "${instanceName}" a org sin instancia: "${unlinkedOrg.name}"`)
+                org = await prisma.organization.update({
+                  where: { id: unlinkedOrg.id },
+                  data: {
+                    evolutionInstance: instanceName,
+                    evolutionToken: instanceName
+                  },
+                  include: {
+                    businessConfig: true,
+                    products: { orderBy: { createdAt: "asc" } }
+                  }
+                })
+              }
             }
           } else {
             console.warn(`[CONTEXT_LOADER_WARN]: Fallo al consultar connectionState en Evolution para "${instanceName}". Status: ${res.status}`)
