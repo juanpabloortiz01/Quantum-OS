@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock, Check, Pencil, Clock, X, MapPin } from "lucide-react"
+import { Globe, Instagram, Facebook, Mail, Phone, Upload, CheckCircle, Scan, ArrowLeft, ArrowRight, RefreshCw, Loader2, Copy, Calendar, Coffee, ShoppingBag, Sparkles, Zap, Shield, Lock, Check, Pencil, Clock, X, MapPin, FileText } from "lucide-react"
 
 import dynamic from "next/dynamic"
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false })
@@ -120,6 +120,8 @@ function OnboardingContent() {
       shippingZones: "",
       menuImageUrl: "",
       menuImages: [] as string[],
+      menuPdfUrl: "",
+      menuPdfName: "",
       scheduleType: "custom" as "custom" | "24h",
       scheduleConfig: {
         LU: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
@@ -147,7 +149,7 @@ function OnboardingContent() {
   })
 
   // States for Conditional Step 3
-  const [ventasMethod, setVentasMethod] = useState<"choose" | "ai" | "manual">("choose")
+  const [ventasMethod, setVentasMethod] = useState<"choose" | "ai" | "manual" | "pdf">("choose")
   const [manualItem, setManualItem] = useState({ name: "", price: "", info: "" })
 
   // Cargar estado inicial desde localStorage al montar
@@ -417,6 +419,76 @@ function OnboardingContent() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setError("Por favor selecciona un archivo PDF válido.")
+      return
+    }
+
+    setIsLoading(true)
+    setAnalyzingStep("SUBIENDO")
+    setError("")
+
+    try {
+      const config = await getCloudinaryConfig()
+      const rawPreset = config.uploadPreset
+      const cleanPreset = rawPreset.trim()
+
+      const formDataUpload = new FormData()
+      formDataUpload.append("upload_preset", cleanPreset)
+      formDataUpload.append("file", file)
+
+      let cloudinaryRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${config.cloudName}/auto/upload`,
+        { method: "POST", body: formDataUpload }
+      )
+
+      if (!cloudinaryRes.ok) {
+        cloudinaryRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
+          { method: "POST", body: formDataUpload }
+        )
+      }
+
+      if (!cloudinaryRes.ok) {
+        throw new Error("Fallo al subir el archivo PDF")
+      }
+
+      const cloudinaryData = await cloudinaryRes.json()
+      const pdfUrl = cloudinaryData.secure_url
+
+      setFormData((prev: any) => ({
+        ...prev,
+        contextData: {
+          ...prev.contextData,
+          menuPdfUrl: pdfUrl,
+          menuPdfName: file.name,
+        }
+      }))
+      setAnalyzingStep("COMPLETADO")
+    } catch (err: any) {
+      console.error("[PDF_UPLOAD_ERROR]:", err)
+      setAnalyzingStep("ERROR")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRemovePdf = () => {
+    setFormData((prev: any) => ({
+      ...prev,
+      contextData: {
+        ...prev.contextData,
+        menuPdfUrl: "",
+        menuPdfName: "",
+      }
+    }))
+    setAnalyzingStep("IDLE")
   }
 
   const handleAddProduct = () => {
@@ -1359,6 +1431,8 @@ function OnboardingContent() {
                         ((formData.niche as string) === "showroom" ? "¿Cómo prefieres subir tu catálogo?" : (formData.niche as string) === "agenda" ? "¿Cómo prefieres subir tus servicios?" : "¿Cómo prefieres subir tu menú?") :
                         ventasMethod === "ai" ? 
                         ((formData.niche as string) === "showroom" ? "Sube tu catálogo de productos" : (formData.niche as string) === "agenda" ? "Sube fotos de tus servicios" : "Sube la foto de tu menú") : 
+                        ventasMethod === "pdf" ?
+                        "Sube el archivo PDF de tu menú" :
                         ((formData.niche as string) === "showroom" ? "Enlista tus productos y precios" : (formData.niche as string) === "agenda" ? "Enlista tus servicios y precios" : "Enlista tus platos y precios")
                       }
                     </h2>
@@ -1368,6 +1442,8 @@ function OnboardingContent() {
                         "Carga una imagen legible de tu menú o carta física. El asistente virtual se la enviará automáticamente a tus clientes cuando la soliciten." :
                         "Nuestra IA analizará las fotos y extraerá las características automáticamente."
                       ) :
+                        ventasMethod === "pdf" ?
+                        "Carga el documento PDF de tu menú o carta. El asistente virtual se lo enviará automáticamente a tus clientes cuando lo soliciten por WhatsApp." :
                         ventasMethod === "manual" ?
                         ((formData.niche as string) === "agenda" ? "Define los servicios que tu agente digital ofrecerá." : (formData.niche as string) === "showroom" ? "Define los productos que tu agente digital ofrecerá." : "Define los productos que tu mesero digital ofrecerá.") : ""
                       }
@@ -1454,6 +1530,92 @@ function OnboardingContent() {
                         </motion.div>
                       )}
 
+                      {/* SECCIÓN DE MENÚ MEDIANTE PDF */}
+                      {ventasMethod === "pdf" && (
+                        <motion.div
+                          key="restaurant-pdf-menu"
+                          variants={containerVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          className="flex flex-col gap-4 w-full"
+                        >
+                          {formData.contextData.menuPdfUrl ? (
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center justify-between p-4 bg-[#FBFBFA] border border-[#E2E8F0] rounded-2xl shadow-sm">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  <div className="w-12 h-12 bg-red-50 border border-red-100 rounded-xl flex items-center justify-center shrink-0">
+                                    <FileText size={24} className="text-red-500" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-sm font-semibold text-[#1A1A1A] truncate max-w-[200px] sm:max-w-[280px]">
+                                      {formData.contextData.menuPdfName || "Menú_Digital.pdf"}
+                                    </span>
+                                    <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                                      <CheckCircle size={12} /> PDF cargado con éxito
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={formData.contextData.menuPdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2.5 py-1 text-xs font-semibold text-[#4B5563] hover:text-[#1A1A1A] bg-white hover:bg-[#F3F4F6] rounded-lg transition-colors border border-[#E2E8F0]"
+                                    title="Ver PDF"
+                                  >
+                                    Ver
+                                  </a>
+                                  <button
+                                    onClick={handleRemovePdf}
+                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Eliminar PDF"
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="bg-[#F3F4F6] rounded-xl p-3 flex items-start gap-2">
+                                <Sparkles size={16} className="text-[#1A1A1A] shrink-0 mt-0.5" />
+                                <span className="text-xs text-[#4B5563] leading-relaxed">
+                                  Tu asistente virtual enviará este archivo PDF adjunto automáticamente cuando tus clientes pidan la carta o menú por WhatsApp.
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="border border-dashed border-[#94A3B8] bg-[#FBFBFA] hover:bg-[#F3F4F6] hover:border-[#1A1A1A] transition-colors rounded-xl p-6 flex flex-col items-center justify-center relative group cursor-pointer h-44">
+                              <input
+                                type="file"
+                                accept="application/pdf,.pdf"
+                                onChange={handlePdfUpload}
+                                title=""
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                disabled={isLoading}
+                              />
+                              {analyzingStep === "SUBIENDO" ? (
+                                <div className="flex flex-col items-center gap-3 text-[#1A1A1A]">
+                                  <Loader2 size={24} className="animate-spin text-[#1A1A1A]" />
+                                  <span className="text-xs font-medium animate-pulse">Subiendo archivo PDF...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-3 text-[#6B7280] group-hover:text-[#1A1A1A]">
+                                  <div className="w-12 h-12 bg-white border border-[#E2E8F0] shadow-sm flex items-center justify-center rounded-full text-red-500 group-hover:scale-105 transition-transform">
+                                    <FileText size={22} />
+                                  </div>
+                                  <div className="flex flex-col items-center gap-1 text-center">
+                                    <span className="text-xs font-semibold text-[#1A1A1A]">Haz clic o arrastra tu menú en PDF aquí</span>
+                                    <span className="text-[11px] text-[#94A3B8]">Solo archivos .pdf (máximo 20MB)</span>
+                                  </div>
+                                </div>
+                              )}
+                              {analyzingStep === "ERROR" && (
+                                <span className="text-xs font-semibold text-red-500 mt-3">Error al subir el archivo PDF. Intenta de nuevo.</span>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+
                       {/* 1. SELECCIÓN PARA CATÁLOGOS */}
                       {(formData.niche === "ventas" || formData.niche === "showroom" || formData.niche === "agenda") && ventasMethod === "choose" && (
                         <motion.div 
@@ -1479,6 +1641,22 @@ function OnboardingContent() {
                               </span>
                               <span className="text-[10px] text-[#6B7280]">
                                 {formData.niche === "ventas" ? "Sube una foto de tu menú para enviarla por WhatsApp" : (formData.niche as string) === "showroom" ? "Sube fotos de tus productos" : "Sube fotos de tus servicios o folletos"}
+                              </span>
+                            </div>
+                          </motion.button>
+                          <motion.button
+                            variants={itemVariants}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => setVentasMethod("pdf")}
+                            className="flex items-center gap-4 p-5 border border-[#E2E8F0] bg-white rounded-2xl hover:border-[#1A1A1A] transition-all group"
+                          >
+                            <div className="w-10 h-10 bg-[#F3F4F6] rounded-xl flex items-center justify-center group-hover:bg-[#1A1A1A] group-hover:text-white transition-colors">
+                              <FileText size={20} />
+                            </div>
+                            <div className="flex flex-col text-left">
+                              <span className="text-sm font-bold text-[#1A1A1A]">Subir mediante PDF</span>
+                              <span className="text-[10px] text-[#6B7280]">
+                                {formData.niche === "ventas" ? "Sube tu carta o menú completo en formato PDF" : "Sube tu catálogo o lista en formato PDF"}
                               </span>
                             </div>
                           </motion.button>
@@ -1785,7 +1963,9 @@ function OnboardingContent() {
                       disabled={
                         ventasMethod === "choose" ||
                         (formData.niche === "ventas" && ventasMethod === "ai" && (!formData.contextData.menuImages || formData.contextData.menuImages.length === 0)) ||
-                        ((formData.niche !== "ventas" || ventasMethod === "manual") && formData.products.length === 0)
+                        (ventasMethod === "pdf" && !formData.contextData.menuPdfUrl) ||
+                        (ventasMethod === "manual" && formData.products.length === 0) ||
+                        (formData.niche !== "ventas" && ventasMethod === "ai" && formData.products.length === 0)
                       }
                       className="flex-1 py-3 text-sm font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98] transition-transform"
                     >

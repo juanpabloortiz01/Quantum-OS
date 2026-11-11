@@ -59,6 +59,7 @@ async function sendMedia(
   imageUrl: string,
   caption: string
 ): Promise<void> {
+  const isPdf = imageUrl.toLowerCase().includes(".pdf") || imageUrl.toLowerCase().includes("/raw/")
   const res = await fetch(`${evoUrl}/message/sendMedia/${instanceName}`, {
     method: "POST",
     headers: {
@@ -67,8 +68,9 @@ async function sendMedia(
     },
     body: JSON.stringify({
       number: to,
-      mediatype: "image",
-      mimetype: "image/jpeg",
+      mediatype: isPdf ? "document" : "image",
+      mimetype: isPdf ? "application/pdf" : "image/jpeg",
+      fileName: isPdf ? "Menu.pdf" : undefined,
       media: imageUrl,
       caption,
     }),

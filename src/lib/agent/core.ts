@@ -405,7 +405,9 @@ ${isAgenda ? agendaRules : generalRules}
 ${escalationLogic}
 
 OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
-${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImages && ctx.menuImages.length > 0)
+${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuPdfUrl)
+  ? `Envía el menú al cliente en formato PDF. Para ello, responde indicando únicamente la frase "¡Claro! Aquí tienes nuestro menú 📄" y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL con la URL exacta del PDF. IMPORTANTE: NO incluyas la URL en el texto de tu respuesta, ya que el sistema enviará el documento automáticamente por WhatsApp. Limítate a usar la etiqueta FOTO_URL al final de tu mensaje:\nFOTO_URL:${ctx.menuPdfUrl}`
+  : (ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImages && ctx.menuImages.length > 0)
   ? `Envía el menú al cliente de forma visual. Para ello, responde indicando únicamente la frase "Claro! Aquí tienes nuestro menú" y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden). IMPORTANTE: NO incluyas ninguna de estas URLs en el texto de tu respuesta (ej: no digas "puedes verlo en esta URL..."), ya que el sistema enviará la imagen directamente y el cliente la verá de forma visual. Limítate a usar la etiqueta FOTO_URL al final de tu mensaje:\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
   : "Lista los productos/servicios disponibles de forma organizada."
 }
@@ -681,6 +683,11 @@ export async function runCore(
       const regex = new RegExp(`(?:FOTO_URL:\\s*)?\\(?[\\s]*${escapedUrl}[\\s]*\\)?`, 'gi');
       cleanText = cleanText.replace(regex, "");
     });
+  }
+  if (ctx.menuPdfUrl) {
+    const escapedUrl = ctx.menuPdfUrl.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(?:FOTO_URL:\\s*)?\\(?[\\s]*${escapedUrl}[\\s]*\\)?`, 'gi');
+    cleanText = cleanText.replace(regex, "");
   }
 
   // Limpiar espacios múltiples y saltos de línea sobrantes

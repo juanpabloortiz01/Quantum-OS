@@ -39,6 +39,8 @@ export interface LoadedContext {
   notifPhone: string
   shippingZones?: string
   menuImages?: string[]
+  menuPdfUrl?: string
+  menuPdfName?: string
   loyaltyRule?: {
 
     triggerCount: string
@@ -275,6 +277,8 @@ export async function loadContext(
       notifPhone: ctx.notifPhone ?? "",
       shippingZones: ctx.shippingZones ?? "",
       menuImages: ctx.menuImages || (ctx.menuImageUrl ? [ctx.menuImageUrl] : []),
+      menuPdfUrl: ctx.menuPdfUrl ?? "",
+      menuPdfName: ctx.menuPdfName ?? "",
       loyaltyRule: config.loyaltyRule ?? undefined,
 
       enabledNodes,
