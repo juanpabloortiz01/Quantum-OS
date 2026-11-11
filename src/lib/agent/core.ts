@@ -404,12 +404,18 @@ ${isAgenda ? agendaRules : generalRules}
 
 ${escalationLogic}
 
-OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ"}:
-${(ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuPdfUrl)
-  ? `Envía el menú al cliente en formato PDF. Para ello, responde indicando únicamente la frase "¡Claro! Aquí tienes nuestro menú 📄" y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL con la URL exacta del PDF. IMPORTANTE: NO incluyas la URL en el texto de tu respuesta, ya que el sistema enviará el documento automáticamente por WhatsApp. Limítate a usar la etiqueta FOTO_URL al final de tu mensaje:\nFOTO_URL:${ctx.menuPdfUrl}`
-  : (ctx.niche?.toUpperCase() === "VENTAS" && ctx.menuImages && ctx.menuImages.length > 0)
-  ? `Envía el menú al cliente de forma visual. Para ello, responde indicando únicamente la frase "Claro! Aquí tienes nuestro menú" y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden). IMPORTANTE: NO incluyas ninguna de estas URLs en el texto de tu respuesta (ej: no digas "puedes verlo en esta URL..."), ya que el sistema enviará la imagen directamente y el cliente la verá de forma visual. Limítate a usar la etiqueta FOTO_URL al final de tu mensaje:\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
-  : "Lista los productos/servicios disponibles de forma organizada."
+OPCIÓN ${isAgenda ? "2" : (hasReservations ? "4" : "3")} — VER ${isAgenda ? "SERVICIOS" : "MENÚ / CARTA"}:
+${ctx.menuPdfUrl
+  ? `📄 PROTOCOLO DE MENÚ EN PDF (OBLIGATORIO):
+Este negocio dispone de su menú/carta en formato PDF (${ctx.menuPdfUrl}).
+Cuando el cliente seleccione esta opción (${isAgenda ? "2" : (hasReservations ? "4" : "3")}) o solicite ver el menú, la carta, los platos o precios (ej: "menú", "carta", "pásame el menú", "tienen carta?", "qué tienen para comer", etc.):
+DEBES responder con un mensaje amable como: "¡Claro! Aquí tienes nuestro menú digital 📄" y DEBES agregar obligatoriamente al final de tu respuesta la etiqueta con la URL exacta del PDF:
+FOTO_URL:${ctx.menuPdfUrl}
+IMPORTANTE: NO escribas la URL en el cuerpo de tu texto (ej: no digas "descárgalo aquí"), ya que nuestro sistema se encarga de enviar el documento PDF adjunto automáticamente por WhatsApp.`
+  : (ctx.menuImages && ctx.menuImages.length > 0)
+  ? `🖼️ PROTOCOLO DE MENÚ EN IMÁGENES:
+Responde indicando únicamente la frase "Claro! Aquí tienes nuestro menú" y DEBES agregar obligatoriamente al final de tu respuesta una etiqueta FOTO_URL por cada una de las imágenes disponibles en esta lista exacta de URLs (emite una etiqueta FOTO_URL por línea en orden):\n${ctx.menuImages.map(url => `FOTO_URL:${url}`).join("\n")}`
+  : "Lista los productos/servicios disponibles de forma organizada y detallada."
 }
 
 OPCIÓN ${isAgenda ? "3" : (hasReservations ? "5" : "4")} — INFORMACIÓN:
@@ -554,8 +560,33 @@ export async function runCore(
   const tokensUsed = completion.usage?.total_tokens ?? 0
 
   // ── 4. Parsear etiquetas de control ──────────────────────────────
-  const fotoMatches = Array.from(rawResponse.matchAll(/FOTO_URL:\s*(https?:\/\/\S+)/gi))
-  const imageUrls = fotoMatches.map(m => m[1].trim())
+  const fotoMatches = Array.from(rawResponse.matchAll(/(?:FOTO_URL|DOCUMENTO_URL|PDF_URL):\s*(https?:\/\/[^\s\)\>]+)/gi))
+  let imageUrls = fotoMatches.map(m => m[1].trim().replace(/[\.\,\)\>]+$/, ""))
+
+  // ── 4.1. Garantía de entrega de Menú (PDF o Imágenes) ─────────────
+  // Si el cliente pide el menú o selecciona la opción correspondiente, y el modelo
+  // olvidó incluir la etiqueta, inyectamos el PDF o imágenes automáticamente.
+  const isAgenda = ctx.niche.toUpperCase() === "AGENDA"
+  const hasReservations = ctx.enabledNodes.includes("reservations")
+  const userText = (msg.text || "").toLowerCase().trim()
+  const isMenuOptionNumber = (hasReservations && userText === "4") || 
+                             (!hasReservations && !isAgenda && userText === "3") || 
+                             (isAgenda && userText === "2")
+  const isAskingForMenu = isMenuOptionNumber || 
+    /\b(men[uú]|carta|platillos?|platos?|precios?)\b/i.test(userText) ||
+    /p[aá]same el men[uú]|tienen men[uú]|ver el men[uú]|ver la carta|enviar el men[uú]|env[ií]ame el men[uú]|cu[aá]l es el men[uú]|tienen carta/i.test(userText) ||
+    /aqu[íi] (tienes|est[aá]|te comparto|te adjunto) (nuestro|el) men[uú]/i.test(rawResponse)
+
+  if (imageUrls.length === 0 && isAskingForMenu) {
+    if (ctx.menuPdfUrl) {
+      console.log(`[CORE]: Auto-adjuntando menú PDF a la respuesta -> ${ctx.menuPdfUrl}`)
+      imageUrls.push(ctx.menuPdfUrl)
+    } else if (ctx.menuImages && ctx.menuImages.length > 0) {
+      console.log(`[CORE]: Auto-adjuntando imágenes de menú a la respuesta (${ctx.menuImages.length})`)
+      imageUrls.push(...ctx.menuImages)
+    }
+  }
+
   const hasImage = imageUrls.length > 0
   const imageUrl = hasImage ? imageUrls[0] : null
   const isPagoSolicitado = /PAGO_SOLICITADO:/i.test(rawResponse)
@@ -680,15 +711,18 @@ export async function runCore(
   if (ctx.menuImages && ctx.menuImages.length > 0) {
     ctx.menuImages.forEach(url => {
       const escapedUrl = url.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-      const regex = new RegExp(`(?:FOTO_URL:\\s*)?\\(?[\\s]*${escapedUrl}[\\s]*\\)?`, 'gi');
+      const regex = new RegExp(`(?:FOTO_URL|DOCUMENTO_URL|PDF_URL)?:\\s*\\(?[\\s]*${escapedUrl}[\\s]*\\)?`, 'gi');
       cleanText = cleanText.replace(regex, "");
     });
   }
   if (ctx.menuPdfUrl) {
     const escapedUrl = ctx.menuPdfUrl.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp(`(?:FOTO_URL:\\s*)?\\(?[\\s]*${escapedUrl}[\\s]*\\)?`, 'gi');
+    const regex = new RegExp(`(?:FOTO_URL|DOCUMENTO_URL|PDF_URL)?:\\s*\\(?[\\s]*${escapedUrl}[\\s]*\\)?`, 'gi');
     cleanText = cleanText.replace(regex, "");
   }
+  cleanText = cleanText
+    .replace(/(?:FOTO_URL|DOCUMENTO_URL|PDF_URL):\s*https?:\/\/\S+/gi, "")
+    .replace(/(?:FOTO_URL|DOCUMENTO_URL|PDF_URL):/gi, "");
 
   // Limpiar espacios múltiples y saltos de línea sobrantes
   cleanText = cleanText

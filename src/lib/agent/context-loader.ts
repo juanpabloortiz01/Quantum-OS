@@ -277,8 +277,8 @@ export async function loadContext(
       notifPhone: ctx.notifPhone ?? "",
       shippingZones: ctx.shippingZones ?? "",
       menuImages: ctx.menuImages || (ctx.menuImageUrl ? [ctx.menuImageUrl] : []),
-      menuPdfUrl: ctx.menuPdfUrl ?? "",
-      menuPdfName: ctx.menuPdfName ?? "",
+      menuPdfUrl: ctx.menuPdfUrl || ctx.menuPdf || ctx.pdfUrl || config.menuPdfUrl || ((ctx.menuImages || []).find((url: string) => typeof url === "string" && url.toLowerCase().includes(".pdf"))) || "",
+      menuPdfName: ctx.menuPdfName || ctx.fileName || config.menuPdfName || "Menu.pdf",
       loyaltyRule: config.loyaltyRule ?? undefined,
 
       enabledNodes,

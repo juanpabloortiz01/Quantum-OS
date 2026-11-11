@@ -57,24 +57,65 @@ async function sendMedia(
   token: string,
   to: string,
   imageUrl: string,
-  caption: string
+  caption: string,
+  customFileName?: string
 ): Promise<void> {
-  const isPdf = imageUrl.toLowerCase().includes(".pdf") || imageUrl.toLowerCase().includes("/raw/")
+  const isPdf = imageUrl.toLowerCase().includes(".pdf") || 
+                imageUrl.toLowerCase().includes("/raw/") ||
+                imageUrl.toLowerCase().includes("application/pdf")
+
+  const fileName = customFileName
+    ? (customFileName.toLowerCase().endsWith(".pdf") ? customFileName : `${customFileName}.pdf`)
+    : "Menu.pdf"
+
+  const payload: any = {
+    number: to,
+    mediatype: isPdf ? "document" : "image",
+    mimetype: isPdf ? "application/pdf" : "image/jpeg",
+    media: imageUrl,
+    caption: caption || "",
+  }
+
+  if (isPdf) {
+    payload.fileName = fileName
+  }
+
+  console.log(`[DISPATCHER]: Enviando media (${isPdf ? "DOCUMENTO PDF: " + fileName : "IMAGEN"}) a ${to}`)
+
   const res = await fetch(`${evoUrl}/message/sendMedia/${instanceName}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       apikey: token,
     },
-    body: JSON.stringify({
-      number: to,
-      mediatype: isPdf ? "document" : "image",
-      mimetype: isPdf ? "application/pdf" : "image/jpeg",
-      fileName: isPdf ? "Menu.pdf" : undefined,
-      media: imageUrl,
-      caption,
-    }),
+    body: JSON.stringify(payload),
   })
+
+  // Contingencia Evolution API: si falla el envío de PDF con caption, reintentar sin caption y enviar texto aparte
+  if (!res.ok && isPdf && caption) {
+    console.warn(`[DISPATCHER_WARN]: sendMedia con caption para PDF falló [${res.status}]. Reintentando envío de documento solo...`)
+    const retryRes = await fetch(`${evoUrl}/message/sendMedia/${instanceName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: token,
+      },
+      body: JSON.stringify({
+        number: to,
+        mediatype: "document",
+        mimetype: "application/pdf",
+        fileName,
+        media: imageUrl,
+      }),
+    })
+    if (retryRes.ok) {
+      console.log(`[DISPATCHER]: Documento PDF enviado con éxito en reintento. Enviando texto descriptivo...`)
+      if (caption.trim()) {
+        await sendText(evoUrl, instanceName, token, to, caption)
+      }
+      return
+    }
+  }
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => res.statusText)
@@ -294,19 +335,20 @@ export async function runDispatcher(
   try {
     if (coreResult.hasImage && coreResult.imageUrl) {
       const urls = coreResult.imageUrls && coreResult.imageUrls.length > 0 ? coreResult.imageUrls : [coreResult.imageUrl];
-      console.log(`[DISPATCHER]: Payload Media -> IMAGENES (${urls.length}) + CAPTION (${coreResult.cleanText?.length ?? 0} chars)`)
+      console.log(`[DISPATCHER]: Payload Media -> IMAGENES/DOCUMENTOS (${urls.length}) + CAPTION (${coreResult.cleanText?.length ?? 0} chars)`)
       
-      // Enviar la primera imagen con el texto descriptivo
+      // Enviar el primer medio (imagen o PDF) con el texto descriptivo
       await sendMedia(
         EVO_URL,
         instanceName,
         authKey,
         targetNumber,
         urls[0],
-        coreResult.cleanText
+        coreResult.cleanText,
+        ctx.menuPdfName || "Menu.pdf"
       )
 
-      // Enviar el resto de las imágenes secuencialmente sin caption
+      // Enviar el resto de los medios secuencialmente sin caption
       for (let i = 1; i < urls.length; i++) {
         await new Promise(resolve => setTimeout(resolve, 800))
         await sendMedia(
@@ -315,7 +357,8 @@ export async function runDispatcher(
           authKey,
           targetNumber,
           urls[i],
-          ""
+          "",
+          ctx.menuPdfName || "Menu.pdf"
         )
       }
       return { success: true, method: "sendMedia" }
