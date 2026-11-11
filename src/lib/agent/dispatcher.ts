@@ -337,31 +337,65 @@ export async function runDispatcher(
       const urls = coreResult.imageUrls && coreResult.imageUrls.length > 0 ? coreResult.imageUrls : [coreResult.imageUrl];
       console.log(`[DISPATCHER]: Payload Media -> IMAGENES/DOCUMENTOS (${urls.length}) + CAPTION (${coreResult.cleanText?.length ?? 0} chars)`)
       
-      // Enviar el primer medio (imagen o PDF) con el texto descriptivo
-      await sendMedia(
-        EVO_URL,
-        instanceName,
-        authKey,
-        targetNumber,
-        urls[0],
-        coreResult.cleanText,
-        ctx.menuPdfName || "Menu.pdf"
-      )
-
-      // Enviar el resto de los medios secuencialmente sin caption
-      for (let i = 1; i < urls.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 800))
+      try {
+        // Enviar el primer medio (imagen o PDF) con el texto descriptivo
         await sendMedia(
           EVO_URL,
           instanceName,
           authKey,
           targetNumber,
-          urls[i],
-          "",
+          urls[0],
+          coreResult.cleanText,
           ctx.menuPdfName || "Menu.pdf"
         )
+
+        // Enviar el resto de los medios secuencialmente sin caption
+        for (let i = 1; i < urls.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, 800))
+          await sendMedia(
+            EVO_URL,
+            instanceName,
+            authKey,
+            targetNumber,
+            urls[i],
+            "",
+            ctx.menuPdfName || "Menu.pdf"
+          )
+        }
+        return { success: true, method: "sendMedia" }
+      } catch (mediaErr: any) {
+        console.warn(`[DISPATCHER_WARN]: Falló envío de media nativa: ${mediaErr.message}`)
+        
+        // Si el archivo era un PDF de Cloudinary bloqueado (401 / ACL deny en Cloudinary),
+        // reintentamos enviarlo como imagen (.jpg) generada dinámicamente por Cloudinary
+        const isPdf = urls[0].toLowerCase().includes(".pdf")
+        if (isPdf && urls[0].includes("res.cloudinary.com")) {
+          const jpgUrl = urls[0].replace(/\.pdf$/i, ".jpg")
+          console.log(`[DISPATCHER_FALLBACK]: Reintentando envío de menú como imagen renderizada: ${jpgUrl}`)
+          try {
+            await sendMedia(
+              EVO_URL,
+              instanceName,
+              authKey,
+              targetNumber,
+              jpgUrl,
+              coreResult.cleanText
+            )
+            return { success: true, method: "sendMedia" }
+          } catch (jpgErr: any) {
+            console.error(`[DISPATCHER_ERROR]: Falló también envío fallback como imagen: ${jpgErr.message}`)
+          }
+        }
+
+        // Si todo falla con los medios, NUNCA dejamos al cliente sin respuesta: enviamos el texto conversacional
+        if (coreResult.cleanText) {
+          console.log(`[DISPATCHER_FALLBACK]: Enviando texto explicativo al cliente...`)
+          await sendText(EVO_URL, instanceName, authKey, targetNumber, coreResult.cleanText)
+          return { success: true, method: "sendText" }
+        }
+
+        throw mediaErr
       }
-      return { success: true, method: "sendMedia" }
     } else if (coreResult.enviarUbicacion && ctx.locationConfig?.hasPhysicalLocation) {
       console.log(`[DISPATCHER]: Payload Location -> Lat: ${ctx.locationConfig.lat}, Lng: ${ctx.locationConfig.lng}`)
       
