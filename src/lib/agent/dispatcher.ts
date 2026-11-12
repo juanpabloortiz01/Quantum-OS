@@ -157,6 +157,56 @@ async function sendLocation(
   }
 }
 
+export async function handleOrderReceipt(
+  to: string,
+  ctx: LoadedContext,
+  msg: ParsedMessage,
+  order: { plato: string; nombre: string; direccion: string; total: string }
+): Promise<void> {
+  const evoUrl = (process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL || "").replace(/\/$/, "")
+  const authKey = ctx.evolutionToken || process.env.EVOLUTION_API_KEY || ""
+  if (!evoUrl || !ctx.evolutionInstance || !authKey) throw new Error("Faltan credenciales de Evolution para confirmar el pedido")
+
+  await sendText(evoUrl, ctx.evolutionInstance, authKey, to,
+    "¡Gracias! Recibimos tu comprobante. Tu pedido ha sido confirmado y enviado a preparación.")
+
+  if (!ctx.notifPhone) return
+  const rawDigits = ctx.notifPhone.replace(/\D/g, "")
+  const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
+  const managerPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
+  const managerJid = `${managerPhone}@s.whatsapp.net`
+  const notifMsg = [
+    `🛒 *PEDIDO CONFIRMADO — ${ctx.companyName}*`,
+    `🍽 *Detalle:* ${order.plato || "No especificado"}`,
+    `💵 *TOTAL:* ${order.total || "No especificado"}`,
+    `👤 *Recibe:* ${order.nombre || "No especificado"}`,
+    `📍 *Dirección:* ${order.direccion || "No especificada"}`,
+    `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
+    "📎 Comprobante adjunto a continuación.",
+  ].join("\n")
+  await sendText(evoUrl, ctx.evolutionInstance, authKey, managerJid, notifMsg)
+
+  try {
+    const recentLocation = await prisma.chatHistory.findFirst({
+      where: { organizationId: ctx.organizationId, customerPhone: to, role: "user", content: { contains: "[UBICACIÓN_ENVIADA:" } },
+      orderBy: { createdAt: "desc" },
+    })
+    if (recentLocation) {
+      const lat = Number(recentLocation.content.match(/lat=([^,\]]+)/)?.[1])
+      const lng = Number(recentLocation.content.match(/lng=([^,\]]+)/)?.[1])
+      const name = recentLocation.content.match(/name=([^\]]+)/)?.[1] || "Ubicación del cliente"
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        await sendLocation(evoUrl, ctx.evolutionInstance, authKey, managerJid, name, order.direccion || "Dirección del cliente", lat, lng)
+      }
+    }
+  } catch (error: any) {
+    console.warn("[DISPATCHER_RECEIPT_LOCATION_WARN]:", error?.message)
+  }
+
+  const media = (msg.imageBase64 && msg.imageMimetype ? `data:${msg.imageMimetype};base64,${msg.imageBase64}` : null) || msg.imageUrl
+  if (media) await sendMedia(evoUrl, ctx.evolutionInstance, authKey, managerJid, media, "Comprobante de pago del cliente")
+}
+
 function getEcuadorWeekday(date: Date): string {
   // Ajustar la fecha a la zona horaria de Ecuador (GMT-5) de forma matemática
   const ecuadorDate = new Date(date.getTime() - 5 * 60 * 60 * 1000);
@@ -768,6 +818,7 @@ export async function runDispatcher(
           `🛒 *NUEVO PEDIDO — ${ctx.companyName}*`,
           ``,
           `🍽 *Detalle del Pedido:* ${pedido?.plato || "No especificado"}`,
+          `💵 *TOTAL:* ${pedido?.total || "No especificado"}`,
           `👤 *Cliente:* ${pedido?.nombre || "No especificado"}`,
           `📍 *Dirección:* ${pedido?.direccion || "No especificada"}`,
           `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,

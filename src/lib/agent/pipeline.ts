@@ -12,7 +12,7 @@ import { applyLogicFilter, ParsedMessage } from "./logic-filter"
 import { runSentry } from "./sentry"
 import { loadContext } from "./context-loader"
 import { runCore } from "./core"
-import { runDispatcher } from "./dispatcher"
+import { handleOrderReceipt, runDispatcher } from "./dispatcher"
 import { bufferMessage } from "./debouncer"
 import { prisma } from "@/lib/prisma"
 
@@ -110,6 +110,44 @@ export async function executePipeline(msg: ParsedMessage): Promise<PipelineResul
   if (!ctx) {
     console.error(`[PIPELINE_ERROR]: No se pudo cargar el contexto para la instancia ${msg.instanceName}`)
     return { status: "NO_CONTEXT" }
+  }
+
+  // El comprobante en imagen es una señal de pago, no una consulta visual al modelo.
+  if (msg.messageType === "image" && ctx.transferEnabled && ctx.transferDetails.trim()) {
+    const pendingAssistant = await prisma.chatHistory.findFirst({
+      where: {
+        organizationId: ctx.organizationId,
+        customerPhone: msg.remoteJid,
+        role: "assistant",
+        content: { contains: "PEDIDO_PENDIENTE_COMPROBANTE:" },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+    const pendingMatch = pendingAssistant?.content.match(/PEDIDO_PENDIENTE_COMPROBANTE:(\{[^\n]+\})/i)
+    if (pendingAssistant && pendingMatch) {
+      try {
+        const order = JSON.parse(pendingMatch[1])
+        await handleOrderReceipt(msg.remoteJid, ctx, msg, order)
+        await prisma.chatHistory.update({
+          where: { id: pendingAssistant.id },
+          data: { content: pendingAssistant.content.replace("PEDIDO_PENDIENTE_COMPROBANTE:", "PEDIDO_COMPROBANTE_RECIBIDO:") },
+        })
+        await prisma.chatHistory.createMany({
+          data: [
+            { organizationId: ctx.organizationId, customerPhone: msg.remoteJid, role: "user", content: "[COMPROBANTE_RECIBIDO: imagen]" },
+            { organizationId: ctx.organizationId, customerPhone: msg.remoteJid, role: "assistant", content: "¡Gracias! Recibimos tu comprobante. Tu pedido ha sido confirmado y enviado a preparación." },
+          ],
+        })
+        await prisma.lead.updateMany({
+          where: { organizationId: ctx.organizationId, customerPhone: msg.remoteJid },
+          data: { agentActive: false },
+        })
+        return { status: "SUCCESS", method: "sendMedia" }
+      } catch (error: any) {
+        console.error("[PIPELINE_RECEIPT_ERROR]:", error?.message ?? error)
+        return { status: "DISPATCH_ERROR", reason: "No se pudo procesar el comprobante" }
+      }
+    }
   }
 
   // ── NODO 5 — The Core ────────────────────────────────────────────

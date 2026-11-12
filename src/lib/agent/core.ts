@@ -391,9 +391,10 @@ Sigue este protocolo estricto de recolección y razonamiento:
    - Si EXISTE pero faltan datos esenciales (TAMAÑO, CANTIDAD o INGREDIENTES/especificaciones): Pregunta exactamente lo que falta antes de avanzar. NUNCA pidas dirección ni nombre hasta tener el plato completamente especificado.
 2. BEBIDAS Y ACOMPAÑAMIENTOS: Sugiere amablemente si desea agregar bebidas o complementos del menú.
 3. DATOS DE ENTREGA: Solicita nombre completo y dirección exacta con referencias (o si retira en el local).
-4. RESUMEN Y CONFIRMACIÓN: Detalla los platos con sus tamaños, ingredientes, valor total y pide responder *CONFIRMAR*.
-Al confirmar el cliente, emite:
-PEDIDO_CONFIRMADO:{"plato":"[detalle completo con cantidades, tamaños e ingredientes]","nombre":"[nombre]","direccion":"[direccion]"}
+4. RESUMEN Y CONFIRMACIÓN: Detalla platos, tamaños, ingredientes, nombre y dirección de quien recibe. Incluye una línea separada en negrita: *TOTAL: [monto]*, calculado con cantidades y precios confirmados del menú. Si no puedes calcularlo con certeza, no inventes el monto y solicita confirmación al negocio. Pide responder *CONFIRMAR*.
+Al confirmar el cliente, ${ctx.transferEnabled && ctx.transferDetails.trim()
+  ? `envía los datos bancarios configurados y termina con "Por favor envía una captura o la imagen de tu comprobante para poder enviar tu orden a preparación". Emite PEDIDO_PENDIENTE_COMPROBANTE:{"plato":"[detalle]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}. No emitas PEDIDO_CONFIRMADO todavía.`
+  : `emite PEDIDO_CONFIRMADO:{"plato":"[detalle]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}.`}
 
 OPCIÓN 2 — RESERVAR UNA MESA (CONSUMO EN EL LOCAL):
 Sigue estricta y cronológicamente el protocolo de RESERVACIONES (Paso 1: Datos, Paso 2: Pedido de comida para la mesa, Paso 3: Confirmación). 
@@ -422,12 +423,13 @@ PASO 4 — RESUMEN TOTAL Y CONFIRMACIÓN:
 Presenta un resumen claro con:
 - Ítems detallados (platos, tamaño, cantidad, especificaciones de ingredientes).
 - Bebidas/adicionales.
-- Valor total del pedido.
+- Valor total del pedido en una línea separada y en negrita: *TOTAL: [monto]*. Calcula con precios y cantidades confirmados del menú; no inventes el total si falta información.
 - Dirección o modalidad de retiro.
 Indica: "Por favor responde *CONFIRMAR* para enviar tu orden a preparación."
 
-Al confirmar el cliente, emite la etiqueta EXACTA:
-PEDIDO_CONFIRMADO:{"plato":"[detalle de los platos con cantidades, tamaños e ingredientes, ej: 1x Pizza Cuatro Quesos Familiar con extra queso, 1x Coca-Cola 1.5L]","nombre":"[nombre]","direccion":"[direccion]"}`;
+Al confirmar el cliente, ${ctx.transferEnabled && ctx.transferDetails.trim()
+  ? `envía los datos bancarios configurados y termina con "Por favor envía una captura o la imagen de tu comprobante para poder enviar tu orden a preparación". Emite PEDIDO_PENDIENTE_COMPROBANTE:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}. No emitas PEDIDO_CONFIRMADO todavía.`
+  : `emite PEDIDO_CONFIRMADO:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}.`}`;
 
   return `${basePrompt}
 Tu rol: ${isAgenda ? "Recepcionista y Gestor de Citas" : "Asistente de Ventas"}.
@@ -501,7 +503,9 @@ export interface CoreResult {
   imageUrl: string | null
   imageUrls?: string[]
   isPedidoConfirmado: boolean
-  pedidoData: { plato: string; nombre: string; direccion: string } | null
+  pedidoData: { plato: string; nombre: string; direccion: string; total?: string } | null
+  isPedidoPendienteComprobante: boolean
+  pedidoPendienteData: { plato: string; nombre: string; direccion: string; total: string } | null
   isPagoSolicitado: boolean
   agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
   isEscaladoSoporte: boolean
@@ -649,6 +653,17 @@ export async function runCore(
     }
   }
 
+  const pedidoPendienteMatch = rawResponse.match(/PEDIDO_PENDIENTE_COMPROBANTE:(\{[^\n]+\})/i)
+  const isPedidoPendienteComprobante = Boolean(pedidoPendienteMatch)
+  let pedidoPendienteData = null
+  if (pedidoPendienteMatch) {
+    try {
+      pedidoPendienteData = JSON.parse(pedidoPendienteMatch[1])
+    } catch {
+      console.error("[CORE_PARSE_ERROR]: Error al parsear pedido pendiente de comprobante")
+    }
+  }
+
   const agendarJSONMatch = rawResponse.match(/AGENDAR_CITA:\s*({.+})/i)
   const agendarTextMatch = rawResponse.match(/AGENDAR_CITA:\s*([^,]+),\s*(\d{1,2}\/\d{1,2}\/\d{4}),\s*(\d{1,2}:\d{2})/i)
   
@@ -736,6 +751,7 @@ export async function runCore(
     .replace(/FOTO_URL:\s*(https?:\/\/\S+)/gi, "")
     .replace(/PEDIDO_CONFIRMADO:({.+})/gi, "")
     .replace(/PEDIDO_CONFIRMADO:/gi, "")
+    .replace(/PEDIDO_PENDIENTE_COMPROBANTE:\{[^\n]+\}/gi, "")
     .replace(/PAGO_SOLICITADO:/gi, "")
     .replace(/AGENDAR_CITA:({.+})/gi, "")
     .replace(/AGENDAR_CITA:[^.\n]+/gi, "") // Limpiar formato de texto también
@@ -801,6 +817,8 @@ export async function runCore(
     imageUrls,
     isPedidoConfirmado,
     pedidoData,
+    isPedidoPendienteComprobante,
+    pedidoPendienteData,
     isPagoSolicitado,
     agendarCita,
     isEscaladoSoporte,
