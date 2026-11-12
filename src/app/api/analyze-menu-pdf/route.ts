@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       input: [{
         role: "user",
         content: [
-          { type: "input_file", file_url: pdfUrl, detail: "high" },
+          { type: "input_file", file_url: pdfUrl },
           { type: "input_text", text: `Extrae todos los productos y bebidas que aparecen en este menú. Devuelve solo JSON válido con la forma {"platos":[{"nombre":"texto exacto","categoria":"sección o vacío","descripcion":"solo ingredientes/tamaños explícitos, o vacío","precio":"precio explícito o null"}]}. No inventes ingredientes, categorías, tamaños, precios ni productos. Si un dato no se ve o no está escrito, déjalo vacío o null. No completes con conocimiento gastronómico externo.` }
         ]
       }],
