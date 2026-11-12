@@ -41,6 +41,8 @@ export interface LoadedContext {
   menuImages?: string[]
   menuPdfUrl?: string
   menuPdfName?: string
+  transferEnabled: boolean
+  transferDetails: string
   menuCatalog?: Array<{
     nombre: string
     categoria?: string
@@ -289,6 +291,8 @@ export async function loadContext(
       menuPdfUrl: ctx.menuPdfUrl || ctx.menuPdf || ctx.pdfUrl || config.menuPdfUrl || ((ctx.menuImages || []).find((url: string) => typeof url === "string" && url.toLowerCase().includes(".pdf"))) || "",
       menuPdfName: ctx.menuPdfName || ctx.fileName || config.menuPdfName || "Menu.pdf",
       menuCatalog: Array.isArray(ctx.menuCatalog) ? ctx.menuCatalog : [],
+      transferEnabled: org.businessConfig?.transferEnabled ?? enabledNodes.includes("transfers"),
+      transferDetails: org.businessConfig?.transferDetails || "",
       loyaltyRule: config.loyaltyRule ?? undefined,
 
       enabledNodes,

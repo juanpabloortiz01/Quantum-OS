@@ -319,6 +319,9 @@ Informa al cliente amablemente que el encargado del local está confirmando la d
 
   const isAgenda = ctx.niche.toUpperCase() === "AGENDA";
   const hasReservations = ctx.enabledNodes.includes("reservations");
+  const transferStr = ctx.transferEnabled && ctx.transferDetails.trim()
+    ? `CAPACIDAD DE PAGOS POR TRANSFERENCIA ACTIVADA:\nSi el cliente solicita datos bancarios, número de cuenta o desea pagar mediante transferencia, entrégale de forma clara y directa la siguiente información:\n${ctx.transferDetails}`
+    : "CAPACIDAD DE TRANSFERENCIAS DESACTIVADA: No ofrezcas ni entregues datos bancarios ni confirmes que se puede pagar por transferencia. Si preguntan, indica que deben consultar con el negocio."
 
   const basePrompt = `Eres el asistente virtual experto de "${ctx.companyName}".
 La fecha y hora actual en Ecuador (GMT-5) es: ${year}-${month}-${day} ${hours}:${minutes}:${seconds} (${weekdayName}, ${day} de ${monthName} de ${year}).`;
@@ -460,6 +463,7 @@ OPCIÓN ${isAgenda ? "3" : (hasReservations ? "5" : "4")} — INFORMACIÓN:
 Dirección: ${ctx.address || "No especificada"}
 Horarios: ${scheduleStr}
 ${contactParts}
+${transferStr}
 ${locationRules}
 ${loyaltyStr}
 ${reservationsStr}

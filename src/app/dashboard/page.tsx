@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 import { 
   Settings, Search, Users, CheckSquare, X, Power, 
   Calendar, Heart, ShoppingBag, Eye, Map, Wifi, WifiOff,
-  LogOut, UserCircle, HelpCircle
+  LogOut, UserCircle, HelpCircle, Landmark
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule, getReservas, saveReservationsConfig, updateReservationStatus, deleteReservation, createManualReservation } from "./action";
+import { getDashboardLayout, saveActiveSkills, getCalendarConnectionStatus, getLeads, toggleAgent, saveLoyaltyRule, getReservas, saveReservationsConfig, saveTransferConfig, updateReservationStatus, deleteReservation, createManualReservation } from "./action";
 
 interface GlassModule {
   id: string;
@@ -32,6 +32,7 @@ interface Lead {
 const MODULE_LIBRARY = [
   { id: "calendar", name: "Agenda", description: "Sincronización con Google Calendar y agendamiento automático.", icon: Calendar, niches: ["AGENDA"] },
   { id: "reservations", name: "Reservaciones", description: "Gestiona las reservaciones de mesas de forma automatizada y con aprobación manual.", icon: Calendar, niches: ["VENTAS", "GASTRONOMY", "AGENDA"] },
+  { id: "transfers", name: "Transferencias", description: "Permite al agente entregar los datos bancarios del negocio cuando un cliente solicite pagar por transferencia.", icon: Landmark, niches: ["VENTAS", "GASTRONOMY", "AGENDA"] },
 ];
 
 const TOUR_STEPS = [
@@ -145,6 +146,9 @@ const DashboardContent = () => {
 
   // States for reservations configuration
   const [showReservationsModal, setShowReservationsModal] = React.useState(false);
+  const [showTransferModal, setShowTransferModal] = React.useState(false);
+  const [transferDetails, setTransferDetails] = React.useState("");
+  const [transferSaving, setTransferSaving] = React.useState(false);
   const [reservationsForm, setReservationsForm] = React.useState({
     tope_personas_por_hora: 25
   });
@@ -253,6 +257,7 @@ const DashboardContent = () => {
       setLeads(fetchedLeads);
       if (layout) {
         setNiche(layout.niche);
+        setTransferDetails(layout.transferDetails || "");
         setTeamPhones({
           agent: layout.whatsappNumber || "No configurado",
           human: layout.notifPhone || "No configurado"
@@ -358,6 +363,17 @@ const DashboardContent = () => {
   };
 
   const toggleModule = async (id: string) => {
+    if (id === "transfers") {
+      const enabled = modules.find(m => m.id === "transfers")?.enabled ?? false;
+      if (enabled) {
+        const result = await saveTransferConfig({ enabled: false, details: transferDetails });
+        if (!result.success) { alert(result.error || "No se pudo desactivar"); return; }
+        setModules(current => current.map(m => m.id === id ? { ...m, enabled: false } : m));
+      } else {
+        setShowTransferModal(true);
+      }
+      return;
+    }
     if (id === "calendar") {
       const module = modules.find(m => m.id === "calendar");
       if (!module?.enabled && !googleConnected) {
@@ -663,6 +679,15 @@ const DashboardContent = () => {
                           )}
                         >
                           Configurar Reservaciones
+                        </button>
+                      )}
+
+                      {module.id === "transfers" && (
+                        <button
+                          onClick={() => setShowTransferModal(true)}
+                          className="mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left rounded-lg p-2.5"
+                        >
+                          {module.enabled ? "Editar Transferencias" : "Configurar Transferencias"}
                         </button>
                       )}
 
@@ -1381,6 +1406,71 @@ const DashboardContent = () => {
                   </div>
                 </div>
 
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Transfer Configuration Modal */}
+        <AnimatePresence>
+          {showTransferModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => setShowTransferModal(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-xl bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl overflow-hidden shadow-2xl p-10 space-y-8"
+              >
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">Configurar Transferencias</h3>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">Datos de cuenta bancaria</label>
+                    <p className="text-sm font-medium text-gray-700 leading-relaxed">
+                      Ingresa los datos bancarios completos (banco, tipo y número de cuenta, titular, RUC/Cédula e instrucciones para enviar el comprobante). El agente enviará este mensaje exacto cuando el cliente pida transferir.
+                    </p>
+                    <p className="text-xs text-gray-400 leading-relaxed pt-0.5">Ejemplo: Banco Pichincha - Cta. Ahorros #2200123456 - Titular: La Fiorentina - RUC: 1104567890001.</p>
+                  </div>
+                  <textarea
+                    value={transferDetails}
+                    onChange={e => setTransferDetails(e.target.value)}
+                    rows={6}
+                    placeholder="Escribe aquí los datos e instrucciones de transferencia..."
+                    className="w-full resize-y min-h-36 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-gray-900 outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowTransferModal(false)}
+                    disabled={transferSaving}
+                    className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >Cancelar</button>
+                  <button
+                    disabled={transferSaving}
+                    onClick={async () => {
+                      setTransferSaving(true);
+                      const result = await saveTransferConfig({ enabled: true, details: transferDetails });
+                      setTransferSaving(false);
+                      if (result.success) {
+                        setModules(current => current.map(m => m.id === "transfers" ? { ...m, enabled: true } : m));
+                        setShowTransferModal(false);
+                      } else {
+                        alert(result.error || "No se pudo guardar");
+                      }
+                    }}
+                    className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-black/10 disabled:opacity-50"
+                  >{transferSaving ? "Guardando..." : "Guardar"}</button>
+                </div>
               </motion.div>
             </motion.div>
           )}

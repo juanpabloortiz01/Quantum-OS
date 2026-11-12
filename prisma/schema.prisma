@@ -94,6 +94,8 @@ model BusinessConfig {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   niche          String       @default("GASTRONOMY")
   config         Json         @default("{}")
+  transferEnabled Boolean     @default(false)
+  transferDetails String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }

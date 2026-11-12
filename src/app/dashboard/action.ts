@@ -104,7 +104,10 @@ export async function getDashboardLayout() {
     if (!org) return null
 
     const config = (org.businessConfig?.config as any) || {}
-    const activeSkills = config.enabled_nodes || []
+    const activeSkills: string[] = config.enabled_nodes || []
+    if (org.businessConfig?.transferEnabled && !activeSkills.includes("transfers")) {
+      activeSkills.push("transfers")
+    }
 
     return {
       companyName: org.name,
@@ -114,6 +117,8 @@ export async function getDashboardLayout() {
       whatsappNumber: org.whatsappNumber,
       notifPhone: config.context?.notifPhone,
       reservationsConfig: config.reservationsConfig || { tope_personas_por_hora: 25 },
+      transferEnabled: org.businessConfig?.transferEnabled ?? activeSkills.includes("transfers"),
+      transferDetails: org.businessConfig?.transferDetails || "",
     }
   } catch (error) {
     return null
@@ -272,6 +277,43 @@ export async function saveReservationsConfig(config: {
   } catch (error: any) {
     console.error("[SAVE_RESERVATIONS_CONFIG_ERROR]:", error)
     return { error: "No se pudo guardar la configuración de reservas" }
+  }
+}
+
+export async function saveTransferConfig(config: { enabled: boolean; details: string }) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "No autorizado" }
+
+  const details = String(config.details || "").trim()
+  if (config.enabled && !details) return { error: "Ingresa los datos de transferencia antes de activar esta capacidad" }
+
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { userId: session.user.id },
+      include: { businessConfig: true }
+    })
+    if (!org?.businessConfig) return { error: "Configuración del negocio no encontrada" }
+
+    const currentConfig = (org.businessConfig.config as any) || {}
+    const enabledNodes: string[] = currentConfig.enabled_nodes || []
+    const nextNodes = config.enabled
+      ? Array.from(new Set([...enabledNodes, "transfers"]))
+      : enabledNodes.filter(id => id !== "transfers")
+
+    await prisma.businessConfig.update({
+      where: { organizationId: org.id },
+      data: {
+        transferEnabled: config.enabled,
+        transferDetails: details || null,
+        config: { ...currentConfig, enabled_nodes: nextNodes }
+      }
+    })
+
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error) {
+    console.error("[SAVE_TRANSFER_CONFIG_ERROR]:", error)
+    return { error: "No se pudo guardar la configuración de transferencias" }
   }
 }
 
