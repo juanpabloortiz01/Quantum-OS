@@ -41,6 +41,7 @@ export interface LoadedContext {
   menuImages?: string[]
   menuPdfUrl?: string
   menuPdfName?: string
+  menuCatalog?: Array<{ nombre: string; categoria?: string; descripcion?: string; precio?: string | null }>
   loyaltyRule?: {
 
     triggerCount: string
@@ -279,6 +280,7 @@ export async function loadContext(
       menuImages: ctx.menuImages || (ctx.menuImageUrl ? [ctx.menuImageUrl] : []),
       menuPdfUrl: ctx.menuPdfUrl || ctx.menuPdf || ctx.pdfUrl || config.menuPdfUrl || ((ctx.menuImages || []).find((url: string) => typeof url === "string" && url.toLowerCase().includes(".pdf"))) || "",
       menuPdfName: ctx.menuPdfName || ctx.fileName || config.menuPdfName || "Menu.pdf",
+      menuCatalog: Array.isArray(ctx.menuCatalog) ? ctx.menuCatalog : [],
       loyaltyRule: config.loyaltyRule ?? undefined,
 
       enabledNodes,

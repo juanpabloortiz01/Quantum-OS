@@ -335,13 +335,24 @@ function OnboardingContent() {
       const imageUrl = cloudinaryData.secure_url
 
       if (formData.niche === "ventas") {
+        setAnalyzingStep("ANALIZANDO")
+        const aiRes = await fetch("/api/analyze-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl, niche: "ventas" })
+        })
+        const result = await aiRes.json()
+        if (!aiRes.ok || !result.success || !Array.isArray(result.data?.platos)) {
+          throw new Error("No se pudo leer el menú de la imagen")
+        }
         setFormData((prev: any) => {
           const currentImages = prev.contextData.menuImages || [];
           return {
             ...prev,
             contextData: {
               ...prev.contextData,
-              menuImages: [...currentImages, imageUrl].slice(0, 5)
+              menuImages: [...currentImages, imageUrl].slice(0, 5),
+              menuCatalog: [...(prev.contextData.menuCatalog || []), ...result.data.platos]
             }
           };
         });
@@ -462,12 +473,24 @@ function OnboardingContent() {
       const cloudinaryData = await cloudinaryRes.json()
       const pdfUrl = cloudinaryData.secure_url
 
+      setAnalyzingStep("ANALIZANDO")
+      const analysisRes = await fetch("/api/analyze-menu-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdfUrl })
+      })
+      const analysis = await analysisRes.json()
+      if (!analysisRes.ok || !analysis.success || !Array.isArray(analysis.data?.platos) || analysis.data.platos.length === 0) {
+        throw new Error("No se pudo extraer el catálogo del PDF")
+      }
+
       setFormData((prev: any) => ({
         ...prev,
         contextData: {
           ...prev.contextData,
           menuPdfUrl: pdfUrl,
           menuPdfName: file.name,
+          menuCatalog: analysis.data.platos,
         }
       }))
       setAnalyzingStep("COMPLETADO")
@@ -486,6 +509,7 @@ function OnboardingContent() {
         ...prev.contextData,
         menuPdfUrl: "",
         menuPdfName: "",
+        menuCatalog: [],
       }
     }))
     setAnalyzingStep("IDLE")

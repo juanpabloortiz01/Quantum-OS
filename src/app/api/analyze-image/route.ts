@@ -28,7 +28,7 @@ INSTRUCCIONES CRÍTICAS:
 3. Extrae con exactitud:
    - "nombre": El nombre exacto del plato o pizza (ej: "Pizza Cuatro Quesos", "Pizza Pepperoni Especial").
    - "categoria": La sección o tipo (ej: "Pizzas Tradicionales", "Pizzas Gourmet", "Bebidas", "Entradas", "Postres").
-   - "descripcion": Todos los ingredientes listados y tamaños disponibles (ej: "Salsa pomodoro, mozzarella fior di latte, gorgonzola, parmesano. Tamaños: Mediana (8 porciones), Familiar (12 porciones)"). Si la imagen no lista ingredientes, incluye una descripción apetitosa con los ingredientes clásicos de ese plato.
+   - "descripcion": Solo ingredientes, tamaños y detalles escritos explícitamente en el menú. Si no aparecen, usa cadena vacía. Nunca completes con conocimiento externo.
    - "precio": El valor monetario o desglose por tamaño (ej: "$14.00" o "Personal: $7, Mediana: $12, Familiar: $16"). Si no hay precio explícito, usa null.
 
 Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
@@ -93,7 +93,8 @@ REGLA DE ORO: Si hay una lista de servicios, extrae todos los que sean clarament
         }
       ],
       temperature: 0.1, 
-      max_tokens: 3000
+      max_tokens: 6000,
+      response_format: { type: "json_object" }
     })
 
     const text = response.choices[0].message?.content || "{}"

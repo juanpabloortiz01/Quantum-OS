@@ -121,8 +121,19 @@ function buildSystemPrompt(
   }
 
   // ── Catálogo de productos formateado ──────────────────────────────
+  const hasUploadedMenu = Boolean(ctx.menuPdfUrl || ctx.menuImages?.length)
   const catalogStr =
-    ctx.products.length > 0
+    hasUploadedMenu
+      ? ctx.menuCatalog?.length
+      ? ctx.menuCatalog.map((item, i) => [
+          `[Menú ${i + 1}]`,
+          item.nombre ? `Nombre: ${item.nombre}` : null,
+          item.categoria ? `Categoría: ${item.categoria}` : null,
+          item.descripcion ? `Detalles explícitos: ${item.descripcion}` : null,
+          item.precio ? `Precio: ${item.precio}` : null,
+        ].filter(Boolean).join("\n")).join("\n\n")
+      : "Menú cargado, pero no se pudo extraer ningún producto verificable. No confirmar ni recomendar productos; pedir confirmación al negocio."
+      : ctx.products.length > 0
       ? ctx.products
           .filter(p => p.primaryColor !== "Menú" && p.category !== "MENÚ_COMPLETO" && p.category !== "SERVICIO") 
           .map((p, i) => {
@@ -164,7 +175,7 @@ function buildSystemPrompt(
   }
 
   // ── Identificar Menús/Servicios ──────────────────────────────────
-  const menuProducts = ctx.products.filter(p => 
+  const menuProducts = hasUploadedMenu || ctx.menuCatalog?.length ? [] : ctx.products.filter(p => 
     p.category === "MENÚ_COMPLETO" || p.primaryColor === "Menú" || p.category === "SERVICIO"
   )
   const menuInfo = menuProducts.map(m => {
@@ -461,7 +472,8 @@ ${menuInfo ? `\nCATALOGO DETALLADO:\n${menuInfo}` : ""}
 ═══════════════════════════════════════
 ⚠️ REGLAS DE ORO (VERACIDAD Y CONTROL)
 ═══════════════════════════════════════
-- VERACIDAD DEL MENÚ (CONFIRMAR O NEGAR): Tu única fuente de verdad sobre los productos, pizzas, ingredientes y precios es el CONOCIMIENTO BASE / MENÚ. Si un cliente te pide confirmar si tienes un producto, o te pide ingredientes, o pide un plato que NO existe: di con seguridad y cortesía que no lo tienen y ofrece lo que sí hay en el menú. NUNCA inventes productos, ingredientes ni precios ajenos al menú.
+- VERACIDAD DEL MENÚ (FUENTE EXCLUSIVA): Si hay un catálogo extraído del menú, úsalo como única fuente para productos, ingredientes, opciones, precios y recomendaciones. No uses conocimiento general ni otros productos cargados para completar esos datos. Recomienda únicamente ítems y combinaciones expresamente presentes en el menú. Si el menú no especifica un dato, di que no aparece y ofrece confirmar con el negocio. Si el catálogo extraído está vacío, no inventes ni aceptes pedidos de productos; indica que no puedes verificar el menú.
+- DESCRIPCIONES: Solo afirma ingredientes, tamaños o características que aparezcan en el catálogo. No infieras ingredientes por el nombre del plato.
 - CONSULTA SOBRE LO QUE NO SABES: Si el cliente pregunta algo que NO está en el CONOCIMIENTO BASE o en las reglas del negocio, di: "Lo lamento, no tengo esa información específica. Pero si gustas, puedo ponerte en contacto con la recepción para que te ayuden."
 - ESCALADO: Si detectas frustración o peticiones repetidas de información que no conoces, usa el protocolo de ESCALADO_SOPORTE.
 - BREVEDAD: Máximo 2 párrafos.
