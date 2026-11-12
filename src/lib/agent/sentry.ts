@@ -1,9 +1,9 @@
 /**
  * ─────────────────────────────────────────────────
  *  QUANTUM OS — NODO 3: THE SENTRY
- *  El Clasificador. Velocidad estratosférica.
- *  Groq + Llama 3.1-8b-instant.
- *  Coste: microsegundos. Precisión: quirúrgica.
+ *  El Clasificador de Intenciones.
+ *  OpenAI GPT-4o-mini.
+ *  Coste: mínimo. Precisión: quirúrgica.
  * ─────────────────────────────────────────────────
  */
 
@@ -41,7 +41,7 @@ Reglas:
 - confidence: HIGH si hay certeza, MED si es probable, LOW si es ambiguo`
 
 /**
- * Clasifica la intención del mensaje con Groq.
+ * Clasifica la intención del mensaje con OpenAI GPT-4o-mini.
  * Timeout de 4s — si falla, retorna fallback seguro.
  */
 export async function runSentry(
@@ -89,7 +89,7 @@ export async function runSentry(
       confidence: parsed.confidence ?? "LOW",
     }
   } catch (err: any) {
-    // Timeout o error de Groq — no bloquear el pipeline
+    // Timeout o error de IA — no bloquear el pipeline
     console.warn("[SENTRY_WARN]: Fallback activado.", err?.message ?? err)
     return FALLBACK
   }
