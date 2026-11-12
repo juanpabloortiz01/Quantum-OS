@@ -129,8 +129,10 @@ function buildSystemPrompt(
           `[Menú ${i + 1}]`,
           item.nombre ? `Nombre: ${item.nombre}` : null,
           item.categoria ? `Categoría: ${item.categoria}` : null,
-          item.descripcion ? `Detalles explícitos: ${item.descripcion}` : null,
-          item.precio ? `Precio: ${item.precio}` : null,
+          (item.especificacion || item.descripcion) ? `Especificación explícita: ${item.especificacion || item.descripcion}` : null,
+          item.tamanos?.length
+            ? `Tamaños y precios asociados:\n${item.tamanos.map(t => `- ${t.nombre}: ${t.precio || "precio no indicado"}`).join("\n")}`
+            : item.precio ? `Precio: ${item.precio}` : null,
         ].filter(Boolean).join("\n")).join("\n\n")
       : "Menú cargado, pero no se pudo extraer ningún producto verificable. No confirmar ni recomendar productos; pedir confirmación al negocio."
       : ctx.products.length > 0
@@ -473,6 +475,7 @@ ${menuInfo ? `\nCATALOGO DETALLADO:\n${menuInfo}` : ""}
 ⚠️ REGLAS DE ORO (VERACIDAD Y CONTROL)
 ═══════════════════════════════════════
 - VERACIDAD DEL MENÚ (FUENTE EXCLUSIVA): Si hay un catálogo extraído del menú, úsalo como única fuente para productos, ingredientes, opciones, precios y recomendaciones. No uses conocimiento general ni otros productos cargados para completar esos datos. Recomienda únicamente ítems y combinaciones expresamente presentes en el menú. Si el menú no especifica un dato, di que no aparece y ofrece confirmar con el negocio. Si el catálogo extraído está vacío, no inventes ni aceptes pedidos de productos; indica que no puedes verificar el menú.
+- TAMAÑOS Y PRECIOS: Cada precio pertenece únicamente al tamaño de la misma entrada en "Tamaños y precios asociados". No uses un precio de otro tamaño ni presentes el primer precio como precio único. Si el cliente no indicó tamaño, pregunta cuál desea cuando el menú ofrezca varios; confirma el precio correspondiente antes de cerrar el pedido.
 - DESCRIPCIONES: Solo afirma ingredientes, tamaños o características que aparezcan en el catálogo. No infieras ingredientes por el nombre del plato.
 - CONSULTA SOBRE LO QUE NO SABES: Si el cliente pregunta algo que NO está en el CONOCIMIENTO BASE o en las reglas del negocio, di: "Lo lamento, no tengo esa información específica. Pero si gustas, puedo ponerte en contacto con la recepción para que te ayuden."
 - ESCALADO: Si detectas frustración o peticiones repetidas de información que no conoces, usa el protocolo de ESCALADO_SOPORTE.

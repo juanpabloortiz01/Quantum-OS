@@ -41,7 +41,15 @@ export interface LoadedContext {
   menuImages?: string[]
   menuPdfUrl?: string
   menuPdfName?: string
-  menuCatalog?: Array<{ nombre: string; categoria?: string; descripcion?: string; precio?: string | null }>
+  menuCatalog?: Array<{
+    nombre: string
+    categoria?: string
+    especificacion?: string
+    tamanos?: Array<{ nombre: string; precio?: string | null }>
+    // Compatibilidad con catálogos extraídos antes de separar tamaños y precios.
+    descripcion?: string
+    precio?: string | null
+  }>
   loyaltyRule?: {
 
     triggerCount: string

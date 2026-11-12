@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         role: "user",
         content: [
           { type: "input_file", file_url: pdfUrl },
-          { type: "input_text", text: `Extrae todos los productos y bebidas que aparecen en este menú. Devuelve solo JSON válido con la forma {"platos":[{"nombre":"texto exacto","categoria":"sección o vacío","descripcion":"solo ingredientes/tamaños explícitos, o vacío","precio":"precio explícito o null"}]}. No inventes ingredientes, categorías, tamaños, precios ni productos. Si un dato no se ve o no está escrito, déjalo vacío o null. No completes con conocimiento gastronómico externo.` }
+          { type: "input_text", text: `Extrae todos los productos y bebidas visibles. Devuelve solo JSON válido con esta estructura: {"platos":[{"nombre":"nombre exacto","categoria":"sección o vacío","especificacion":"descripción/ingredientes exactos del menú o vacío","tamanos":[{"nombre":"tamaño exacto","precio":"precio asociado a ESE tamaño o null"}]}]}. Registra un elemento independiente en tamanos por cada tamaño/precio del producto. Asocia cada precio únicamente con el tamaño que le corresponde según su posición, columnas, líneas o etiquetas. No tomes el primer precio como precio único ni mezcles precios entre platos. Si hay un único precio sin tamaño, usa {"nombre":"Único","precio":"..."}. Si no hay tamaños, usa []. Nunca inventes ni completes ingredientes, tamaños o precios con conocimiento externo. Si el menú es ambiguo, deja el dato vacío/null en lugar de adivinar.` }
         ]
       }],
       text: { format: { type: "json_object" } },

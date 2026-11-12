@@ -28,8 +28,8 @@ INSTRUCCIONES CRÍTICAS:
 3. Extrae con exactitud:
    - "nombre": El nombre exacto del plato o pizza (ej: "Pizza Cuatro Quesos", "Pizza Pepperoni Especial").
    - "categoria": La sección o tipo (ej: "Pizzas Tradicionales", "Pizzas Gourmet", "Bebidas", "Entradas", "Postres").
-   - "descripcion": Solo ingredientes, tamaños y detalles escritos explícitamente en el menú. Si no aparecen, usa cadena vacía. Nunca completes con conocimiento externo.
-   - "precio": El valor monetario o desglose por tamaño (ej: "$14.00" o "Personal: $7, Mediana: $12, Familiar: $16"). Si no hay precio explícito, usa null.
+   - "especificacion": ingredientes y detalles escritos explícitamente en el menú. Si no aparecen, usa cadena vacía.
+   - "tamanos": array de objetos {"nombre":"tamaño exacto", "precio":"precio asociado a ese tamaño o null"}. Registra cada tamaño con su propio precio. Asocia por columnas, líneas, etiquetas y proximidad visual; nunca uses solo el primer precio ni combines tamaños. Si hay precio pero no tamaño, usa nombre "Único". Si no hay tamaños/precios, usa [].
 
 Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
 {
@@ -37,8 +37,8 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
     {
       "nombre": "string",
       "categoria": "string",
-      "descripcion": "string detallada con ingredientes y tamaños",
-      "precio": "string o null"
+      "especificacion": "string con los detalles explícitos",
+      "tamanos": [{"nombre": "string", "precio": "string o null"}]
     }
   ]
 }
