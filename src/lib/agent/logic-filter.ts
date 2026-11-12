@@ -143,7 +143,7 @@ export function applyLogicFilter(raw: any): FilterResult {
     // Caption como texto (el cliente puede escribir mientras manda la imagen)
     text = msgObj.imageMessage?.caption ?? null
     imageUrl = msgObj.imageMessage?.url ?? null
-    imageBase64 = data?.message?.base64 ?? null
+    imageBase64 = data?.message?.base64 ?? msgObj.imageMessage?.base64 ?? data?.base64 ?? null
     imageMimetype = msgObj.imageMessage?.mimetype ?? "image/jpeg"
   } else if (rawType === "locationMessage") {
     // Detección de ubicación compartida por WhatsApp

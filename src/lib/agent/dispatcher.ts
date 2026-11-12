@@ -60,9 +60,12 @@ async function sendMedia(
   caption: string,
   customFileName?: string
 ): Promise<void> {
+  const dataUri = imageUrl.match(/^data:([^;,]+);base64,([\s\S]+)$/i)
+  const media = dataUri?.[2] || imageUrl
   const isPdf = imageUrl.toLowerCase().includes(".pdf") || 
                 imageUrl.toLowerCase().includes("/raw/") ||
-                imageUrl.toLowerCase().includes("application/pdf")
+                imageUrl.toLowerCase().includes("application/pdf") ||
+                dataUri?.[1]?.toLowerCase() === "application/pdf"
 
   const fileName = customFileName
     ? (customFileName.toLowerCase().endsWith(".pdf") ? customFileName : `${customFileName}.pdf`)
@@ -71,8 +74,8 @@ async function sendMedia(
   const payload: any = {
     number: to,
     mediatype: isPdf ? "document" : "image",
-    mimetype: isPdf ? "application/pdf" : "image/jpeg",
-    media: imageUrl,
+    mimetype: isPdf ? "application/pdf" : (dataUri?.[1] || "image/jpeg"),
+    media,
     caption: caption || "",
   }
 
@@ -105,7 +108,7 @@ async function sendMedia(
         mediatype: "document",
         mimetype: "application/pdf",
         fileName,
-        media: imageUrl,
+        media,
       }),
     })
     if (retryRes.ok) {
@@ -167,14 +170,11 @@ export async function handleOrderReceipt(
   const authKey = ctx.evolutionToken || process.env.EVOLUTION_API_KEY || ""
   if (!evoUrl || !ctx.evolutionInstance || !authKey) throw new Error("Faltan credenciales de Evolution para confirmar el pedido")
 
-  await sendText(evoUrl, ctx.evolutionInstance, authKey, to,
-    "¡Gracias! Recibimos tu comprobante. Tu pedido ha sido confirmado y enviado a preparación.")
-
-  if (!ctx.notifPhone) return
+  if (!ctx.notifPhone) throw new Error("No hay un número de encargado configurado para recibir el comprobante")
   const rawDigits = ctx.notifPhone.replace(/\D/g, "")
   const noLeadingZero = rawDigits.startsWith("0") ? rawDigits.slice(1) : rawDigits
   const managerPhone = noLeadingZero.startsWith("593") ? noLeadingZero : `593${noLeadingZero}`
-  const managerJid = `${managerPhone}@s.whatsapp.net`
+  const managerNumber = managerPhone
   const notifMsg = [
     `🛒 *PEDIDO CONFIRMADO — ${ctx.companyName}*`,
     `🍽 *Detalle:* ${order.plato || "No especificado"}`,
@@ -184,7 +184,7 @@ export async function handleOrderReceipt(
     `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
     "📎 Comprobante adjunto a continuación.",
   ].join("\n")
-  await sendText(evoUrl, ctx.evolutionInstance, authKey, managerJid, notifMsg)
+  await sendText(evoUrl, ctx.evolutionInstance, authKey, managerNumber, notifMsg)
 
   try {
     const recentLocation = await prisma.chatHistory.findFirst({
@@ -196,7 +196,7 @@ export async function handleOrderReceipt(
       const lng = Number(recentLocation.content.match(/lng=([^,\]]+)/)?.[1])
       const name = recentLocation.content.match(/name=([^\]]+)/)?.[1] || "Ubicación del cliente"
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        await sendLocation(evoUrl, ctx.evolutionInstance, authKey, managerJid, name, order.direccion || "Dirección del cliente", lat, lng)
+        await sendLocation(evoUrl, ctx.evolutionInstance, authKey, managerNumber, name, order.direccion || "Dirección del cliente", lat, lng)
       }
     }
   } catch (error: any) {
@@ -204,7 +204,11 @@ export async function handleOrderReceipt(
   }
 
   const media = (msg.imageBase64 && msg.imageMimetype ? `data:${msg.imageMimetype};base64,${msg.imageBase64}` : null) || msg.imageUrl
-  if (media) await sendMedia(evoUrl, ctx.evolutionInstance, authKey, managerJid, media, "Comprobante de pago del cliente")
+  if (!media) throw new Error("Evolution no incluyó la imagen en base64 ni una URL descargable")
+  await sendMedia(evoUrl, ctx.evolutionInstance, authKey, managerNumber, media, "Comprobante de pago del cliente")
+
+  await sendText(evoUrl, ctx.evolutionInstance, authKey, to,
+    "¡Gracias! Recibimos tu comprobante. Tu pedido ha sido confirmado y enviado a preparación.")
 }
 
 function getEcuadorWeekday(date: Date): string {
