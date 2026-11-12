@@ -630,13 +630,11 @@ const DashboardContent = () => {
                         )}>
                           <module.icon className={cn("w-6 h-6", module.enabled ? "text-white" : "text-gray-400")} strokeWidth={1.5} />
                         </div>
-                        <button
+                        <motion.button
                           onClick={() => toggleModule(module.id)}
-                          className={cn(
-                            "relative w-14 h-7 rounded-full transition-all duration-300",
-                            "shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]",
-                            module.enabled ? "bg-gray-900" : "bg-gray-300"
-                          )}
+                          animate={{ backgroundColor: module.enabled ? "#111827" : "#d1d5db" }}
+                          transition={{ duration: 0.3 }}
+                          className="relative w-14 h-7 rounded-full shadow-[inset_0_2px_8px_rgba(0,0,0,0.1)]"
                         >
                           <motion.div
                             animate={{ x: module.enabled ? 28 : 2 }}
@@ -646,7 +644,7 @@ const DashboardContent = () => {
                               module.enabled ? "bg-white" : "bg-gray-100"
                             )}
                           />
-                        </button>
+                        </motion.button>
                       </div>
                       <h3 className={cn("text-2xl font-semibold mb-3 tracking-tight", module.enabled ? "text-gray-900" : "text-gray-400")}>
                         {module.name}
@@ -682,12 +680,12 @@ const DashboardContent = () => {
                         </button>
                       )}
 
-                      {module.id === "transfers" && (
+                      {module.id === "transfers" && module.enabled && (
                         <button
                           onClick={() => setShowTransferModal(true)}
                           className="mt-4 text-xs font-semibold text-gray-900 hover:text-gray-700 underline transition-colors block text-left rounded-lg p-2.5"
                         >
-                          {module.enabled ? "Editar Transferencias" : "Configurar Transferencias"}
+                          Configurar Transferencias
                         </button>
                       )}
 
@@ -695,6 +693,7 @@ const DashboardContent = () => {
                     </div>
                     {module.enabled && (
                       <motion.div
+                        key={`${module.id}-active-indicator`}
                         initial={{ scaleX: 0 }}
                         animate={{ scaleX: 1 }}
                         className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-300 via-gray-800 to-gray-300"
