@@ -14,6 +14,106 @@ import { ParsedMessage } from "./logic-filter"
 
 const MAX_HISTORY = 10 // Últimos N mensajes a cargar
 
+const MENU_LOOKUP_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "buscar_menu",
+    description: "Busca únicamente productos, tamaños, ingredientes y precios verificados del menú oficial de este negocio en PostgreSQL. Úsala antes de responder una consulta sobre disponibilidad, un producto concreto, precios, tamaños o antes de añadir un producto a un pedido.",
+    parameters: {
+      type: "object",
+      properties: {
+        consulta: {
+          type: "string",
+          description: "Producto, categoría, tamaño o palabras que el cliente mencionó. Conserva nombres relevantes como 'típica', 'calzone' o 'mediana'."
+        },
+        categoria: {
+          type: "string",
+          description: "Categoría solicitada si el cliente la mencionó, por ejemplo pizzas, bebidas o acompañamientos."
+        }
+      },
+      required: ["consulta"],
+      additionalProperties: false
+    }
+  }
+}
+
+type MenuCatalogItem = {
+  nombre?: string
+  categoria?: string
+  especificacion?: string
+  descripcion?: string
+  tamanos?: Array<{ nombre?: string; precio?: string | null }>
+  precio?: string | null
+}
+
+const normalizeMenuText = (value: string) => value
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+
+async function buscarMenuEnBaseDeDatos(organizationId: string, consulta: string, categoria?: string) {
+  // La consulta llega parametrizada a Prisma; nunca interpolamos texto del cliente en SQL.
+  const [businessConfig, products] = await Promise.all([
+    prisma.businessConfig.findUnique({
+      where: { organizationId },
+      select: { config: true }
+    }),
+    prisma.product.findMany({
+      where: { organizationId },
+      select: { category: true, brand: true, characteristics: true }
+    })
+  ])
+
+  const config = (businessConfig?.config ?? {}) as { context?: { menuCatalog?: MenuCatalogItem[] } }
+  const extractedCatalog = Array.isArray(config.context?.menuCatalog) ? config.context.menuCatalog : []
+  const catalog: MenuCatalogItem[] = extractedCatalog.length > 0
+    ? extractedCatalog
+    : products.map(product => ({
+        nombre: product.category ?? "",
+        especificacion: product.characteristics ?? "",
+        precio: product.brand ?? null,
+      }))
+
+  const ignoredTerms = new Set(["quiero", "una", "uno", "unos", "unas", "el", "la", "los", "las", "de", "del", "con", "para", "por", "favor", "tienen", "tiene", "hay", "me", "dame", "pedir"])
+  const queryTerms = normalizeMenuText(consulta)
+    .split(/[^a-z0-9]+/)
+    .filter(term => term.length > 1 && !ignoredTerms.has(term))
+  const categoryTerm = categoria ? normalizeMenuText(categoria) : ""
+
+  const results = catalog
+    .map(item => {
+      const searchable = normalizeMenuText([
+        item.nombre,
+        item.categoria,
+        item.especificacion,
+        item.descripcion,
+        ...(item.tamanos ?? []).flatMap(size => [size.nombre, size.precio])
+      ].filter(Boolean).join(" "))
+      const score = queryTerms.reduce((total, term) => total + (searchable.includes(term) ? 1 : 0), 0)
+      const categoryMatches = !categoryTerm || normalizeMenuText(item.categoria ?? "").includes(categoryTerm)
+      return { item, score, categoryMatches }
+    })
+    .filter(({ score, categoryMatches }) => score > 0 && categoryMatches)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map(({ item }) => ({
+      nombre: item.nombre ?? "",
+      categoria: item.categoria ?? "",
+      especificacion: item.especificacion ?? item.descripcion ?? "",
+      tamanos: item.tamanos ?? (item.precio ? [{ nombre: "Único", precio: item.precio }] : [])
+    }))
+
+  return {
+    consulta,
+    fuente: extractedCatalog.length > 0 ? "menuCatalog oficial" : "productos registrados",
+    productos: results,
+    encontrado: results.length > 0,
+    mensaje: results.length > 0
+      ? "Coincidencias verificadas en PostgreSQL. No inventes datos fuera de estos resultados."
+      : "No hay coincidencias verificadas para esta consulta en PostgreSQL."
+  }
+}
+
 function formatToEcuadorTime(isoStr: string): string {
   try {
     const d = new Date(isoStr);
@@ -120,37 +220,17 @@ function buildSystemPrompt(
     scheduleStr = `\n${mappedDays.join("\n")}`;
   }
 
-  // ── Catálogo de productos formateado ──────────────────────────────
+  // ── Catálogo de productos ─────────────────────────────────────────
+  // No se inyecta completo en el prompt: el modelo debe consultarlo mediante buscar_menu.
   const hasUploadedMenu = Boolean(ctx.menuPdfUrl || ctx.menuImages?.length)
   const catalogStr =
     hasUploadedMenu
       ? ctx.menuCatalog?.length
-      ? ctx.menuCatalog.map((item, i) => [
-          `[Menú ${i + 1}]`,
-          item.nombre ? `Nombre: ${item.nombre}` : null,
-          item.categoria ? `Categoría: ${item.categoria}` : null,
-          (item.especificacion || item.descripcion) ? `Especificación explícita: ${item.especificacion || item.descripcion}` : null,
-          item.tamanos?.length
-            ? `Tamaños y precios asociados:\n${item.tamanos.map(t => `- ${t.nombre}: ${t.precio || "precio no indicado"}`).join("\n")}`
-            : item.precio ? `Precio: ${item.precio}` : null,
-        ].filter(Boolean).join("\n")).join("\n\n")
-      : "Menú cargado, pero no se pudo extraer ningún producto verificable. No confirmar ni recomendar productos; pedir confirmación al negocio."
+        ? "El menú oficial está almacenado en PostgreSQL. No contiene productos visibles en este prompt: consulta buscar_menu antes de responder cualquier pregunta sobre productos, disponibilidad, tamaños, ingredientes o precios."
+        : "Menú cargado, pero no se pudo extraer ningún producto verificable. No confirmar ni recomendar productos; pedir confirmación al negocio."
       : ctx.products.length > 0
-      ? ctx.products
-          .filter(p => p.primaryColor !== "Menú" && p.category !== "MENÚ_COMPLETO" && p.category !== "SERVICIO") 
-          .map((p, i) => {
-            const hasDesc = p.characteristics && p.characteristics.trim().toLowerCase() !== "entrada manual"
-            const parts = [
-              `[Item ${i + 1}]`,
-              p.category ? `Nombre: ${p.category}` : null,
-              p.brand ? `Información/Precio: ${p.brand}` : null,
-              hasDesc ? `Descripción: ${p.characteristics}` : null,
-              p.imageUrl ? `Foto: ${p.imageUrl}` : null,
-            ].filter(Boolean)
-            return parts.join("\n")
-          })
-          .join("\n\n")
-      : "No hay productos o servicios cargados en el sistema."
+        ? "Los productos registrados están almacenados en PostgreSQL. Consulta buscar_menu antes de responder preguntas sobre productos, disponibilidad o precios."
+        : "No hay productos o servicios cargados en el sistema."
 
 
   // ── Información de contacto y redes ───────────────────────────────
@@ -175,20 +255,6 @@ function buildSystemPrompt(
       locationRules = `📌 UBICACIÓN: Si el cliente pregunta por la ubicación del local, la dirección o cómo llegar, dile que le enviarás el mapa con la ubicación exacta en un momento y DEBES emitir OBLIGATORIAMENTE la etiqueta oculta al final de tu respuesta: ENVIAR_UBICACION:{}`
     }
   }
-
-  // ── Identificar Menús/Servicios ──────────────────────────────────
-  const menuProducts = hasUploadedMenu || ctx.menuCatalog?.length ? [] : ctx.products.filter(p => 
-    p.category === "MENÚ_COMPLETO" || p.primaryColor === "Menú" || p.category === "SERVICIO"
-  )
-  const menuInfo = menuProducts.map(m => {
-    const hasDesc = m.characteristics && m.characteristics.trim().toLowerCase() !== "entrada manual"
-    const parts = [
-      m.category ? `Nombre: ${m.category}` : null,
-      m.brand ? `Precio/Valor: ${m.brand}` : null,
-      hasDesc ? `Descripción: ${m.characteristics}` : null,
-    ].filter(Boolean)
-    return parts.join(" | ")
-  }).join("\n")
 
   // ── Promociones / Lealtad ──────────────────────────────────────────
   let loyaltyStr = ""
@@ -475,11 +541,11 @@ ${activeReservaStr}
 CONOCIMIENTO BASE
 ═══════════════════════════════════════
 ${catalogStr}
-${menuInfo ? `\nCATALOGO DETALLADO:\n${menuInfo}` : ""}
 
 ═══════════════════════════════════════
 ⚠️ REGLAS DE ORO (VERACIDAD Y CONTROL)
 ═══════════════════════════════════════
+- USO OBLIGATORIO DE HERRAMIENTA: Ante cualquier solicitud de un producto, categoría, disponibilidad, precio, tamaño, ingrediente o intención de pedido, llama primero a \`buscar_menu\` con las palabras relevantes del cliente. Redacta la respuesta únicamente después de recibir su resultado. El resultado de la herramienta es la fuente de verdad; no inventes ni uses recuerdos del menú.
 - CERO PEDIDOS FANTASMA: Antes de emitir PEDIDO_CONFIRMADO o PEDIDO_PENDIENTE_COMPROBANTE, o de enviar una orden/notificación a recepción o cocina, es OBLIGATORIO contar con el nombre completo y la dirección exacta del cliente (o la modalidad de retiro confirmada, si aplica). Nunca uses "No especificado", texto de ejemplo ni valores vacíos en los campos \`nombre\` o \`direccion\`. Si falta cualquiera de estos datos, no emitas la etiqueta de pedido: solicítalo al cliente y espera su respuesta.
 - PEDIDOS MULTICATEGORÍA — REVISIÓN COMPLETA: Cuando el cliente pida productos de distintas categorías en un mismo mensaje (por ejemplo pizzas, lasañas, hamburguesas, bebidas o acompañamientos), desglosa cada ítem por separado con su cantidad, tamaño y especificaciones. Conserva TODOS los ítems durante la conversación, revísalos uno por uno antes de calcular el total y muéstralos completos en el resumen final. No cierres ni confirmes un pedido hasta comprobar que no se omitieron bebidas, acompañamientos ni productos de otra categoría.
 - VALIDACIÓN ESTRICTA DEL MENÚ: Antes de decir que un producto no existe, consulta y revisa todo el CONOCIMIENTO BASE / MENÚ, incluidos sus nombres, categorías, tamaños y variantes disponibles. Nunca declares inexistente un producto oficial que figure en el catálogo (por ejemplo, Calzone). Solo comunica que no está disponible después de verificar que no aparece en el catálogo actual; si hay ambigüedad de nombre, pide aclaración o ofrece las coincidencias del menú.
@@ -598,19 +664,73 @@ export async function runCore(
     orderBy: { updatedAt: "desc" }
   })
 
-  const completion = await openai.chat.completions.create({
+  const completionMessages: any[] = [
+    { role: "system", content: buildSystemPrompt(ctx, sentryResult, history.length === 0, activeReserva) },
+    ...historyMessages,
+    { role: "user", content: userContent },
+  ]
+  const debeConsultarMenu = Boolean(ctx.menuCatalog?.length || ctx.products.length) &&
+    (sentryResult.needs_inventory || sentryResult.intent === "VENTAS" || sentryResult.intent === "CONSULTA_PRODUCTO")
+
+  let completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: buildSystemPrompt(ctx, sentryResult, history.length === 0, activeReserva) },
-      ...historyMessages,
-      { role: "user", content: userContent },
-    ],
+    messages: completionMessages,
+    tools: [MENU_LOOKUP_TOOL],
+    // Para una intención de venta o consulta el primer paso siempre es consultar PostgreSQL.
+    tool_choice: debeConsultarMenu ? { type: "function", function: { name: "buscar_menu" } } : "auto",
+    parallel_tool_calls: false,
     max_tokens: 600,
     temperature: 0.7,
   })
 
+  let tokensUsed = completion.usage?.total_tokens ?? 0
+
+  // Permite una consulta al menú y una consulta de seguimiento (por ejemplo,
+  // producto y bebida) antes de forzar la respuesta final al cliente.
+  for (let lookupRound = 0; lookupRound < 2; lookupRound++) {
+    const assistantMessage = completion.choices[0]?.message
+    const toolCalls = assistantMessage?.tool_calls ?? []
+    if (toolCalls.length === 0 || !assistantMessage) break
+
+    completionMessages.push(assistantMessage)
+    let executedLookup = false
+    for (const toolCall of toolCalls) {
+      if (toolCall.type !== "function" || toolCall.function.name !== "buscar_menu") continue
+      executedLookup = true
+      let args: { consulta?: string; categoria?: string } = {}
+      try {
+        args = JSON.parse(toolCall.function.arguments)
+      } catch {
+        // El modelo recibió el esquema; si no devuelve JSON válido, evitamos una consulta ambigua.
+      }
+
+      const consulta = args.consulta?.trim()
+      const result = consulta
+        ? await buscarMenuEnBaseDeDatos(ctx.organizationId, consulta, args.categoria?.trim())
+        : { encontrado: false, productos: [], mensaje: "La consulta no incluyó un producto o término válido." }
+
+      completionMessages.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(result),
+      })
+    }
+
+    if (!executedLookup) break
+
+    completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: completionMessages,
+      tools: [MENU_LOOKUP_TOOL],
+      tool_choice: "auto",
+      parallel_tool_calls: false,
+      max_tokens: 600,
+      temperature: 0.7,
+    })
+    tokensUsed += completion.usage?.total_tokens ?? 0
+  }
+
   const rawResponse = completion.choices[0]?.message?.content ?? ""
-  const tokensUsed = completion.usage?.total_tokens ?? 0
 
   // ── 4. Parsear etiquetas de control ──────────────────────────────
   const fotoMatches = Array.from(rawResponse.matchAll(/(?:FOTO_URL|DOCUMENTO_URL|PDF_URL):\s*(https?:\/\/[^\s\)\>]+)/gi))
