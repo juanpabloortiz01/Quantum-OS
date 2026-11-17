@@ -123,7 +123,10 @@ export async function executePipeline(msg: ParsedMessage): Promise<PipelineResul
       },
       orderBy: { createdAt: "desc" },
     })
-    const pendingMatch = pendingAssistant?.content.match(/PEDIDO_PENDIENTE_COMPROBANTE:(\{[^\n]+\})/i)
+    // El modelo puede formatear el JSON del pedido en varias líneas; no lo envíes
+    // al Core por esa diferencia de formato, porque la URL temporal del comprobante
+    // no es accesible para OpenAI.
+    const pendingMatch = pendingAssistant?.content.match(/PEDIDO_PENDIENTE_COMPROBANTE:\s*(\{[\s\S]*?\})/i)
     if (pendingAssistant && pendingMatch) {
       try {
         const order = JSON.parse(pendingMatch[1])

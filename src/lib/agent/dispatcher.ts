@@ -127,6 +127,47 @@ async function sendMedia(
 }
 
 /**
+ * Las URLs de media de WhatsApp son temporales y requieren credenciales de
+ * Evolution; no deben reenviarse ni entregarse al modelo directamente.
+ */
+async function getReceiptMediaAsDataUri(
+  evoUrl: string,
+  instanceName: string,
+  token: string,
+  msg: ParsedMessage
+): Promise<string | null> {
+  if (msg.imageBase64 && msg.imageMimetype) {
+    return `data:${msg.imageMimetype};base64,${msg.imageBase64}`
+  }
+
+  if (!msg.mediaMessage) return null
+
+  const response = await fetch(`${evoUrl}/chat/getBase64FromMediaMessage/${instanceName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: token,
+    },
+    body: JSON.stringify({ message: msg.mediaMessage, convertToMp4: false }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => response.statusText)
+    throw new Error(`EVO_GET_RECEIPT_BASE64_ERROR [${response.status}]: ${detail}`)
+  }
+
+  const payload = await response.json()
+  const base64 = typeof payload === "string"
+    ? payload
+    : payload?.base64 ?? payload?.data?.base64 ?? payload?.media ?? payload?.data
+  if (typeof base64 !== "string" || !base64.trim()) return null
+
+  return base64.startsWith("data:")
+    ? base64
+    : `data:${msg.imageMimetype || "image/jpeg"};base64,${base64}`
+}
+
+/**
  * Envía un mensaje de ubicación por EvolutionAPI.
  */
 async function sendLocation(
@@ -203,8 +244,8 @@ export async function handleOrderReceipt(
     console.warn("[DISPATCHER_RECEIPT_LOCATION_WARN]:", error?.message)
   }
 
-  const media = (msg.imageBase64 && msg.imageMimetype ? `data:${msg.imageMimetype};base64,${msg.imageBase64}` : null) || msg.imageUrl
-  if (!media) throw new Error("Evolution no incluyó la imagen en base64 ni una URL descargable")
+  const media = await getReceiptMediaAsDataUri(evoUrl, ctx.evolutionInstance, authKey, msg)
+  if (!media) throw new Error("Evolution no entregó el comprobante en base64 y no fue posible recuperarlo autenticadamente")
   await sendMedia(evoUrl, ctx.evolutionInstance, authKey, managerNumber, media, "Comprobante de pago del cliente")
 
   await sendText(evoUrl, ctx.evolutionInstance, authKey, to,

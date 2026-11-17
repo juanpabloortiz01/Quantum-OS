@@ -38,6 +38,9 @@ export interface ParsedMessage {
   imageUrl: string | null       // Base64 o URL directa de EvolutionAPI
   imageBase64: string | null
   imageMimetype: string | null
+  // WebMessageInfo original: se usa solo para pedir a Evolution el base64 autenticado
+  // cuando el webhook no lo incluye.
+  mediaMessage: unknown | null
   fromMe: boolean
   pushName: string | null
   timestamp: number
@@ -199,6 +202,7 @@ export function applyLogicFilter(raw: any): FilterResult {
       imageUrl,
       imageBase64,
       imageMimetype,
+      mediaMessage: rawType === "imageMessage" ? data : null,
       fromMe,
       pushName,
       timestamp,

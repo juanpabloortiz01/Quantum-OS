@@ -635,9 +635,12 @@ export async function runCore(
         },
       })
     } else if (msg.imageUrl) {
+      // La URL de WhatsApp/Evolution suele requerir autenticación y OpenAI no puede
+      // descargarla (403). El comprobante se recupera y reenvía por el pipeline,
+      // nunca se procesa desde esta URL temporal en el Core.
       userContent.push({
-        type: "image_url",
-        image_url: { url: msg.imageUrl, detail: "low" },
+        type: "text",
+        text: "(El cliente envió una imagen protegida que no está disponible para análisis visual.)",
       })
     }
 
