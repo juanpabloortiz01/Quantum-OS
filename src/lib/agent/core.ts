@@ -753,6 +753,7 @@ export async function runCore(
     const finalCompletion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: completionMessages,
+      tools: [MENU_LOOKUP_TOOL],
       tool_choice: "none",
       max_tokens: 600,
       temperature: 0.7,
