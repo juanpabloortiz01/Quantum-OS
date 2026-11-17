@@ -736,7 +736,38 @@ export async function runCore(
     tokensUsed += completion.usage?.total_tokens ?? 0
   }
 
-  const rawResponse = completion.choices[0]?.message?.content ?? ""
+  // Si tras resolver las tools el modelo no emitió texto final o sigue con llamadas a tools,
+  // forzamos la redacción final de la respuesta con tool_choice: "none".
+  const lastMsg = completion.choices[0]?.message
+  if (!lastMsg?.content?.trim() && lastMsg?.tool_calls?.length) {
+    completionMessages.push(lastMsg)
+    // Resolver cualquier tool_call restante pendiente con un payload vacío para evitar error de API
+    for (const pendingTool of lastMsg.tool_calls) {
+      completionMessages.push({
+        role: "tool",
+        tool_call_id: pendingTool.id,
+        content: JSON.stringify({ encontrado: false, mensaje: "Búsqueda finalizada." })
+      })
+    }
+
+    const finalCompletion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: completionMessages,
+      tool_choice: "none",
+      max_tokens: 600,
+      temperature: 0.7,
+    })
+    tokensUsed += finalCompletion.usage?.total_tokens ?? 0
+    completion = finalCompletion
+  }
+
+  let rawResponse = completion.choices[0]?.message?.content ?? ""
+
+  // Si por alguna razón extrema el modelo devuelve texto vacío, usamos un fallback conversacional seguro
+  if (!rawResponse.trim()) {
+    console.warn("[CORE_WARN]: rawResponse vacía de OpenAI. Aplicando fallback de cortesía.")
+    rawResponse = `¡Hola! Con gusto te ayudo con tu pedido en *${ctx.companyName}*. ¿Podrías indicarme qué producto o pizza te gustaría ordenar para verificarlo de inmediato? [SUMMARY: Consulta de pedido]`
+  }
 
   // ── 4. Parsear etiquetas de control ──────────────────────────────
   const fotoMatches = Array.from(rawResponse.matchAll(/(?:FOTO_URL|DOCUMENTO_URL|PDF_URL):\s*(https?:\/\/[^\s\)\>]+)/gi))
@@ -920,6 +951,13 @@ export async function runCore(
     .replace(/:\s*$/g, "") // Eliminar dos puntos al final de una frase si queda vacía la continuación
     .replace(/\n{3,}/g, "\n\n")
     .trim()
+
+  if (!cleanText) {
+    cleanText = rawResponse.replace(/\[USER_NAME:[^\]]+\]/gi, "").replace(/\[SUMMARY:[^\]]+\]/gi, "").trim()
+    if (!cleanText) {
+      cleanText = `¡Hola! Con gusto te ayudo con tu pedido en *${ctx.companyName}*. ¿Podrías indicarme qué pizza o producto te gustaría ordenar?`
+    }
+  }
 
   // ── 6. Persistir en historial ─────────────────────────────────────
   await prisma.chatHistory.createMany({
