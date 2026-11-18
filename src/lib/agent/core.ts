@@ -221,16 +221,36 @@ function buildSystemPrompt(
   }
 
   // ── Catálogo de productos ─────────────────────────────────────────
-  // No se inyecta completo en el prompt: el modelo debe consultarlo mediante buscar_menu.
+  // Si existe un menú estructurado o productos registrados, se formatea un resumen
+  // claro y completo en el prompt para que el modelo conozca TODO lo que vende el negocio
+  // de inmediato (sin riesgo de alucinar que un producto como "alitas" no existe en pedidos largos),
+  // y a la vez puede usar buscar_menu para detalles específicos.
   const hasUploadedMenu = Boolean(ctx.menuPdfUrl || ctx.menuImages?.length)
-  const catalogStr =
-    hasUploadedMenu
-      ? ctx.menuCatalog?.length
-        ? "El menú oficial está almacenado en PostgreSQL. No contiene productos visibles en este prompt: consulta buscar_menu antes de responder cualquier pregunta sobre productos, disponibilidad, tamaños, ingredientes o precios."
-        : "Menú cargado, pero no se pudo extraer ningún producto verificable. No confirmar ni recomendar productos; pedir confirmación al negocio."
-      : ctx.products.length > 0
-        ? "Los productos registrados están almacenados en PostgreSQL. Consulta buscar_menu antes de responder preguntas sobre productos, disponibilidad o precios."
-        : "No hay productos o servicios cargados en el sistema."
+  let catalogStr = ""
+  if (ctx.menuCatalog && ctx.menuCatalog.length > 0) {
+    const formattedItems = ctx.menuCatalog.map((item, idx) => {
+      const cat = item.categoria ? `[${item.categoria}] ` : ""
+      const sizes = item.tamanos?.length
+        ? ` (Tamaños/Precios: ${item.tamanos.map(t => `${t.nombre}: $${t.precio}`).join(", ")})`
+        : item.precio ? ` (Precio: $${item.precio})` : ""
+      const desc = item.especificacion || item.descripcion ? ` - Ingredientes/Detalle: ${item.especificacion || item.descripcion}` : ""
+      return `${idx + 1}. ${cat}*${item.nombre}*${sizes}${desc}`
+    }).join("\n")
+
+    catalogStr = `📋 MENÚ OFICIAL REGISTRADO:\n${formattedItems}\n\n⚠️ REGLA: Este es el menú 100% verificado del negocio. TODO producto que aparezca en esta lista SÍ EXISTE y está disponible. Si el cliente pide algo que está en esta lista (como alitas, calzone, pizzas, bebidas, etc.), NUNCA digas que no lo tienes. Usa buscar_menu si requieres verificar detalles adicionales.`
+  } else if (ctx.products && ctx.products.length > 0) {
+    const formattedProducts = ctx.products.map((p, idx) => {
+      const cat = p.category ? `[${p.category}] ` : ""
+      const price = p.brand ? ` ($${p.brand})` : ""
+      const char = p.characteristics ? ` - ${p.characteristics}` : ""
+      return `${idx + 1}. ${cat}*${p.category || "Producto"}*${price}${char}`
+    }).join("\n")
+    catalogStr = `📋 PRODUCTOS REGISTRADOS:\n${formattedProducts}\n\n⚠️ REGLA: Estos son los productos disponibles en la base de datos.`
+  } else if (hasUploadedMenu) {
+    catalogStr = "Menú cargado en archivo, pero sin catálogo estructurado extraído. Consulta buscar_menu y no inventes platos no confirmados."
+  } else {
+    catalogStr = "No hay productos o servicios cargados en el sistema."
+  }
 
 
   // ── Información de contacto y redes ───────────────────────────────
@@ -545,7 +565,7 @@ ${catalogStr}
 ═══════════════════════════════════════
 ⚠️ REGLAS DE ORO (VERACIDAD Y CONTROL)
 ═══════════════════════════════════════
-- USO OBLIGATORIO DE HERRAMIENTA: Ante cualquier solicitud de un producto, categoría, disponibilidad, precio, tamaño, ingrediente o intención de pedido, llama primero a \`buscar_menu\` con las palabras relevantes del cliente. Redacta la respuesta únicamente después de recibir su resultado. El resultado de la herramienta es la fuente de verdad; no inventes ni uses recuerdos del menú.
+- USO DE HERRAMIENTA Y MENÚ: Ante cualquier solicitud de un producto, disponibilidad, precio, tamaño o ingrediente, cuentas con el MENÚ OFICIAL en tu CONOCIMIENTO BASE y la herramienta buscar_menu para profundizar. Si un producto está en el MENÚ OFICIAL (por ejemplo alitas, pizzas, bebidas, entradas), SÍ existe y debes tomarlo en cuenta. Nunca niegues un producto que figure en tu CONOCIMIENTO BASE ni inventes productos que no figuren en él.
 - PEDIDO — RESPUESTAS SIN REPETICIONES: Cuando ya se hayan confirmado productos, tamaños y cantidades, no los repitas ni digas frases como "Has elegido..." al pedir el siguiente dato. Pide solamente el dato que falte, de manera breve.
 - UBICACIÓN COMPARTIDA COMO DIRECCIÓN VÁLIDA: El texto \`[UBICACIÓN_ENVIADA:lat=...,lng=...,name=...]\` significa que el cliente compartió su ubicación por WhatsApp. Es una dirección de entrega VÁLIDA y suficiente: nunca vuelvas a pedir dirección escrita, exacta, referencias ni confirmación de dirección. Conserva \`direccion\` como "Ubicación compartida por WhatsApp" en la etiqueta de pedido; el sistema reenvía el mapa y sus coordenadas al encargado. Si ya tienes los productos y el nombre del cliente, al recibir esta ubicación DEBES mostrar el resumen completo (ítems, cantidades, total y "Ubicación compartida por WhatsApp") y pedir exactamente: "Por favor responde *CONFIRMAR* para enviar tu orden a preparación." NO envíes aún los datos bancarios ni emitas \`PEDIDO_PENDIENTE_COMPROBANTE\`. Solo cuando el cliente responda explícitamente CONFIRMAR, envía los datos bancarios y emite \`PEDIDO_PENDIENTE_COMPROBANTE\`; así, al llegar la imagen del comprobante, el sistema reenvía al encargado el detalle, el mapa y el comprobante.
 - COMPROBANTE SOLO DESPUÉS DEL PAGO PENDIENTE: No digas que recibiste un comprobante, que el pedido está confirmado ni que está en preparación solo porque el cliente envió una imagen. Eso ocurre automáticamente únicamente cuando existe en el historial la etiqueta \`PEDIDO_PENDIENTE_COMPROBANTE\`, generada después de que el cliente respondió CONFIRMAR. Si no existe esa etiqueta, informa brevemente que primero debe confirmar el resumen del pedido.
@@ -684,16 +704,16 @@ export async function runCore(
     tools: [MENU_LOOKUP_TOOL],
     // Para una intención de venta o consulta el primer paso siempre es consultar PostgreSQL.
     tool_choice: debeConsultarMenu ? { type: "function", function: { name: "buscar_menu" } } : "auto",
-    parallel_tool_calls: false,
+    parallel_tool_calls: true,
     max_tokens: 600,
     temperature: 0.7,
   })
 
   let tokensUsed = completion.usage?.total_tokens ?? 0
 
-  // Permite una consulta al menú y una consulta de seguimiento (por ejemplo,
-  // producto y bebida) antes de forzar la respuesta final al cliente.
-  for (let lookupRound = 0; lookupRound < 2; lookupRound++) {
+  // Permite hasta 3 rondas de búsqueda para cubrir pedidos con múltiples platos,
+  // acompañamientos (alitas, calzones) y bebidas antes de la redacción final.
+  for (let lookupRound = 0; lookupRound < 3; lookupRound++) {
     const assistantMessage = completion.choices[0]?.message
     const toolCalls = assistantMessage?.tool_calls ?? []
     if (toolCalls.length === 0 || !assistantMessage) break
@@ -729,7 +749,7 @@ export async function runCore(
       messages: completionMessages,
       tools: [MENU_LOOKUP_TOOL],
       tool_choice: "auto",
-      parallel_tool_calls: false,
+      parallel_tool_calls: true,
       max_tokens: 600,
       temperature: 0.7,
     })
