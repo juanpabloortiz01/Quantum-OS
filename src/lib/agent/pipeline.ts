@@ -97,8 +97,36 @@ export async function executePipeline(msg: ParsedMessage): Promise<PipelineResul
     })
 
     if (lead && lead.agentActive === false) {
-      console.log(`[PIPELINE]: Agente en pausa para ${msg.remoteJid} por desactivación manual o escalado previo.`)
-      return { status: "FILTERED", reason: "AGENT_DISABLED" }
+      // Verificar si la pausa se debe a un pedido o escalado reciente (ventana de 2 horas)
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+      const lastTerminalEvent = await prisma.chatHistory.findFirst({
+        where: {
+          organizationId: ctxBrief.id,
+          customerPhone: msg.remoteJid,
+          role: "assistant",
+          createdAt: { gte: twoHoursAgo },
+          OR: [
+            { content: { contains: "PEDIDO_CONFIRMADO:" } },
+            { content: { contains: "PEDIDO_COMPROBANTE_RECIBIDO:" } },
+            { content: { contains: "ESCALADO_SOPORTE:" } },
+            { content: { contains: "RESERVA_EXCEDE_LIMITE:" } },
+            { content: { contains: "AGENDAR_CITA:" } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+      })
+
+      if (lastTerminalEvent) {
+        console.log(`[PIPELINE]: Agente en pausa temporal (<2h desde pedido/escalado) para ${msg.remoteJid}.`)
+        return { status: "FILTERED", reason: "AGENT_DISABLED" }
+      } else {
+        // Han pasado más de 2 horas desde el último pedido/escalado: reactivar automáticamente al agente
+        console.log(`[PIPELINE]: Han pasado más de 2 horas desde el pedido/escalado. Reactivando IA para ${msg.remoteJid}.`)
+        await prisma.lead.update({
+          where: { id: lead.id },
+          data: { agentActive: true },
+        })
+      }
     }
   }
 
