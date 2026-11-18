@@ -614,9 +614,9 @@ export interface CoreResult {
   imageUrl: string | null
   imageUrls?: string[]
   isPedidoConfirmado: boolean
-  pedidoData: { plato: string; nombre: string; direccion: string; total?: string } | null
+  pedidoData: { plato: string; nombre: string; direccion: string; total?: string; metodo_pago?: string } | null
   isPedidoPendienteComprobante: boolean
-  pedidoPendienteData: { plato: string; nombre: string; direccion: string; total: string } | null
+  pedidoPendienteData: { plato: string; nombre: string; direccion: string; total: string; metodo_pago?: string } | null
   isPagoSolicitado: boolean
   agendarCita: { service: string; date: string; time: string; customerName: string; cedula: string } | null
   isEscaladoSoporte: boolean
