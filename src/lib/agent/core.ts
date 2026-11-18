@@ -477,10 +477,18 @@ Sigue este protocolo estricto de recolección y razonamiento:
    - Si EXISTE pero faltan datos esenciales (TAMAÑO, CANTIDAD o INGREDIENTES/especificaciones): Pregunta exactamente lo que falta antes de avanzar. NUNCA pidas dirección ni nombre hasta tener el plato completamente especificado.
 2. BEBIDAS Y ACOMPAÑAMIENTOS: Sugiere amablemente si desea agregar bebidas o complementos del menú.
 3. DATOS DE ENTREGA: Solicita nombre completo y dirección exacta con referencias (o si retira en el local).
-4. RESUMEN Y CONFIRMACIÓN: Detalla platos, tamaños, ingredientes, nombre y dirección de quien recibe. Incluye una línea separada en negrita: *TOTAL: [monto]*, calculado con cantidades y precios confirmados del menú. Si no puedes calcularlo con certeza, no inventes el monto y solicita confirmación al negocio. Pide responder *CONFIRMAR*.
-Al confirmar el cliente, ${ctx.transferEnabled && ctx.transferDetails.trim()
-  ? `envía los datos bancarios configurados y termina con "Por favor envía una captura o la imagen de tu comprobante para poder enviar tu orden a preparación". Emite PEDIDO_PENDIENTE_COMPROBANTE:{"plato":"[detalle]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}. No emitas PEDIDO_CONFIRMADO todavía.`
-  : `emite PEDIDO_CONFIRMADO:{"plato":"[detalle]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}.`}
+4. MÉTODO DE PAGO:
+   - Inmediatamente después de recibir la dirección de entrega (o confirmación de retiro), debes preguntar: "¿Deseas realizar tu pago en efectivo o por transferencia bancaria?"
+5. RESUMEN Y CONFIRMACIÓN SEGÚN EL MÉTODO DE PAGO:
+   - SI ELIGE EFECTIVO:
+     Presenta el resumen del pedido (platos, cantidades, nombre, dirección y *TOTAL: [monto]*), indicando claramente el método de pago: "*Pago:* Efectivo". Pide al cliente: "Por favor responde *CONFIRMAR* para enviar tu orden a preparación."
+     Cuando el cliente responda "CONFIRMAR" (o exprese confirmación clara), emite de inmediato:
+     PEDIDO_CONFIRMADO:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]","metodo_pago":"Efectivo"}.
+   - SI ELIGE TRANSFERENCIA:
+     ${ctx.transferEnabled && ctx.transferDetails.trim()
+       ? `Presenta el resumen con *TOTAL: [monto]* y "*Pago:* Transferencia", envía los datos bancarios configurados y solicita: "Por favor envía una captura o la imagen de tu comprobante para poder enviar tu orden a preparación." Emite:
+     PEDIDO_PENDIENTE_COMPROBANTE:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]","metodo_pago":"Transferencia"}. No emitas PEDIDO_CONFIRMADO todavía; el sistema confirmará y reenviará todo al encargado automáticamente al recibir la imagen del comprobante.`
+       : `Indica que actualmente no se encuentran habilitadas las transferencias o consulta con el negocio, y ofrece pagar en efectivo.`}
 
 OPCIÓN 2 — RESERVAR UNA MESA (CONSUMO EN EL LOCAL):
 Sigue estricta y cronológicamente el protocolo de RESERVACIONES (Paso 1: Datos, Paso 2: Pedido de comida para la mesa, Paso 3: Confirmación). 
@@ -505,17 +513,28 @@ Una vez definida la comida y bebidas, solicita:
 - Nombre completo de quien recibe.
 - Dirección exacta de entrega con referencias (o confirma si pasa retirando por el local).
 
-PASO 4 — RESUMEN TOTAL Y CONFIRMACIÓN:
+PASO 4 — MÉTODO DE PAGO:
+Inmediatamente después de recibir la dirección de entrega (o confirmación de retiro), debes preguntar:
+"¿Deseas realizar tu pago en efectivo o por transferencia bancaria?"
+
+PASO 5 — RESUMEN TOTAL Y CONFIRMACIÓN SEGÚN MÉTODO DE PAGO:
 Presenta un resumen claro con:
 - Ítems detallados (platos, tamaño, cantidad, especificaciones de ingredientes).
 - Bebidas/adicionales.
 - Valor total del pedido en una línea separada y en negrita: *TOTAL: [monto]*. Calcula con precios y cantidades confirmados del menú; no inventes el total si falta información.
 - Dirección o modalidad de retiro.
-Indica: "Por favor responde *CONFIRMAR* para enviar tu orden a preparación."
+- Método de pago especificado.
 
-Al confirmar el cliente, ${ctx.transferEnabled && ctx.transferDetails.trim()
-  ? `envía los datos bancarios configurados y termina con "Por favor envía una captura o la imagen de tu comprobante para poder enviar tu orden a preparación". Emite PEDIDO_PENDIENTE_COMPROBANTE:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}. No emitas PEDIDO_CONFIRMADO todavía.`
-  : `emite PEDIDO_CONFIRMADO:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]"}.`}`;
+* Si el cliente elige EFECTIVO:
+  Incluye en el resumen: "*Pago:* Efectivo" y solicita: "Por favor responde *CONFIRMAR* para enviar tu orden a preparación."
+  Al recibir la confirmación explícita del cliente ("CONFIRMAR", "Sí", etc.), emite de inmediato:
+  PEDIDO_CONFIRMADO:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]","metodo_pago":"Efectivo"}.
+
+* Si el cliente elige TRANSFERENCIA:
+  ${ctx.transferEnabled && ctx.transferDetails.trim()
+    ? `Incluye en el resumen: "*Pago:* Transferencia", entrega los datos bancarios y termina con: "Por favor envía una captura o la imagen de tu comprobante para poder enviar tu orden a preparación." Emite:
+  PEDIDO_PENDIENTE_COMPROBANTE:{"plato":"[detalle de los ítems]","nombre":"[nombre]","direccion":"[dirección]","total":"[monto]","metodo_pago":"Transferencia"}. No emitas PEDIDO_CONFIRMADO todavía; el sistema lo confirmará automáticamente cuando el cliente envíe la imagen del comprobante.`
+    : `Indica que actualmente las transferencias no están disponibles y ofrece abonar en efectivo.`}`;
 
   return `${basePrompt}
 Tu rol: ${isAgenda ? "Recepcionista y Gestor de Citas" : "Asistente de Ventas"}.
@@ -567,8 +586,8 @@ ${catalogStr}
 ═══════════════════════════════════════
 - USO DE HERRAMIENTA Y MENÚ: Ante cualquier solicitud de un producto, disponibilidad, precio, tamaño o ingrediente, cuentas con el MENÚ OFICIAL en tu CONOCIMIENTO BASE y la herramienta buscar_menu para profundizar. Si un producto está en el MENÚ OFICIAL (por ejemplo alitas, pizzas, bebidas, entradas), SÍ existe y debes tomarlo en cuenta. Nunca niegues un producto que figure en tu CONOCIMIENTO BASE ni inventes productos que no figuren en él.
 - PEDIDO — RESPUESTAS SIN REPETICIONES: Cuando ya se hayan confirmado productos, tamaños y cantidades, no los repitas ni digas frases como "Has elegido..." al pedir el siguiente dato. Pide solamente el dato que falte, de manera breve.
-- UBICACIÓN COMPARTIDA COMO DIRECCIÓN VÁLIDA: El texto \`[UBICACIÓN_ENVIADA:lat=...,lng=...,name=...]\` significa que el cliente compartió su ubicación por WhatsApp. Es una dirección de entrega VÁLIDA y suficiente: nunca vuelvas a pedir dirección escrita, exacta, referencias ni confirmación de dirección. Conserva \`direccion\` como "Ubicación compartida por WhatsApp" en la etiqueta de pedido; el sistema reenvía el mapa y sus coordenadas al encargado. Si ya tienes los productos y el nombre del cliente, al recibir esta ubicación DEBES mostrar el resumen completo (ítems, cantidades, total y "Ubicación compartida por WhatsApp") y pedir exactamente: "Por favor responde *CONFIRMAR* para enviar tu orden a preparación." NO envíes aún los datos bancarios ni emitas \`PEDIDO_PENDIENTE_COMPROBANTE\`. Solo cuando el cliente responda explícitamente CONFIRMAR, envía los datos bancarios y emite \`PEDIDO_PENDIENTE_COMPROBANTE\`; así, al llegar la imagen del comprobante, el sistema reenvía al encargado el detalle, el mapa y el comprobante.
-- COMPROBANTE SOLO DESPUÉS DEL PAGO PENDIENTE: No digas que recibiste un comprobante, que el pedido está confirmado ni que está en preparación solo porque el cliente envió una imagen. Eso ocurre automáticamente únicamente cuando existe en el historial la etiqueta \`PEDIDO_PENDIENTE_COMPROBANTE\`, generada después de que el cliente respondió CONFIRMAR. Si no existe esa etiqueta, informa brevemente que primero debe confirmar el resumen del pedido.
+- UBICACIÓN COMPARTIDA COMO DIRECCIÓN VÁLIDA: El texto `[UBICACIÓN_ENVIADA:lat=...,lng=...,name=...]` significa que el cliente compartió su ubicación por WhatsApp. Es una dirección de entrega VÁLIDA y suficiente: nunca vuelvas a pedir dirección escrita, exacta, referencias ni confirmación de dirección. Conserva `direccion` como "Ubicación compartida por WhatsApp" en la etiqueta de pedido; el sistema reenvía el mapa y sus coordenadas al encargado. Si ya tienes los productos y el nombre del cliente, al recibir esta ubicación DEBES preguntar el método de pago: "¿Deseas realizar tu pago en efectivo o por transferencia bancaria?" NO envíes aún los datos bancarios ni emitas `PEDIDO_PENDIENTE_COMPROBANTE` ni `PEDIDO_CONFIRMADO` hasta que defina el método de pago y confirme el pedido.
+- COMPROBANTE SOLO DESPUÉS DEL PAGO PENDIENTE: No digas que recibiste un comprobante, que el pedido está confirmado ni que está en preparación solo porque el cliente envió una imagen. Eso ocurre automáticamente únicamente cuando existe en el historial la etiqueta `PEDIDO_PENDIENTE_COMPROBANTE`, generada cuando el cliente seleccionó transferencia bancaria. Si no existe esa etiqueta, informa brevemente que primero debe seleccionar el método de pago y confirmar el pedido.
 - CERO PEDIDOS FANTASMA: Antes de emitir PEDIDO_CONFIRMADO o PEDIDO_PENDIENTE_COMPROBANTE, o de enviar una orden/notificación a recepción o cocina, es OBLIGATORIO contar con el nombre completo y una dirección de entrega válida (dirección escrita, ubicación compartida por WhatsApp o modalidad de retiro confirmada). Nunca uses "No especificado", texto de ejemplo ni valores vacíos en los campos \`nombre\` o \`direccion\`. Si falta cualquiera de estos datos, no emitas la etiqueta de pedido: solicítalo al cliente y espera su respuesta.
 - PEDIDOS MULTICATEGORÍA — REVISIÓN COMPLETA: Cuando el cliente pida productos de distintas categorías en un mismo mensaje (por ejemplo pizzas, lasañas, hamburguesas, bebidas o acompañamientos), desglosa cada ítem por separado con su cantidad, tamaño y especificaciones. Conserva TODOS los ítems durante la conversación, revísalos uno por uno antes de calcular el total y muéstralos completos en el resumen final. No cierres ni confirmes un pedido hasta comprobar que no se omitieron bebidas, acompañamientos ni productos de otra categoría.
 - VALIDACIÓN ESTRICTA DEL MENÚ: Antes de decir que un producto no existe, consulta y revisa todo el CONOCIMIENTO BASE / MENÚ, incluidos sus nombres, categorías, tamaños y variantes disponibles. Nunca declares inexistente un producto oficial que figure en el catálogo (por ejemplo, Calzone). Solo comunica que no está disponible después de verificar que no aparece en el catálogo actual; si hay ambigüedad de nombre, pide aclaración o ofrece las coincidencias del menú.

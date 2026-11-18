@@ -205,7 +205,7 @@ export async function handleOrderReceipt(
   to: string,
   ctx: LoadedContext,
   msg: ParsedMessage,
-  order: { plato: string; nombre: string; direccion: string; total: string }
+  order: { plato: string; nombre: string; direccion: string; total: string; metodo_pago?: string }
 ): Promise<void> {
   const evoUrl = (process.env.EVOLUTION_URL || process.env.EVOLUTION_API_URL || "").replace(/\/$/, "")
   const authKey = ctx.evolutionToken || process.env.EVOLUTION_API_KEY || ""
@@ -220,6 +220,7 @@ export async function handleOrderReceipt(
     `🛒 *PEDIDO CONFIRMADO — ${ctx.companyName}*`,
     `🍽 *Detalle:* ${order.plato || "No especificado"}`,
     `💵 *TOTAL:* ${order.total || "No especificado"}`,
+    `💳 *Pago:* ${order.metodo_pago || "Transferencia"}`,
     `👤 *Recibe:* ${order.nombre || "No especificado"}`,
     `📍 *Dirección:* ${order.direccion || "No especificada"}`,
     `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
@@ -864,6 +865,7 @@ export async function runDispatcher(
           ``,
           `🍽 *Detalle del Pedido:* ${pedido?.plato || "No especificado"}`,
           `💵 *TOTAL:* ${pedido?.total || "No especificado"}`,
+          `💵 *Pago:* ${pedido?.metodo_pago || "Efectivo"}`,
           `👤 *Cliente:* ${pedido?.nombre || "No especificado"}`,
           `📍 *Dirección:* ${pedido?.direccion || "No especificada"}`,
           `📱 *WhatsApp:* ${to.replace("@s.whatsapp.net", "")}`,
